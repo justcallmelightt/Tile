@@ -60,7 +60,21 @@ const breakRanges = [
 const dayNames = ["일", "월", "화", "수", "목", "금", "토"];
 const themeToggle = document.getElementById("themeToggle");
 const todayOnlyToggle = document.getElementById("todayOnlyToggle");
+const customToggle = document.getElementById("customToggle");
+const customPanel = document.getElementById("customPanel");
+const customClose = document.getElementById("customClose");
+const customInput = document.getElementById("customTimetableInput");
+const customLoadExample = document.getElementById("customLoadExample");
+const customSave = document.getElementById("customSave");
+const customReset = document.getElementById("customReset");
 const currentTimeEl = document.getElementById("currentTime");
+const memoToggle = document.getElementById("memoToggle");
+const memoPanel = document.getElementById("memoPanel");
+const memoClose = document.getElementById("memoClose");
+const memoInput = document.getElementById("memoInput");
+const memoSave = document.getElementById("memoSave");
+const memoReset = document.getElementById("memoReset");
+const CELL_EDIT_STORAGE_KEY = "tile-cell-edits";
 
 function triggerButtonPop(buttonEl) {
   if (!buttonEl) return;
@@ -254,6 +268,65 @@ function applyRoomBadges() {
       teacherTag.textContent = `선생님: ${teacher}`;
       subjectWrap.appendChild(teacherTag);
     }
+  });
+}
+
+function loadCellEdits() {
+  const saved = localStorage.getItem(CELL_EDIT_STORAGE_KEY);
+  if (!saved) return;
+
+  try {
+    const edits = JSON.parse(saved);
+
+    Object.entries(edits).forEach(([key, subject]) => {
+      const [period, day] = key.split("_");
+      const row = document.querySelector(`tbody tr[data-period="${period}"]`);
+      if (!row) return;
+
+      const cells = row.querySelectorAll("td[data-subject]");
+      const targetCell = cells[Number(day)];
+      if (!targetCell) return;
+
+      targetCell.dataset.subject = subject;
+      const subjectName = targetCell.querySelector(".subject-name");
+      if (subjectName) subjectName.textContent = subject;
+    });
+
+    applyRoomBadges();
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+function enableTileEditing() {
+  document.querySelectorAll("tbody tr[data-period]").forEach((row) => {
+    const cells = row.querySelectorAll("td[data-subject]");
+
+    cells.forEach((cell, index) => {
+      cell.style.cursor = "pointer";
+
+      cell.addEventListener("click", () => {
+        const currentSubject = cell.dataset.subject || "";
+        const newSubject = prompt("과목 수정", currentSubject);
+
+        if (!newSubject || newSubject.trim() === "") return;
+
+        cell.dataset.subject = newSubject.trim();
+
+        const subjectName = cell.querySelector(".subject-name");
+        if (subjectName) {
+          subjectName.textContent = newSubject.trim();
+        }
+
+        const saved = JSON.parse(localStorage.getItem(CELL_EDIT_STORAGE_KEY) || "{}");
+        const key = `${row.dataset.period}_${index}`;
+        saved[key] = newSubject.trim();
+
+        localStorage.setItem(CELL_EDIT_STORAGE_KEY, JSON.stringify(saved));
+        applyRoomBadges();
+        updateCurrentStatus();
+      });
+    });
   });
 }
 
@@ -582,9 +655,86 @@ if (todayOnlyToggle) {
 updateIPhoneSafeZone();
 initTheme();
 applyTodayOnlyMode();
+loadCellEdits();
 applyRoomBadges();
+enableTileEditing();
 updateCurrentStatus();
 setInterval(updateCurrentStatus, 1000);
+
+if (customToggle && customPanel) {
+  customToggle.addEventListener("click", () => {
+    triggerButtonPop(customToggle);
+    customPanel.classList.toggle("is-open");
+  });
+}
+
+if (customClose && customPanel) {
+  customClose.addEventListener("click", () => {
+    customPanel.classList.remove("is-open");
+  });
+}
+
+if (customInput) {
+  customInput.value = localStorage.getItem("tile-custom-json") || `{
+  "message": "Tile 수정 기능 준비 완료 ✨"
+}`;
+}
+
+if (customSave && customInput) {
+  customSave.addEventListener("click", () => {
+    localStorage.setItem("tile-custom-json", customInput.value);
+    alert("수정 설정 저장 완료 ✨");
+  });
+}
+
+if (customReset && customInput) {
+  customReset.addEventListener("click", () => {
+    localStorage.removeItem("tile-custom-json");
+    customInput.value = "";
+    alert("수정 설정 초기화 완료");
+  });
+}
+
+if (customLoadExample && customInput) {
+  customLoadExample.addEventListener("click", () => {
+    customInput.value = `{
+  "teacher": "권율",
+  "classroom": "Tile Lab"
+}`;
+  });
+}
+
+if (memoToggle && memoPanel) {
+  memoToggle.addEventListener("click", () => {
+    triggerButtonPop(memoToggle);
+    memoPanel.classList.toggle("is-open");
+  });
+}
+
+if (memoClose && memoPanel) {
+  memoClose.addEventListener("click", () => {
+    memoPanel.classList.remove("is-open");
+  });
+}
+
+if (memoInput) {
+  memoInput.value = localStorage.getItem("tile-memo") || "";
+}
+
+if (memoSave && memoInput) {
+  memoSave.addEventListener("click", () => {
+    localStorage.setItem("tile-memo", memoInput.value);
+    alert("메모 저장 완료 ✨");
+  });
+}
+
+if (memoReset && memoInput) {
+  memoReset.addEventListener("click", () => {
+    memoInput.value = "";
+    localStorage.removeItem("tile-memo");
+    alert("메모 초기화 완료");
+  });
+}
 
 window.addEventListener("resize", () => {
   applyTodayOnlyMode();
