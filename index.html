@@ -4,21 +4,23 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" />
-  <title>Tile</title>
+  <title>Tile by 1203 Yul</title>
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
+  <!-- Tile 2.0: large update preparation / future custom timetable platform -->
   <div class="iphone-safe-zone" aria-hidden="true"></div>
 
   <div class="container">
     <div class="hero">
       <div class="hero-copy">
         <h1>Tile</h1>
-        <p class="subtitle">MirimTimeTable 2.0</p>
+        <p class="subtitle">Tile 2.0</p>
       </div>
       <div class="controls">
         <button class="theme-toggle" id="themeToggle" type="button">다크 모드</button>
         <button class="theme-toggle today-toggle" id="todayOnlyToggle" type="button">오늘 일과만 보기</button>
+        <button class="theme-toggle custom-toggle" id="customToggle" type="button">수정</button>
       </div>
     </div>
     <div class="top-grid">
@@ -45,6 +47,28 @@
         </div>
       </div>
     </div>
+
+    <section class="custom-panel" id="customPanel" aria-hidden="true">
+      <div class="custom-panel-header">
+        <div>
+          <h2>Tile 수정</h2>
+          <p>JSON으로 시간표, 교실, 선생님 정보를 수정할 수 있습니다.</p>
+        </div>
+        <button class="custom-close" id="customClose" type="button">닫기</button>
+      </div>
+
+      <textarea id="customTimetableInput" spellcheck="false"></textarea>
+
+      <div class="custom-actions">
+        <button class="theme-toggle" id="customLoadExample" type="button">예시 불러오기</button>
+        <button class="theme-toggle" id="customSave" type="button">저장</button>
+        <button class="theme-toggle" id="customReset" type="button">초기화</button>
+      </div>
+
+      <p class="custom-help">
+        저장된 설정은 이 기기의 브라우저에만 저장됩니다. 문제가 생기면 초기화를 눌러 기본 시간표로 돌아갈 수 있습니다.
+      </p>
+    </section>
 
     <div class="table-shell">
       <table>
@@ -160,7 +184,7 @@
     </div>
 
     <div class="site-footer">
-      <div><strong>구성 언어</strong> · HTML, CSS, JavaScript</div>
+      <div><strong>Tile 2.0</strong> · HTML, CSS, JavaScript</div>
       <div><strong>개발자</strong> · 미림마이스터고등학교 1203 권율 | Insta @justcallmelight_</div>
     </div>
   </div>
