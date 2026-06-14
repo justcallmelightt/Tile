@@ -75,6 +75,30 @@ const memoInput = document.getElementById("memoInput");
 const memoSave = document.getElementById("memoSave");
 const memoReset = document.getElementById("memoReset");
 const CELL_EDIT_STORAGE_KEY = "tile-cell-edits";
+const SUBJECT_MEMO_STORAGE_KEY = "tile-subject-memos";
+let selectedSubjectCell = null;
+
+function updateMemoIndicators() {
+  const memos = JSON.parse(
+    localStorage.getItem(SUBJECT_MEMO_STORAGE_KEY) || "{}"
+  );
+
+  document.querySelectorAll("td[data-subject]").forEach((cell) => {
+    const row = cell.closest("tr"); const cellIndex = Array.from(row.querySelectorAll("td[data-subject]")).indexOf(cell); const memoKey = `${row.dataset.period}_${cellIndex}`;
+    const subjectWrap = cell.querySelector(".subject");
+
+    if (!subjectWrap) return;
+
+    const existing = subjectWrap.querySelector(".memo-indicator");
+    if (existing) existing.remove();
+
+    if (memos[memoKey] && memos[memoKey].trim()) {
+      const dot = document.createElement("span");
+      dot.className = "memo-indicator";
+      subjectWrap.appendChild(dot);
+    }
+  });
+}
 
 function triggerButtonPop(buttonEl) {
   if (!buttonEl) return;
@@ -299,6 +323,15 @@ function loadCellEdits() {
 }
 
 function enableTileEditing() {
+  const subjectPanel = document.getElementById("subjectPanel");
+  const subjectClose = document.getElementById("subjectClose");
+  const subjectName = document.getElementById("subjectName");
+  const subjectRoom = document.getElementById("subjectRoom");
+  const subjectTeacher = document.getElementById("subjectTeacher");
+  const subjectMemo = document.getElementById("subjectMemo");
+  const subjectSave = document.getElementById("subjectSave");
+  const subjectReset = document.getElementById("subjectReset");
+
   document.querySelectorAll("tbody tr[data-period]").forEach((row) => {
     const cells = row.querySelectorAll("td[data-subject]");
 
@@ -306,27 +339,58 @@ function enableTileEditing() {
       cell.style.cursor = "pointer";
 
       cell.addEventListener("click", () => {
-        const currentSubject = cell.dataset.subject || "";
-        const newSubject = prompt("과목 수정", currentSubject);
+        selectedSubjectCell = { cell, row, index };
 
-        if (!newSubject || newSubject.trim() === "") return;
+        const subject = cell.dataset.subject || "";
 
-        cell.dataset.subject = newSubject.trim();
+        if (subjectName) subjectName.textContent = subject;
+        if (subjectRoom) subjectRoom.textContent = classroomMap[subject] || "미지정";
+        if (subjectTeacher) subjectTeacher.textContent = teacherMap[subject] || "미지정";
 
-        const subjectName = cell.querySelector(".subject-name");
-        if (subjectName) {
-          subjectName.textContent = newSubject.trim();
+        const memoKey = `${row.dataset.period}_${index}`;
+        const memos = JSON.parse(localStorage.getItem(SUBJECT_MEMO_STORAGE_KEY) || "{}");
+        if (subjectMemo) {
+          subjectMemo.value = memos[memoKey] || "";
         }
 
-        const saved = JSON.parse(localStorage.getItem(CELL_EDIT_STORAGE_KEY) || "{}");
-        const key = `${row.dataset.period}_${index}`;
-        saved[key] = newSubject.trim();
-
-        localStorage.setItem(CELL_EDIT_STORAGE_KEY, JSON.stringify(saved));
-        applyRoomBadges();
-        updateCurrentStatus();
+        subjectPanel?.classList.add("is-open");
       });
     });
+  });
+
+  subjectClose?.addEventListener("click", () => {
+    subjectPanel?.classList.remove("is-open");
+  });
+
+  subjectSave?.addEventListener("click", () => {
+    if (!selectedSubjectCell) return;
+
+    const period = selectedSubjectCell.row.dataset.period;
+    const index = selectedSubjectCell.index;
+    const memoKey = `${period}_${index}`;
+
+    const memos = JSON.parse(localStorage.getItem(SUBJECT_MEMO_STORAGE_KEY) || "{}");
+    memos[memoKey] = subjectMemo.value;
+    localStorage.setItem(SUBJECT_MEMO_STORAGE_KEY, JSON.stringify(memos));
+
+    updateMemoIndicators();
+    alert("메모 저장 완료 ✨");
+  });
+
+  subjectReset?.addEventListener("click", () => {
+    if (!selectedSubjectCell) return;
+
+    const period = selectedSubjectCell.row.dataset.period;
+    const index = selectedSubjectCell.index;
+    const memoKey = `${period}_${index}`;
+
+    const memos = JSON.parse(localStorage.getItem(SUBJECT_MEMO_STORAGE_KEY) || "{}");
+    delete memos[memoKey];
+    localStorage.setItem(SUBJECT_MEMO_STORAGE_KEY, JSON.stringify(memos));
+
+    if (subjectMemo) subjectMemo.value = "";
+    updateMemoIndicators();
+    alert("메모 초기화 완료");
   });
 }
 
@@ -658,6 +722,7 @@ applyTodayOnlyMode();
 loadCellEdits();
 applyRoomBadges();
 enableTileEditing();
+updateMemoIndicators();
 updateCurrentStatus();
 setInterval(updateCurrentStatus, 1000);
 
@@ -690,8 +755,13 @@ if (customSave && customInput) {
 if (customReset && customInput) {
   customReset.addEventListener("click", () => {
     localStorage.removeItem("tile-custom-json");
-    customInput.value = "";
-    alert("수정 설정 초기화 완료");
+    localStorage.removeItem(CELL_EDIT_STORAGE_KEY);
+
+    customInput.value = `{
+  "message": "Tile 수정 기능 준비 완료 ✨"
+}`;
+
+    alert("시간표 및 설정 초기화 완료. 새로고침 해주세요.");
   });
 }
 
