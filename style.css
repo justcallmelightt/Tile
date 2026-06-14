@@ -77,6 +77,7 @@ body.has-iphone-safe-zone {
   padding: 28px;
   overflow: hidden;
   transition: background 0.28s ease, border-color 0.28s ease, box-shadow 0.28s ease;
+  width: 100%;
 }
 
 .hero {
@@ -112,7 +113,7 @@ h1 {
   display: flex;
   align-items: center;
   gap: 10px;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
 
 .theme-toggle {
@@ -227,6 +228,7 @@ body.dark-mode .theme-toggle.theme-target-light:hover {
 
 .status-card,
 .summary-card {
+  grid-template-columns: 1fr;
   background: var(--surface-strong);
   border: 1px solid var(--border);
   border-radius: 22px;
@@ -380,7 +382,7 @@ body.dark-mode .theme-toggle.theme-target-light:hover {
 table {
   position: relative;
   width: 100%;
-  min-width: 980px;
+  min-width: 760px;
   border-collapse: separate;
   border-spacing: 0;
   table-layout: fixed;
@@ -484,6 +486,7 @@ tbody th:hover {
 }
 
 .subject {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -495,6 +498,17 @@ tbody th:hover {
 .subject-name {
   font-weight: 700;
   letter-spacing: -0.02em;
+}
+
+.memo-indicator {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ff3b30;
+  box-shadow: 0 0 6px rgba(255, 59, 48, 0.45);
 }
 
 .room-info,
@@ -746,7 +760,21 @@ tbody tr.break-target-row > th .time-marker {
   }
 }
 
+body.mobile-today-mode table {
+  width: 100%;
+  min-width: 0;
+}
+
+body.mobile-today-mode col.time-col {
+  width: 44%;
+}
+
+body.mobile-today-mode col.day-col {
+  width: 56%;
+}
+
 @media (max-width: 768px) {
+
   body {
     padding: 16px 10px;
   }
@@ -907,4 +935,50 @@ tbody tr.break-target-row > th .time-marker {
   .summary-card {
     grid-template-columns: 1fr;
   }
+}
+
+@media (max-width: 430px) {
+
+  body {
+    padding: 6px;
+  }
+
+  .container {
+    padding: 12px;
+    border-radius: 16px;
+  }
+
+  .theme-toggle {
+    width: 100%;
+    font-size: 13px;
+  }
+
+  .controls {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .table-shell {
+    padding: 4px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table {
+    min-width: 680px;
+  }
+
+  h1 {
+    font-size: 30px;
+  }
+
+  .status-value {
+    font-size: 14px;
+  }
+
+  .subject-name {
+    font-size: 12px;
+  }
+
 }
