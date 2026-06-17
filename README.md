@@ -1,3 +1,5 @@
+![Tile Banner](TileBanner.png)
+
 # Tile
 > [!CAUTION]
 > `License: All Rights Reserved`  
