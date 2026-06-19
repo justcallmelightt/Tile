@@ -68,15 +68,95 @@ const customLoadExample = document.getElementById("customLoadExample");
 const customSave = document.getElementById("customSave");
 const customReset = document.getElementById("customReset");
 const currentTimeEl = document.getElementById("currentTime");
-const memoToggle = document.getElementById("memoToggle");
 const memoPanel = document.getElementById("memoPanel");
 const memoClose = document.getElementById("memoClose");
 const memoInput = document.getElementById("memoInput");
 const memoSave = document.getElementById("memoSave");
 const memoReset = document.getElementById("memoReset");
+const subjectOverlay = document.getElementById("subjectOverlay");
+const subjectClose = document.getElementById("closeModal");
+const subjectName = document.getElementById("subjectName");
+const subjectLocation = document.getElementById("subjectLocation");
+const subjectTeacher = document.getElementById("subjectTeacher");
+const modalInfoMode = document.getElementById("modalInfoMode");
+const modalInputMode = document.getElementById("modalInputMode");
+const modalTitle = document.getElementById("modalTitle");
+const modalInput = document.getElementById("modalInput");
+const modalConfirm = document.getElementById("modalConfirm");
 const CELL_EDIT_STORAGE_KEY = "tile-cell-edits";
+const SCHEDULE_EDIT_STORAGE_KEY = "tile-schedule-edits";
 const SUBJECT_MEMO_STORAGE_KEY = "tile-subject-memos";
 let selectedSubjectCell = null;
+let modalCallback = null;
+
+function openSubjectModal(data = {}) {
+  if (!subjectOverlay) return;
+  if (modalInfoMode) modalInfoMode.classList.remove("mode-hidden");
+  if (modalInputMode) modalInputMode.classList.add("mode-hidden");
+  if (subjectName) subjectName.textContent = data.name || "과목 정보";
+  if (subjectLocation) subjectLocation.textContent = data.room || "교실 정보 없음";
+  if (subjectTeacher) subjectTeacher.textContent = data.teacher || "선생님 정보 없음";
+  showSubjectOverlay();
+}
+
+function openInputModal(title, placeholder, callback) {
+  if (!subjectOverlay || !modalInput || !modalTitle || !modalInfoMode || !modalInputMode) return;
+  modalInfoMode.classList.add("mode-hidden");
+  modalInputMode.classList.remove("mode-hidden");
+  modalTitle.textContent = title;
+  modalInput.placeholder = placeholder;
+  modalInput.value = "";
+  modalCallback = callback;
+  showSubjectOverlay();
+  setTimeout(() => modalInput.focus(), 100);
+}
+
+function showSubjectOverlay() {
+  if (!subjectOverlay) return;
+  // remove hidden immediately so CSS can animate in
+  subjectOverlay.classList.remove("hidden");
+  subjectOverlay.setAttribute("aria-hidden", "false");
+  document.body.classList.add("modal-open");
+  overlayDismissBlockUntil = Date.now() + 360;
+
+  // ensure modal animation class is present (optional)
+  const modal = document.getElementById("subjectModal");
+  modal?.classList.remove("modal-animate-out");
+  // small forced reflow for consistent animation start
+  void (modal && modal.offsetWidth);
+  modal?.classList.add("modal-animate-in");
+}
+
+function closeSubjectModal() {
+  if (!subjectOverlay) return;
+  const modal = document.getElementById("subjectModal");
+  // play "out" animation by removing "in" class (we rely on overlay hide after timeout)
+  modal?.classList.remove("modal-animate-in");
+  modal?.classList.add("modal-animate-out");
+
+  // wait for transition duration before hiding overlay to avoid abrupt background removal
+  const hideDelay = 360; // ms, matches CSS durations
+  setTimeout(() => {
+    subjectOverlay.classList.add("hidden");
+    subjectOverlay.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("modal-open");
+    modal?.classList.remove("modal-animate-out");
+    modalCallback = null;
+  }, hideDelay);
+}
+
+modalConfirm?.addEventListener("click", () => {
+  if (!modalCallback || !modalInput) return;
+  modalCallback(modalInput.value);
+  closeSubjectModal();
+});
+
+modalInput?.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    modalConfirm?.click();
+  }
+});
 
 function updateMemoIndicators() {
   const memos = JSON.parse(
@@ -295,27 +375,80 @@ function applyRoomBadges() {
   });
 }
 
+function saveCellEdit(period, index, subject) {
+  if (!period || index == null) return;
+  const edits = JSON.parse(localStorage.getItem(CELL_EDIT_STORAGE_KEY) || "{}");
+  edits[`${period}_${index}`] = subject;
+  localStorage.setItem(CELL_EDIT_STORAGE_KEY, JSON.stringify(edits));
+}
+
+function saveScheduleEdit(period, start, end) {
+  const edits = JSON.parse(localStorage.getItem(SCHEDULE_EDIT_STORAGE_KEY) || "{}");
+  edits[period] = { start, end };
+  localStorage.setItem(SCHEDULE_EDIT_STORAGE_KEY, JSON.stringify(edits));
+}
+
+function parseTimeRange(input) {
+  if (!input) return null;
+  const match = input.trim().match(/^(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})$/);
+  if (!match) return null;
+  const [_, h1, m1, h2, m2] = match.map(Number);
+  if (h1 > 23 || m1 > 59 || h2 > 23 || m2 > 59) return null;
+  const start = `${String(h1).padStart(2, "0")}:${String(m1).padStart(2, "0")}`;
+  const end = `${String(h2).padStart(2, "0")}:${String(m2).padStart(2, "0")}`;
+  return { start, end };
+}
+
+function updateRowTimeText(row, start, end) {
+  const timeSpan = row.querySelector(".time");
+  if (timeSpan) {
+    timeSpan.textContent = `${format12Hour(start)} ~ ${format12Hour(end)}`;
+  }
+}
+
+function renderSubjectCell(cell, subject) {
+  if (!cell) return;
+  cell.dataset.subject = subject;
+  cell.classList.remove("empty-cell");
+  cell.innerHTML = `<button class="subject" type="button" data-editable="true">
+      <span class="subject-name">${subject}</span>
+    </button>`;
+  applyRoomBadges();
+}
+
+function loadScheduleEdits() {
+  const saved = localStorage.getItem(SCHEDULE_EDIT_STORAGE_KEY);
+  if (!saved) return;
+  try {
+    const edits = JSON.parse(saved);
+    Object.entries(edits).forEach(([period, range]) => {
+      const item = scheduleRanges.find((entry) => entry.name === period);
+      if (!item || !range?.start || !range?.end) return;
+      item.start = range.start;
+      item.end = range.end;
+      const row = document.querySelector(`tbody tr[data-period="${period}"]`);
+      if (row) updateRowTimeText(row, range.start, range.end);
+    });
+  } catch (error) {
+    console.error(error);
+  }
+}
+
 function loadCellEdits() {
   const saved = localStorage.getItem(CELL_EDIT_STORAGE_KEY);
   if (!saved) return;
-
   try {
     const edits = JSON.parse(saved);
-
     Object.entries(edits).forEach(([key, subject]) => {
+      if (!subject) return;
       const [period, day] = key.split("_");
       const row = document.querySelector(`tbody tr[data-period="${period}"]`);
       if (!row) return;
-
-      const cells = row.querySelectorAll("td[data-subject]");
+      const cells = row.querySelectorAll("td");
       const targetCell = cells[Number(day)];
       if (!targetCell) return;
-
-      targetCell.dataset.subject = subject;
-      const subjectName = targetCell.querySelector(".subject-name");
-      if (subjectName) subjectName.textContent = subject;
+      renderSubjectCell(targetCell, subject);
     });
-
     applyRoomBadges();
   } catch (error) {
     console.error(error);
@@ -323,74 +456,74 @@ function loadCellEdits() {
 }
 
 function enableTileEditing() {
-  const subjectPanel = document.getElementById("subjectPanel");
-  const subjectClose = document.getElementById("subjectClose");
-  const subjectName = document.getElementById("subjectName");
-  const subjectRoom = document.getElementById("subjectRoom");
-  const subjectTeacher = document.getElementById("subjectTeacher");
   const subjectMemo = document.getElementById("subjectMemo");
   const subjectSave = document.getElementById("subjectSave");
   const subjectReset = document.getElementById("subjectReset");
 
   document.querySelectorAll("tbody tr[data-period]").forEach((row) => {
-    const cells = row.querySelectorAll("td[data-subject]");
+    const cells = row.querySelectorAll("td");
+    const header = row.querySelector("th");
+
+    if (header) {
+      header.style.cursor = "pointer";
+      header.addEventListener("click", () => {
+        const period = row.dataset.period;
+        const scheduleItem = scheduleRanges.find((item) => item.name === period);
+        const current = scheduleItem ? `${scheduleItem.start}-${scheduleItem.end}` : "";
+        openInputModal("교시 수정", "08:20-09:10", (value) => {
+          const parsed = parseTimeRange(value);
+          if (!parsed) return;
+          if (scheduleItem) {
+            scheduleItem.start = parsed.start;
+            scheduleItem.end = parsed.end;
+          } else {
+            scheduleRanges.push({ name: period, start: parsed.start, end: parsed.end });
+          }
+          updateRowTimeText(row, parsed.start, parsed.end);
+          saveScheduleEdit(period, parsed.start, parsed.end);
+          updateCurrentStatus();
+        });
+        if (modalInput) modalInput.value = current;
+      });
+    }
 
     cells.forEach((cell, index) => {
-      cell.style.cursor = "pointer";
+      if (cell.hasAttribute("colspan")) return;
+
+      cell.style.cursor = cell.classList.contains("empty-cell") ? "pointer" : "default";
 
       cell.addEventListener("click", () => {
-        selectedSubjectCell = { cell, row, index };
-
-        const subject = cell.dataset.subject || "";
-
-        if (subjectName) subjectName.textContent = subject;
-        if (subjectRoom) subjectRoom.textContent = classroomMap[subject] || "미지정";
-        if (subjectTeacher) subjectTeacher.textContent = teacherMap[subject] || "미지정";
-
-        const memoKey = `${row.dataset.period}_${index}`;
-        const memos = JSON.parse(localStorage.getItem(SUBJECT_MEMO_STORAGE_KEY) || "{}");
-        if (subjectMemo) {
-          subjectMemo.value = memos[memoKey] || "";
+        if (cell.classList.contains("empty-cell")) {
+          openInputModal("과목 추가", "과목명을 입력하세요", (value) => {
+            if (!value || !value.trim()) return;
+            renderSubjectCell(cell, value.trim());
+            saveCellEdit(row.dataset.period, index, value.trim());
+            updateMemoIndicators();
+          });
+          return;
         }
 
-        subjectPanel?.classList.add("is-open");
+        const subject = cell.dataset.subject || "";
+        if (!subject) return;
+
+        openSubjectModal({
+          name: subject,
+          room: classroomMap[subject] || "미지정",
+          teacher: teacherMap[subject] || "미지정",
+        });
+        triggerButtonPop(cell.querySelector(".subject"));
       });
     });
   });
 
-  subjectClose?.addEventListener("click", () => {
-    subjectPanel?.classList.remove("is-open");
+  subjectClose?.addEventListener("click", closeSubjectModal);
+  subjectOverlay?.addEventListener("click", (event) => {
+    if (event.target === subjectOverlay) closeSubjectModal();
   });
-
-  subjectSave?.addEventListener("click", () => {
-    if (!selectedSubjectCell) return;
-
-    const period = selectedSubjectCell.row.dataset.period;
-    const index = selectedSubjectCell.index;
-    const memoKey = `${period}_${index}`;
-
-    const memos = JSON.parse(localStorage.getItem(SUBJECT_MEMO_STORAGE_KEY) || "{}");
-    memos[memoKey] = subjectMemo.value;
-    localStorage.setItem(SUBJECT_MEMO_STORAGE_KEY, JSON.stringify(memos));
-
-    updateMemoIndicators();
-    alert("메모 저장 완료 ✨");
-  });
-
-  subjectReset?.addEventListener("click", () => {
-    if (!selectedSubjectCell) return;
-
-    const period = selectedSubjectCell.row.dataset.period;
-    const index = selectedSubjectCell.index;
-    const memoKey = `${period}_${index}`;
-
-    const memos = JSON.parse(localStorage.getItem(SUBJECT_MEMO_STORAGE_KEY) || "{}");
-    delete memos[memoKey];
-    localStorage.setItem(SUBJECT_MEMO_STORAGE_KEY, JSON.stringify(memos));
-
-    if (subjectMemo) subjectMemo.value = "";
-    updateMemoIndicators();
-    alert("메모 초기화 완료");
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && subjectOverlay && !subjectOverlay.classList.contains("hidden")) {
+      closeSubjectModal();
+    }
   });
 }
 
@@ -720,6 +853,7 @@ updateIPhoneSafeZone();
 initTheme();
 applyTodayOnlyMode();
 loadCellEdits();
+loadScheduleEdits();
 applyRoomBadges();
 enableTileEditing();
 updateMemoIndicators();
@@ -773,40 +907,3 @@ if (customLoadExample && customInput) {
 }`;
   });
 }
-
-if (memoToggle && memoPanel) {
-  memoToggle.addEventListener("click", () => {
-    triggerButtonPop(memoToggle);
-    memoPanel.classList.toggle("is-open");
-  });
-}
-
-if (memoClose && memoPanel) {
-  memoClose.addEventListener("click", () => {
-    memoPanel.classList.remove("is-open");
-  });
-}
-
-if (memoInput) {
-  memoInput.value = localStorage.getItem("tile-memo") || "";
-}
-
-if (memoSave && memoInput) {
-  memoSave.addEventListener("click", () => {
-    localStorage.setItem("tile-memo", memoInput.value);
-    alert("메모 저장 완료 ✨");
-  });
-}
-
-if (memoReset && memoInput) {
-  memoReset.addEventListener("click", () => {
-    memoInput.value = "";
-    localStorage.removeItem("tile-memo");
-    alert("메모 초기화 완료");
-  });
-}
-
-window.addEventListener("resize", () => {
-  applyTodayOnlyMode();
-  updateCurrentStatus();
-});
