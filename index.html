@@ -206,47 +206,29 @@
       </table>
     </div>
 
-    <section class="custom-panel" id="subjectPanel" aria-hidden="true">
-      <div class="custom-panel-header">
-        <div>
-          <h2 id="subjectPanelTitle">과목 정보</h2>
-          <p>과목 정보와 개인 메모를 관리할 수 있습니다.</p>
-        </div>
-        <button class="custom-close" id="subjectClose" type="button">닫기</button>
-      </div>
-
-      <div class="status-card">
-        <div class="status-item">
-          <span class="status-label">과목</span>
-          <span class="status-value" id="subjectName">-</span>
-        </div>
-        <div class="status-item">
-          <span class="status-label">교실</span>
-          <span class="status-value" id="subjectRoom">-</span>
-        </div>
-        <div class="status-item">
-          <span class="status-label">선생님</span>
-          <span class="status-value" id="subjectTeacher">-</span>
-        </div>
-      </div>
-
-      <textarea
-        id="subjectMemo"
-        placeholder="이 과목에 대한 숙제, 수행평가, 준비물 등을 기록해보세요."
-        spellcheck="false"></textarea>
-
-      <div class="custom-actions">
-        <button class="theme-toggle" id="subjectSave" type="button">메모 저장</button>
-        <button class="theme-toggle" id="subjectReset" type="button">메모 초기화</button>
-      </div>
-    </section>
-
     <div class="site-footer">
       <div><strong>Tile 2.0</strong> · HTML, CSS, JavaScript, JSON</div>
       <div><strong>개발자</strong> · 미림마이스터고등학교 1203 권율 | Insta @justcallmelight_</div>
     </div>
   </div>
 
+  <div id="subjectOverlay" class="overlay hidden" aria-hidden="true">
+    <div id="subjectModal" class="subject-modal" role="dialog" aria-modal="true" aria-labelledby="subjectName">
+      <button id="closeModal" type="button" aria-label="닫기">✕</button>
+
+      <div id="modalInfoMode">
+        <h2 id="subjectName">JAVA</h2>
+        <p id="subjectLocation">제4소프트웨어랩</p>
+        <p id="subjectTeacher">선생님 정보 없음</p>
+      </div>
+
+      <div id="modalInputMode" class="mode-hidden">
+        <h2 id="modalTitle">입력</h2>
+        <input id="modalInput" type="text" placeholder="입력하세요" />
+        <button id="modalConfirm" type="button">확인</button>
+      </div>
+    </div>
+  </div>
   <script src="./script.js"></script>
 </body>
 </html>
