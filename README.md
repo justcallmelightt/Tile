@@ -2,9 +2,8 @@
 
 # Tile
 > [!CAUTION]
-> `License: All Rights Reserved` <br>
-> **이 Repository의 모든 코드는 소중한 개인 저작권의 보호를 받습니다.**  
-
+> `© 2026 Lightframes. All Rights Reserved.` <br>
+> **이 Repository의 모든 파일은 소중한 개인 저작권의 보호를 받습니다. 무단으로 도용하실수 없습니다.** <br>
 
 > 학교 일과 관리를 위한 Realtime System 기반 자동화 TimeTable <br>
 > <img src="https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white"> <img src="https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white"> <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black"> <img src="https://img.shields.io/badge/Swift-F05138?style=for-the-badge&logo=swift&logoColor=white"> <br>
