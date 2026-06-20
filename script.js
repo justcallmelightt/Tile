@@ -88,6 +88,7 @@ const SCHEDULE_EDIT_STORAGE_KEY = "tile-schedule-edits";
 const SUBJECT_MEMO_STORAGE_KEY = "tile-subject-memos";
 let selectedSubjectCell = null;
 let modalCallback = null;
+let overlayDismissBlockUntil = 0;
 
 function openSubjectModal(data = {}) {
   if (!subjectOverlay) return;
@@ -516,8 +517,8 @@ function enableTileEditing() {
     });
   });
 
-  subjectClose?.addEventListener("click", closeSubjectModal);
   subjectOverlay?.addEventListener("click", (event) => {
+    if (Date.now() < overlayDismissBlockUntil) return;
     if (event.target === subjectOverlay) closeSubjectModal();
   });
   document.addEventListener("keydown", (event) => {
@@ -849,6 +850,26 @@ if (todayOnlyToggle) {
   });
 }
 
+function loadCustomConfig() {
+  const saved = localStorage.getItem("tile-custom-json");
+  if (!saved) return;
+
+  try {
+    const config = JSON.parse(saved);
+
+    if (config.teacher) {
+      teacherMap["MC"] = config.teacher;
+    }
+
+    if (config.classroom) {
+      classroomMap["MC"] = config.classroom;
+    }
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+loadCustomConfig();
 updateIPhoneSafeZone();
 initTheme();
 applyTodayOnlyMode();
@@ -881,8 +902,13 @@ if (customInput) {
 
 if (customSave && customInput) {
   customSave.addEventListener("click", () => {
-    localStorage.setItem("tile-custom-json", customInput.value);
-    alert("수정 설정 저장 완료 ✨");
+    try {
+      const parsed = JSON.parse(customInput.value);
+      localStorage.setItem("tile-custom-json", JSON.stringify(parsed));
+      alert("수정 설정 저장 완료 ✨");
+    } catch {
+      alert("JSON 형식 오류");
+    }
   });
 }
 
@@ -890,6 +916,7 @@ if (customReset && customInput) {
   customReset.addEventListener("click", () => {
     localStorage.removeItem("tile-custom-json");
     localStorage.removeItem(CELL_EDIT_STORAGE_KEY);
+    localStorage.removeItem(SCHEDULE_EDIT_STORAGE_KEY);
 
     customInput.value = `{
   "message": "Tile 수정 기능 준비 완료 ✨"
