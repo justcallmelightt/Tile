@@ -416,22 +416,28 @@ function renderSubjectCell(cell, subject) {
   if (!cell) return;
   cell.dataset.subject = subject;
   cell.classList.remove("empty-cell");
-  cell.textContent = "";
 
-  const subjectButton = document.createElement("button");
-  subjectButton.className = "subject";
-  subjectButton.type = "button";
-  subjectButton.dataset.editable = "true";
+  let subjectWrap = cell.querySelector(".subject");
 
-  const subjectNameEl = document.createElement("span");
-  subjectNameEl.className = "subject-name";
-  subjectNameEl.textContent = subject;
-  subjectButton.appendChild(subjectNameEl);
-  cell.appendChild(subjectButton);
+  if (!subjectWrap || subjectWrap.tagName === "BUTTON") {
+    cell.textContent = "";
+    subjectWrap = document.createElement("div");
+    subjectWrap.className = "subject";
 
-  // 이 셀에만 배지 적용 (전체가 아님)
-  const subjectWrap = subjectButton;
-  if (!subjectWrap) return;
+    const subjectNameEl = document.createElement("span");
+    subjectNameEl.className = "subject-name";
+    subjectWrap.appendChild(subjectNameEl);
+    cell.appendChild(subjectWrap);
+  }
+
+  const subjectNameEl = subjectWrap.querySelector(".subject-name");
+  if (subjectNameEl) subjectNameEl.textContent = subject;
+
+  const existingRoom = subjectWrap.querySelector(".room-info");
+  if (existingRoom) existingRoom.remove();
+
+  const existingTeacher = subjectWrap.querySelector(".teacher-info");
+  if (existingTeacher) existingTeacher.remove();
 
   const room = classroomMap[subject];
   if (room) {
