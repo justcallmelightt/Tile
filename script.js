@@ -53,11 +53,11 @@ const scheduleRanges = [
 ];
 
 const breakRanges = [
-  { name: ”쉬는시간“, start: ”09:30“, end: ”09:40“ },
-  { name: ”쉬는시간“, start: ”10:30“, end: ”10:40“ },
-  { name: ”쉬는시간“, start: ”11:30“, end: ”11:40“ },
-  { name: ”쉬는시간“, start: ”14:20“, end: ”14:30“ },
-  { name: ”쉬는시간“, start: ”15:20“, end: ”15:30“ }
+  { name: "쉬는시간", start: "09:30", end: "09:40" },
+  { name: "쉬는시간", start: "10:30", end: "10:40" },
+  { name: "쉬는시간", start: "11:30", end: "11:40" },
+  { name: "쉬는시간", start: "14:20", end: "14:30" },
+  { name: "쉬는시간", start: "15:20", end: "15:30" }
 ];
 
 const dayNames = ["일", "월", "화", "수", "목", "금", "토"];
