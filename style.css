@@ -302,10 +302,10 @@ body.dark-mode .theme-toggle.theme-target-light:hover {
 .custom-panel {
   display: none;
   margin-bottom: 24px;
-  padding: 22px;
+  padding: 18px;
   background: var(--surface-strong);
   border: 1px solid var(--border);
-  border-radius: 26px;
+  border-radius: 22px;
   box-shadow: var(--shadow);
 }
 
@@ -324,7 +324,7 @@ body.dark-mode .theme-toggle.theme-target-light:hover {
   justify-content: center;
   align-items: center;
   padding: 16px;
-  background: rgba(17, 24, 39, 0.14);
+  background: rgba(17, 24, 39, 0.12);
   z-index: 999;
   opacity: 0;
   visibility: hidden;
@@ -336,7 +336,7 @@ body.dark-mode .theme-toggle.theme-target-light:hover {
   content: "";
   position: absolute;
   inset: 0;
-  background: rgba(17, 24, 39, 0.2);
+  background: rgba(17, 24, 39, 0.18);
   backdrop-filter: blur(0px);
   -webkit-backdrop-filter: blur(0px);
   opacity: 0;
@@ -367,9 +367,9 @@ body.dark-mode .theme-toggle.theme-target-light:hover {
   position: relative;
   z-index: 1;
   width: min(92vw, 480px);
-  min-height: 260px;
-  padding: 48px 36px 34px;
-  border-radius: 26px;
+  min-height: 236px;
+  padding: 48px 28px 28px;
+  border-radius: 22px;
   background: var(--surface-strong);
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
@@ -408,7 +408,7 @@ body.dark-mode .subject-modal {
   border-radius: 999px;
   background: var(--toggle-bg);
   color: var(--text);
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   line-height: 1;
   cursor: pointer;
@@ -428,7 +428,7 @@ body.dark-mode .subject-modal {
 
 #modalInfoMode,
 #modalInputMode {
-  min-height: 178px;
+  min-height: 154px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -437,12 +437,12 @@ body.dark-mode .subject-modal {
 }
 
 .subject-modal h2 {
-  font-size: 24px;
+  font-size: 1.15rem;
   font-weight: 700;
-  margin: 0 0 14px;
+  margin: 0 0 12px;
   padding: 0 42px;
-  line-height: 1.3;
-  color: var(--accent);
+  line-height: 1.5;
+  color: var(--text);
   letter-spacing: -0.02em;
 }
 
@@ -457,7 +457,7 @@ body.dark-mode .subject-modal {
 #modalInput {
   width: 100%;
   margin-top: 6px;
-  padding: 14px 16px;
+  padding: 14px;
   border-radius: 16px;
   border: 1px solid var(--border);
   background: var(--surface-soft);
@@ -467,8 +467,8 @@ body.dark-mode .subject-modal {
   line-height: 1.5;
   text-align: left;
   outline: none;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.38);
-  transition: box-shadow 0.18s ease, transform 0.12s ease, border-color 0.18s ease;
+  box-shadow: none;
+  transition: box-shadow 0.18s ease, border-color 0.18s ease;
 }
 
 body.dark-mode #modalInput {
@@ -477,20 +477,13 @@ body.dark-mode #modalInput {
 }
 
 #modalInput:focus {
-  border-color: rgba(255, 255, 255, 0.86);
-  box-shadow:
-    0 0 0 3px rgba(255, 255, 255, 0.72),
-    0 12px 26px rgba(255, 255, 255, 0.34),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.52);
-  transform: translateY(-1px);
+  border-color: var(--border);
+  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.35);
 }
 
 body.dark-mode #modalInput:focus {
-  border-color: rgba(255, 255, 255, 0.92);
-  box-shadow:
-    0 0 0 3px rgba(255, 255, 255, 0.32),
-    0 12px 28px rgba(255, 255, 255, 0.16),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.42);
+  border-color: var(--border);
+  box-shadow: inset 0 0 0 1px rgba(96, 165, 250, 0.35);
 }
 
 #modalConfirm {
@@ -505,7 +498,7 @@ body.dark-mode #modalInput:focus {
   font-weight: 700;
   cursor: pointer;
   line-height: 1.4;
-  box-shadow: 0 4px 14px rgba(17, 24, 39, 0.18);
+  box-shadow: 0 4px 14px rgba(255, 255, 255, 0.12);
   transition: transform 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease, color 0.16s ease, border-color 0.16s ease, filter 0.16s ease;
 }
 
@@ -513,7 +506,7 @@ body.dark-mode #modalInput:focus {
   transform: translateY(-2px) scale(1.04);
   background: #ffffff;
   filter: brightness(0.96) saturate(1.08);
-  box-shadow: 0 12px 26px rgba(17, 24, 39, 0.3);
+  box-shadow: 0 12px 26px rgba(17, 24, 39, 0.24);
 }
 
 #modalConfirm:active {
@@ -522,8 +515,8 @@ body.dark-mode #modalInput:focus {
 }
 
 #modalConfirm:focus-visible {
-  outline: none;
-  box-shadow: 0 6px 18px rgba(17, 24, 39, 0.26);
+  outline: 3px solid rgba(59, 130, 246, 0.9);
+  outline-offset: 3px;
 }
 
 body.dark-mode #modalConfirm {
@@ -555,18 +548,17 @@ body.dark-mode #modalConfirm:focus-visible {
 }
 
 .custom-panel h2 {
-  margin: 0 0 8px;
+  margin: 0 0 6px;
   font-size: 1.15rem;
   color: var(--text);
   letter-spacing: -0.02em;
-  line-height: 1.5;
 }
 
 .custom-panel p {
   margin: 0;
   color: var(--text-soft);
   font-size: 0.9rem;
-  line-height: 1.7;
+  line-height: 1.5;
 }
 
 .custom-close {
@@ -585,7 +577,7 @@ body.dark-mode #modalConfirm:focus-visible {
 #memoInput,
 #subjectMemo {
   width: 100%;
-  min-height: 300px;
+  min-height: 280px;
   resize: vertical;
   padding: 14px;
   border: 1px solid var(--border);
@@ -724,7 +716,6 @@ tbody th:hover {
 
 .subject {
   position: relative;
-  cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -736,15 +727,6 @@ tbody th:hover {
 .subject-name {
   font-weight: 700;
   letter-spacing: -0.02em;
-}
-
-.subject:hover {
-  transform: scale(1.04);
-  transition: transform 0.18s ease;
-}
-
-.subject:active {
-  transform: scale(0.97);
 }
 
 .memo-indicator {
@@ -1041,8 +1023,8 @@ body.mobile-today-mode col.day-col {
 
   .subject-modal {
     width: min(90vw, 420px);
-    min-height: 240px;
-    padding: 46px 26px 28px;
+    min-height: 220px;
+    padding: 44px 24px 24px;
   }
 
   .iphone-safe-zone {
@@ -1211,8 +1193,8 @@ body.mobile-today-mode col.day-col {
 
   .subject-modal {
     width: min(90vw, 340px);
-    min-height: 230px;
-    padding: 44px 20px 24px;
+    min-height: 214px;
+    padding: 42px 18px 22px;
   }
 
   #closeModal {
