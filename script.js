@@ -93,6 +93,209 @@ let selectedSubjectCell = null;
 let modalCallback = null;
 let overlayDismissBlockUntil = 0;
 
+let previousTimeString = null;
+const rollingTimeTimers = [];
+const rollingTextPreviousMap = new Map();
+const rollingTextTimersMap = new Map();
+
+function resetRollingTimeTimers() {
+  while (rollingTimeTimers.length > 0) {
+    clearTimeout(rollingTimeTimers.pop());
+  }
+}
+
+function resetRollingTextTimers(key) {
+  const timers = rollingTextTimersMap.get(key);
+  if (!timers) return;
+
+  while (timers.length > 0) {
+    clearTimeout(timers.pop());
+  }
+}
+
+function getRollingTimeCharClass(char) {
+  if (/[0-9]/.test(char)) return "time-char";
+  if (char === ":") return "time-separator";
+  if (char === " ") return "time-space";
+  return "time-label-char";
+}
+
+function renderStaticTimeStyleText(element, text) {
+  if (!element) return;
+
+  element.innerHTML = "";
+  element.dataset.timeText = text;
+  element.setAttribute("aria-label", text);
+
+  [...text].forEach((char) => {
+    const span = document.createElement("span");
+    span.className = getRollingTimeCharClass(char);
+    span.dataset.value = char;
+    span.textContent = char;
+    element.appendChild(span);
+  });
+}
+
+function renderRollingTimeText(timeString) {
+  renderStaticTimeStyleText(currentTimeEl, timeString);
+  previousTimeString = timeString;
+}
+
+function renderRollingStyleText(element, text, key) {
+  if (!element) return;
+
+  element.dataset.timeText = text;
+  element.setAttribute("aria-label", text);
+
+  const previousText = rollingTextPreviousMap.get(key);
+  const chars = element.children;
+
+  if (!previousText || previousText.length !== text.length) {
+    resetRollingTextTimers(key);
+    renderStaticTimeStyleText(element, text);
+    rollingTextPreviousMap.set(key, text);
+    return;
+  }
+
+  if (chars.length !== text.length) {
+    resetRollingTextTimers(key);
+    element.innerHTML = "";
+
+    [...text].forEach((char, index) => {
+      const oldChar = previousText[index];
+      const span = document.createElement("span");
+      span.className = getRollingTimeCharClass(char);
+      span.dataset.value = char;
+
+      if (span.classList.contains("time-char") && char !== oldChar) {
+        span.innerHTML = `
+          <span class="time-char-inner">
+            <span class="time-old">${oldChar}</span>
+            <span class="time-new">${char}</span>
+          </span>
+        `;
+
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          span.classList.add("animate", "rolling");
+        }));
+
+        const timers = rollingTextTimersMap.get(key) || [];
+        const timer = setTimeout(() => {
+          span.classList.remove("animate", "rolling");
+          span.textContent = char;
+          span.dataset.value = char;
+          const timerIndex = timers.indexOf(timer);
+          if (timerIndex !== -1) timers.splice(timerIndex, 1);
+        }, 500);
+        timers.push(timer);
+        rollingTextTimersMap.set(key, timers);
+      } else {
+        span.textContent = char;
+      }
+
+      element.appendChild(span);
+    });
+
+    rollingTextPreviousMap.set(key, text);
+    return;
+  }
+
+  [...text].forEach((char, index) => {
+    const oldChar = previousText[index];
+    if (char === oldChar) return;
+
+    const wrapper = chars[index];
+    if (!wrapper || !wrapper.classList.contains("time-char")) {
+      wrapper.className = getRollingTimeCharClass(char);
+      wrapper.textContent = char;
+      wrapper.dataset.value = char;
+      return;
+    }
+
+    wrapper.classList.remove("animate", "rolling");
+    wrapper.dataset.value = char;
+    wrapper.innerHTML = `
+      <span class="time-char-inner">
+        <span class="time-old">${oldChar}</span>
+        <span class="time-new">${char}</span>
+      </span>
+    `;
+
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      wrapper.classList.add("animate", "rolling");
+    }));
+
+    const timers = rollingTextTimersMap.get(key) || [];
+    const timer = setTimeout(() => {
+      wrapper.classList.remove("animate", "rolling");
+      wrapper.textContent = char;
+      wrapper.dataset.value = char;
+      const timerIndex = timers.indexOf(timer);
+      if (timerIndex !== -1) timers.splice(timerIndex, 1);
+    }, 500);
+    timers.push(timer);
+    rollingTextTimersMap.set(key, timers);
+  });
+
+  rollingTextPreviousMap.set(key, text);
+}
+
+function createRollingTime(timeString) {
+  if (!currentTimeEl) return;
+  currentTimeEl.dataset.timeText = timeString;
+  currentTimeEl.setAttribute("aria-label", timeString);
+
+  if (previousTimeString === null || currentTimeEl.children.length === 0) {
+    renderRollingTimeText(timeString);
+    return;
+  }
+
+  const chars = currentTimeEl.children;
+
+  if (chars.length !== timeString.length) {
+    resetRollingTimeTimers();
+    renderRollingTimeText(timeString);
+    return;
+  }
+
+  [...timeString].forEach((char, index) => {
+    const oldChar = previousTimeString[index];
+    if (char === oldChar) return;
+
+    const wrapper = chars[index];
+    if (!wrapper || !wrapper.classList.contains("time-char")) {
+      wrapper.className = getRollingTimeCharClass(char);
+      wrapper.textContent = char;
+      wrapper.dataset.value = char;
+      return;
+    }
+
+    wrapper.classList.remove("animate", "rolling");
+    wrapper.dataset.value = char;
+    wrapper.innerHTML = `
+      <span class="time-char-inner">
+        <span class="time-old">${oldChar}</span>
+        <span class="time-new">${char}</span>
+      </span>
+    `;
+
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      wrapper.classList.add("animate", "rolling");
+    }));
+
+    const timer = setTimeout(() => {
+      wrapper.classList.remove("animate", "rolling");
+      wrapper.textContent = char;
+      wrapper.dataset.value = char;
+      const timerIndex = rollingTimeTimers.indexOf(timer);
+      if (timerIndex !== -1) rollingTimeTimers.splice(timerIndex, 1);
+    }, 500);
+    rollingTimeTimers.push(timer);
+  });
+
+  previousTimeString = timeString;
+}
+
 function openSubjectModal(data = {}) {
   if (!subjectOverlay) return;
   if (modalInfoMode) modalInfoMode.classList.remove("mode-hidden");
@@ -726,7 +929,7 @@ function renderFloatingTimeline(currentSchedule, highlightSchedule, dayOfWeek, p
 
   const label = document.createElement("span");
   label.className = "floating-time-label";
-  label.textContent = currentTimeEl.textContent;
+  renderRollingStyleText(label, currentTimeEl.dataset.timeText || currentTimeEl.textContent, "floating-time-label");
   label.style.visibility = "hidden";
   table.appendChild(label);
 
@@ -810,9 +1013,10 @@ function updateCurrentStatus() {
   const currentRoomEl = document.getElementById("currentRoom");
   const todayLabelEl = document.getElementById("todayLabel");
 
-  if (currentTimeEl) {
-    currentTimeEl.textContent = `${format12Hour(`${hours}:${minutes}`)}:${seconds}`;
-  }
+if (currentTimeEl) {
+  const timeText = `${format12Hour(`${hours}:${minutes}`)}:${seconds}`;
+  createRollingTime(timeText);
+}
 
   if (todayLabelEl) {
     todayLabelEl.textContent = `${dayNames[dayOfWeek]}요일`;
@@ -832,14 +1036,14 @@ function updateCurrentStatus() {
 
     if (isSchoolWeekday && dayScheduleEndMinutes !== null) {
       if (currentMinutes >= schoolPreviewStartMinutes && currentMinutes < dayStartMinutes) {
-        dayRemainingTimeEl.textContent = formatBeforeSchoolTime(dayStartMinutes - currentMinutes);
+        renderRollingStyleText(dayRemainingTimeEl, formatBeforeSchoolTime(dayStartMinutes - currentMinutes), "day-remaining-time");
       } else if (currentMinutes >= dayStartMinutes && currentMinutes < dayScheduleEndMinutes) {
-        dayRemainingTimeEl.textContent = formatRemainingTime(dayScheduleEndMinutes - currentMinutes);
+        renderRollingStyleText(dayRemainingTimeEl, formatRemainingTime(dayScheduleEndMinutes - currentMinutes), "day-remaining-time");
       } else {
-        dayRemainingTimeEl.textContent = "일과 시간 아님";
+        renderRollingStyleText(dayRemainingTimeEl, "일과 시간 아님", "day-remaining-time");
       }
     } else {
-      dayRemainingTimeEl.textContent = "일과 시간 아님";
+      renderRollingStyleText(dayRemainingTimeEl, "일과 시간 아님", "day-remaining-time");
     }
   }
 
@@ -860,9 +1064,9 @@ function updateCurrentStatus() {
     }
 
     if (remainingTimeEl) {
-      remainingTimeEl.textContent = !subject && currentSchedule.type === "schedule"
+      renderRollingStyleText(remainingTimeEl, !subject && currentSchedule.type === "schedule"
         ? "일과 시간 아님"
-        : formatRemainingTime(remaining);
+        : formatRemainingTime(remaining), "period-remaining-time");
     }
 
     if (currentRoomEl) {
@@ -872,7 +1076,7 @@ function updateCurrentStatus() {
     }
   } else {
     if (currentPeriodEl) currentPeriodEl.textContent = "일과 시간 아님";
-    if (remainingTimeEl) remainingTimeEl.textContent = "일과 시간 아님";
+    if (remainingTimeEl) renderRollingStyleText(remainingTimeEl, "일과 시간 아님", "period-remaining-time");
     if (currentRoomEl) currentRoomEl.textContent = "일과 시간 아님";
   }
 
@@ -950,7 +1154,11 @@ loadScheduleEdits();
 enableTileEditing();
 updateMemoIndicators();
 updateCurrentStatus();
-setInterval(updateCurrentStatus, 1000);
+setInterval(() => {
+  if (!document.hidden) {
+    updateCurrentStatus();
+  }
+}, 1000);
 
 if (customToggle && customPanel) {
   customToggle.addEventListener("click", () => {
