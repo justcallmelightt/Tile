@@ -1,63 +1,81 @@
 const classroomMap = {
-  "MC": "UI Lab실",
-  "JAVA": "제4소프트웨어랩",
-  "방과후학교 A": "제4소프트웨어랩",
-  "방과후학교 B": "1-2",
-  "공통국어 (이대형)": "AICE랩실",
-  "공통국어": "1-2",
-  "공통영어": "1-2",
-  "공통수학": "1-2",
-  "한국사": "1-2",
-  "성직": "1-2",
-  "기술가정": "1-2",
-  "일본어": "1-2",
-  "자치": "1-2",
-  "동아리": "꿈담카페, 사회정서탐구반",
-  "체육": "체육관"
+  "한국사 1": "1-3반",
+  "진로활동": "1-3반",
+  "공통영어 2": "1-3반",
+  "공통영어 3": "1-3반",
+  "미술": "미술실",
+  "한문 1": "1-3반",
+  "공통수학 1": "1-3반",
+  "체육 2": "1-3반",
+  "통합과학 3": "1-3반",
+  "통합과학 4": "1-3반",
+  "공통영어 1": "1-3반",
+  "공통국어 1": "1-3반",
+  "한문 2": "1-3반",
+  "한국사 3": "1-3반",
+  "통합사회 3": "1-3반",
+  "체육 1": "1-3반",
+  "한국사 2": "1-3반",
+  "통합과학 2": "1-3반",
+  "공통국어 2": "1-3반",
+  "공통영어 4": "1-3반",
+  "통합과학 1": "1-3반",
+  "자율·자치활동": "1-3반",
+  "공통국어 3": "1-3반",
+  "통합사회 1": "1-3반",
+  "통합사회 2": "1-3반",
+  "독서": "1-3반",
+  "과학탐구실험 1": "과학실"
 };
 
 const teacherMap = {
-  "자치": "김지훈",
-  "JAVA": "민주리 / 김윤지 / 유병석",
-  "공통영어": "김지훈",
-  "성직": "이정임",
-  "한국사": "이철호",
-  "기술가정": "김보경",
-  "MC": "정하나",
-  "체육": "김신",
-  "공통국어": "손명수",
-  "공통국어 (이대형)": "이대형",
-  "공통수학": "신혜영 / 이호연",
-  "일본어": "김윤환",
-  "방과후학교 A": "박성래 / 김영철 / 함기훈 / 유병석",
-  "방과후학교 B": "박은경 / 최인녀 / 박혜영 / 김영미"
+  "한국사 1": "최지원",
+  "진로활동": "권채영",
+  "공통영어 2": "정진실",
+  "공통영어 3": "조현진",
+  "미술": "박수정",
+  "한문 1": "강현아",
+  "공통수학 1": "권희경",
+  "체육 2": "김창우",
+  "통합과학 3": "최용석",
+  "통합과학 4": "남아름",
+  "공통영어 1": "이성기",
+  "공통국어 1": "박하나",
+  "한문 2": "오지선",
+  "한국사 3": "정용우",
+  "통합사회 3": "안세운",
+  "체육 1": "정우철",
+  "한국사 2": "전지영",
+  "통합과학 2": "문현우",
+  "공통국어 2": "오준택",
+  "공통영어 4": "최정숙",
+  "통합과학 1": "신진화",
+  "자율·자치활동": "부담임",
+  "공통국어 3": "손가영",
+  "통합사회 1": "주현주",
+  "통합사회 2": "이유진",
+  "독서": "부담임",
+  "과학탐구실험 1": "정희경"
 };
 
 const defaultClassroomMap = { ...classroomMap };
 const defaultTeacherMap = { ...teacherMap };
 
+// 율하고등학교 표준 일과 시간표 데이터 (쉬는시간 배열은 완전 삭제됨)
 const scheduleRanges = [
-  { name: "조회", start: "08:10", end: "08:20", merged: true },
-  { name: "1교시", start: "08:20", end: "09:10" },
-  { name: "2교시", start: "09:20", end: "10:10" },
-  { name: "3교시", start: "10:20", end: "11:10" },
-  { name: "4교시", start: "11:20", end: "12:10" },
-  { name: "중식", start: "12:10", end: "13:00", merged: true },
-  { name: "5교시", start: "13:00", end: "13:50" },
-  { name: "6교시", start: "14:00", end: "14:50" },
-  { name: "7교시", start: "15:00", end: "15:50" },
-  { name: "종례", start: "15:50", end: "16:30", merged: true },
-  { name: "방과후 A", start: "16:30", end: "17:20" },
-  { name: "석식", start: "17:20", end: "18:20", merged: true },
-  { name: "방과후 B", start: "18:20", end: "20:00" }
-];
-
-const breakRanges = [
-  { name: "쉬는시간", start: "09:30", end: "09:40" },
-  { name: "쉬는시간", start: "10:30", end: "10:40" },
-  { name: "쉬는시간", start: "11:30", end: "11:40" },
-  { name: "쉬는시간", start: "14:20", end: "14:30" },
-  { name: "쉬는시간", start: "15:20", end: "15:30" }
+  { name: "조회", start: "08:30", end: "08:40", merged: true },
+  { name: "1교시", start: "08:40", end: "09:30" },
+  { name: "2교시", start: "09:40", end: "10:30" },
+  { name: "3교시", start: "10:40", end: "11:30" },
+  { name: "4교시", start: "11:40", end: "12:30" },
+  { name: "중식", start: "12:30", end: "13:35", merged: true },
+  { name: "5교시", start: "13:35", end: "14:25" },
+  { name: "6교시", start: "14:25", end: "15:15" },
+  { name: "7교시", start: "15:40", end: "16:30" },
+  { name: "종례", start: "16:30", end: "16:40", merged: true },
+  { name: "방과후 A", start: "16:40", end: "17:40" },
+  { name: "석식", start: "17:40", end: "18:40", merged: true },
+  { name: "방과후 B", start: "18:40", end: "21:00" }
 ];
 
 const dayNames = ["일", "월", "화", "수", "목", "금", "토"];
@@ -71,6 +89,7 @@ const customSave = document.getElementById("customSave");
 const customLoadExample = document.getElementById("customLoadExample");
 const customReset = document.getElementById("customReset");
 const currentTimeEl = document.getElementById("currentTime");
+const memoToggle = document.getElementById("memoToggle");
 const memoPanel = document.getElementById("memoPanel");
 const memoClose = document.getElementById("memoClose");
 const memoInput = document.getElementById("memoInput");
@@ -98,8 +117,8 @@ function openSubjectModal(data = {}) {
   if (modalInfoMode) modalInfoMode.classList.remove("mode-hidden");
   if (modalInputMode) modalInputMode.classList.add("mode-hidden");
   if (subjectName) subjectName.textContent = data.name || "과목 정보";
-  if (subjectLocation) subjectLocation.textContent = data.room || "교실 정보 없음";
-  if (subjectTeacher) subjectTeacher.textContent = data.teacher || "선생님 정보 없음";
+  if (subjectLocation) subjectLocation.textContent = data.room ? `교실: ${data.room}` : "교실 정보 없음";
+  if (subjectTeacher) subjectTeacher.textContent = data.teacher ? `선생님: ${data.teacher}` : "선생님 정보 없음";
   showSubjectOverlay();
 }
 
@@ -117,16 +136,13 @@ function openInputModal(title, placeholder, callback) {
 
 function showSubjectOverlay() {
   if (!subjectOverlay) return;
-  // remove hidden immediately so CSS can animate in
   subjectOverlay.classList.remove("hidden");
   subjectOverlay.setAttribute("aria-hidden", "false");
   document.body.classList.add("modal-open");
   overlayDismissBlockUntil = Date.now() + 360;
 
-  // ensure modal animation class is present (optional)
   const modal = document.getElementById("subjectModal");
   modal?.classList.remove("modal-animate-out");
-  // small forced reflow for consistent animation start
   void (modal && modal.offsetWidth);
   modal?.classList.add("modal-animate-in");
 }
@@ -134,12 +150,10 @@ function showSubjectOverlay() {
 function closeSubjectModal() {
   if (!subjectOverlay) return;
   const modal = document.getElementById("subjectModal");
-  // play "out" animation by removing "in" class (we rely on overlay hide after timeout)
   modal?.classList.remove("modal-animate-in");
   modal?.classList.add("modal-animate-out");
 
-  // wait for transition duration before hiding overlay to avoid abrupt background removal
-  const hideDelay = 360; // ms, matches CSS durations
+  const hideDelay = 360;
   setTimeout(() => {
     subjectOverlay.classList.add("hidden");
     subjectOverlay.setAttribute("aria-hidden", "true");
@@ -165,12 +179,12 @@ modalInput?.addEventListener("keydown", (event) => {
 });
 
 function updateMemoIndicators() {
-  const memos = JSON.parse(
-    localStorage.getItem(SUBJECT_MEMO_STORAGE_KEY) || "{}"
-  );
+  const memos = JSON.parse(localStorage.getItem(SUBJECT_MEMO_STORAGE_KEY) || "{}");
 
   document.querySelectorAll("td[data-subject]").forEach((cell) => {
-    const row = cell.closest("tr"); const cellIndex = Array.from(row.querySelectorAll("td[data-subject]")).indexOf(cell); const memoKey = `${row.dataset.period}_${cellIndex}`;
+    const row = cell.closest("tr");
+    const cellIndex = Array.from(row.querySelectorAll("td[data-subject]")).indexOf(cell);
+    const memoKey = `${row.dataset.period}_${cellIndex}`;
     const subjectWrap = cell.querySelector(".subject");
 
     if (!subjectWrap) return;
@@ -188,8 +202,6 @@ function updateMemoIndicators() {
 
 function triggerButtonPop(buttonEl) {
   if (!buttonEl) return;
-
-  // Prefer Web Animations API (avoids forced reflow / less jank on Safari)
   if (typeof buttonEl.animate === "function") {
     buttonEl.animate(
       [
@@ -201,8 +213,6 @@ function triggerButtonPop(buttonEl) {
     );
     return;
   }
-
-  // Fallback
   buttonEl.classList.remove("popped");
   window.requestAnimationFrame(() => {
     buttonEl.classList.add("popped");
@@ -228,34 +238,73 @@ function format12Hour(timeText) {
   const minute = minuteText;
   const period = hour < 12 ? "오전" : "오후";
   const displayHour = hour % 12 === 0 ? 12 : hour % 12;
-  return `${period} ${displayHour}:${minute}`;
+  const paddedHour = String(displayHour).padStart(2, "0");
+  return `${period} ${paddedHour}:${minute}`;
+}
+
+// 롤링 클럭 애니메이션 구동 함수
+function updateRollingClock(newTimeStr) {
+  if (!currentTimeEl) return;
+  const oldTimeStr = currentTimeEl.dataset.time || "";
+  if (oldTimeStr === newTimeStr) return;
+
+  currentTimeEl.dataset.time = newTimeStr;
+
+  if (oldTimeStr.length !== newTimeStr.length) {
+    currentTimeEl.innerHTML = "";
+    for (let i = 0; i < newTimeStr.length; i++) {
+      const char = newTimeStr[i];
+      const span = document.createElement("span");
+      span.className = "time-char";
+      if (char === " ") span.classList.add("time-space");
+      else if (char === ":") span.classList.add("time-separator");
+      span.textContent = char;
+      currentTimeEl.appendChild(span);
+    }
+    return;
+  }
+
+  const children = currentTimeEl.children;
+  for (let i = 0; i < newTimeStr.length; i++) {
+    const newChar = newTimeStr[i];
+    const oldChar = oldTimeStr[i];
+    const targetSpan = children[i];
+
+    if (!targetSpan) continue;
+
+    if (newChar !== oldChar) {
+      targetSpan.className = "time-char animate";
+      if (newChar === " ") targetSpan.classList.add("time-space");
+      else if (newChar === ":") targetSpan.classList.add("time-separator");
+
+      targetSpan.innerHTML = `
+        <span class="time-char-inner">
+          <span class="time-old">${oldChar}</span>
+          <span class="time-new">${newChar}</span>
+        </span>
+      `;
+    } else {
+      targetSpan.className = "time-char";
+      if (newChar === " ") targetSpan.classList.add("time-space");
+      else if (newChar === ":") targetSpan.classList.add("time-separator");
+      targetSpan.textContent = newChar;
+    }
+  }
 }
 
 function formatRemainingTime(diffMinutes) {
   if (diffMinutes <= 0) return "곧 종료";
-
   const totalMinutes = Math.ceil(diffMinutes);
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
-
   if (hours > 0 && minutes > 0) return `${hours}시간 ${minutes}분 남음`;
   if (hours > 0) return `${hours}시간 남음`;
   return `${minutes}분 남음`;
 }
 
-function formatBeforeSchoolTime(diffMinutes) {
-  if (diffMinutes <= 0) return "곧 시작";
-
-  const totalMinutes = Math.ceil(diffMinutes);
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-
-  if (hours > 0 && minutes > 0) return `일과 ${hours}시간 ${minutes}분 전`;
-  if (hours > 0) return `일과 ${hours}시간 전`;
-  return `일과 ${minutes}분 전`;
-}
-
+// 빈틈을 계산하여 쉬는시간을 유동적으로 인식하는 새로운 구동 로직
 function getCurrentSchedule(minutesNow) {
+  // 1. 먼저 정규 교시/일정 중에 해당하는지 확인
   for (const item of scheduleRanges) {
     const start = toMinutes(item.start);
     const end = toMinutes(item.end);
@@ -263,15 +312,22 @@ function getCurrentSchedule(minutesNow) {
       return { ...item, type: "schedule" };
     }
   }
-
-  for (const item of breakRanges) {
-    const start = toMinutes(item.start);
-    const end = toMinutes(item.end);
-    if (minutesNow >= start && minutesNow < end) {
-      return { ...item, type: "break" };
+  
+  // 2. 일치하는 교시가 없다면, 교시와 교시 사이의 '빈틈'을 자동으로 쉬는시간으로 인식
+  for (let i = 0; i < scheduleRanges.length - 1; i++) {
+    const prevEnd = toMinutes(scheduleRanges[i].end);
+    const nextStart = toMinutes(scheduleRanges[i+1].start);
+    
+    if (minutesNow >= prevEnd && minutesNow < nextStart) {
+      return {
+        name: "쉬는시간",
+        start: scheduleRanges[i].end,
+        end: scheduleRanges[i+1].start,
+        type: "break",
+        nextSchedule: scheduleRanges[i+1] // 빨간 줄을 대기시킬 다음 교시 정보 수록
+      };
     }
   }
-
   return null;
 }
 
@@ -279,74 +335,22 @@ function getScheduleProgress(scheduleItem, minutesNow) {
   const start = toMinutes(scheduleItem.start);
   const end = toMinutes(scheduleItem.end);
   const duration = end - start;
-
   if (duration <= 1) return 0;
-
   const remainingWholeMinutes = Math.max(1, Math.min(duration, Math.ceil(end - minutesNow)));
   const passedMinuteSteps = duration - remainingWholeMinutes;
   const progress = (passedMinuteSteps / (duration - 1)) * 100;
-
   return Math.max(0, Math.min(100, progress));
 }
 
-function getNextScheduleAfter(minutesNow) {
-  for (const item of scheduleRanges) {
-    const start = toMinutes(item.start);
-    if (minutesNow < start) {
-      return { ...item, type: "schedule" };
-    }
-  }
-  return null;
-}
-
 function getDayScheduleEnd(dayOfWeek) {
-  if (!(dayOfWeek >= 1 && dayOfWeek <= 5)) {
-    return null;
-  }
-
-  const forcedDayEndMap = {
-    1: "16:30",
-    3: "16:30",
-    5: "16:30"
-  };
-
-  if (forcedDayEndMap[dayOfWeek]) {
-    return forcedDayEndMap[dayOfWeek];
-  }
-
-  const headerCells = document.querySelectorAll("thead th[data-day]");
-  const tableDayIndex = Array.from(headerCells).findIndex(
-    (cell) => Number(cell.dataset.day) === dayOfWeek
-  );
-
-  if (tableDayIndex === -1) {
-    return null;
-  }
-
+  if (!(dayOfWeek >= 1 && dayOfWeek <= 5)) return null;
   let latestEnd = null;
-
   document.querySelectorAll("tbody tr[data-period]").forEach((row) => {
     const periodName = row.dataset.period;
     const scheduleItem = scheduleRanges.find((item) => item.name === periodName);
     if (!scheduleItem) return;
-
-    const cells = row.querySelectorAll("td");
-    if (cells.length === 1 && cells[0].hasAttribute("colspan")) {
-      latestEnd = scheduleItem.end;
-      return;
-    }
-
-    if (cells.length === 5) {
-      const targetCell = cells[tableDayIndex];
-      if (!targetCell) return;
-
-      const hasSubject = Boolean(targetCell.dataset.subject);
-      if (hasSubject) {
-        latestEnd = scheduleItem.end;
-      }
-    }
+    latestEnd = scheduleItem.end;
   });
-
   return latestEnd;
 }
 
@@ -354,12 +358,12 @@ function applyRoomBadges() {
   const cells = document.querySelectorAll("td[data-subject]");
   cells.forEach((cell) => {
     const subject = cell.dataset.subject;
+    if (!subject || subject === ".") return;
     const subjectWrap = cell.querySelector(".subject");
     if (!subjectWrap) return;
 
     const existingRoom = subjectWrap.querySelector(".room-info");
     if (existingRoom) existingRoom.remove();
-
     const existingTeacher = subjectWrap.querySelector(".teacher-info");
     if (existingTeacher) existingTeacher.remove();
 
@@ -415,15 +419,20 @@ function updateRowTimeText(row, start, end) {
 function renderSubjectCell(cell, subject) {
   if (!cell) return;
   cell.dataset.subject = subject;
+  
+  if (subject === ".") {
+    cell.classList.add("empty-cell");
+    cell.textContent = ".";
+    return;
+  }
+  
   cell.classList.remove("empty-cell");
 
   let subjectWrap = cell.querySelector(".subject");
-
-  if (!subjectWrap || subjectWrap.tagName === "BUTTON") {
+  if (!subjectWrap) {
     cell.textContent = "";
     subjectWrap = document.createElement("div");
     subjectWrap.className = "subject";
-
     const subjectNameEl = document.createElement("span");
     subjectNameEl.className = "subject-name";
     subjectWrap.appendChild(subjectNameEl);
@@ -433,33 +442,12 @@ function renderSubjectCell(cell, subject) {
   const subjectNameEl = subjectWrap.querySelector(".subject-name");
   if (subjectNameEl) subjectNameEl.textContent = subject;
 
-  const existingRoom = subjectWrap.querySelector(".room-info");
-  if (existingRoom) existingRoom.remove();
-
-  const existingTeacher = subjectWrap.querySelector(".teacher-info");
-  if (existingTeacher) existingTeacher.remove();
-
-  const room = classroomMap[subject];
-  if (room) {
-    const roomTag = document.createElement("span");
-    roomTag.className = "room-info";
-    roomTag.textContent = `교실: ${room}`;
-    subjectWrap.appendChild(roomTag);
-  }
-
-  const teacher = teacherMap[subject];
-  if (teacher) {
-    const teacherTag = document.createElement("span");
-    teacherTag.className = "teacher-info";
-    teacherTag.textContent = `선생님: ${teacher}`;
-    subjectWrap.appendChild(teacherTag);
-  }
+  applyRoomBadges();
 }
 
 function resetInfoMapsToDefault() {
   Object.keys(classroomMap).forEach((key) => delete classroomMap[key]);
   Object.assign(classroomMap, defaultClassroomMap);
-
   Object.keys(teacherMap).forEach((key) => delete teacherMap[key]);
   Object.assign(teacherMap, defaultTeacherMap);
 }
@@ -502,11 +490,19 @@ function loadCellEdits() {
   }
 }
 
-function enableTileEditing() {
-  const subjectMemo = document.getElementById("subjectMemo");
-  const subjectSave = document.getElementById("subjectSave");
-  const subjectReset = document.getElementById("subjectReset");
+function isTileEditModeActive() {
+  return document.body.classList.contains("edit-mode");
+}
 
+function setTileEditMode(isActive) {
+  document.body.classList.toggle("edit-mode", isActive);
+  customToggle?.classList.toggle("active", isActive);
+  if (customToggle) customToggle.textContent = isActive ? "수정 종료" : "수정";
+  customPanel?.classList.toggle("is-open", isActive);
+  customPanel?.setAttribute("aria-hidden", isActive ? "false" : "true");
+}
+
+function enableTileEditing() {
   document.querySelectorAll("tbody tr[data-period]").forEach((row) => {
     const cells = row.querySelectorAll("td");
     const header = row.querySelector("th");
@@ -514,56 +510,61 @@ function enableTileEditing() {
     if (header) {
       header.style.cursor = "pointer";
       header.addEventListener("click", () => {
-        const period = row.dataset.period;
-        const scheduleItem = scheduleRanges.find((item) => item.name === period);
-        const current = scheduleItem ? `${scheduleItem.start}-${scheduleItem.end}` : "";
-        openInputModal("교시 수정", "08:20-09:10", (value) => {
-          const parsed = parseTimeRange(value);
-          if (!parsed) return;
-          if (scheduleItem) {
-            scheduleItem.start = parsed.start;
-            scheduleItem.end = parsed.end;
-          } else {
-            scheduleRanges.push({ name: period, start: parsed.start, end: parsed.end });
-          }
-          updateRowTimeText(row, parsed.start, parsed.end);
-          saveScheduleEdit(period, parsed.start, parsed.end);
-          updateCurrentStatus();
-        });
-        if (modalInput) modalInput.value = current;
+        if (isTileEditModeActive()) {
+          const period = row.dataset.period;
+          const scheduleItem = scheduleRanges.find((item) => item.name === period);
+          const current = scheduleItem ? `${scheduleItem.start}-${scheduleItem.end}` : "";
+          openInputModal("교시 수정", "08:20-09:10", (value) => {
+            const parsed = parseTimeRange(value);
+            if (!parsed) return;
+            if (scheduleItem) {
+              scheduleItem.start = parsed.start;
+              scheduleItem.end = parsed.end;
+            }
+            updateRowTimeText(row, parsed.start, parsed.end);
+            saveScheduleEdit(period, parsed.start, parsed.end);
+            updateCurrentStatus();
+          });
+          if (modalInput) modalInput.value = current;
+        }
       });
     }
 
     cells.forEach((cell, index) => {
       if (cell.hasAttribute("colspan")) return;
-
-      cell.style.cursor = cell.classList.contains("empty-cell") ? "pointer" : "default";
+      cell.style.cursor = "pointer";
 
       cell.addEventListener("click", () => {
-        if (cell.classList.contains("empty-cell")) {
-          openInputModal("과목 추가", "과목명을 입력하세요", (value) => {
-            if (!value || !value.trim()) return;
-            renderSubjectCell(cell, value.trim());
-            saveCellEdit(row.dataset.period, index, value.trim());
-            updateMemoIndicators();
-            updateCurrentStatus();
+        if (isTileEditModeActive()) {
+          if (cell.classList.contains("empty-cell") || cell.dataset.subject === ".") {
+            openInputModal("과목 추가", "과목명을 입력하세요", (value) => {
+              if (!value || !value.trim()) return;
+              renderSubjectCell(cell, value.trim());
+              saveCellEdit(row.dataset.period, index, value.trim());
+              updateMemoIndicators();
+              updateCurrentStatus();
+            });
+          } else {
+            const subject = cell.dataset.subject || "";
+            openInputModal("과목 수정", "과목명을 입력하세요", (value) => {
+              if (!value || !value.trim()) return;
+              renderSubjectCell(cell, value.trim());
+              saveCellEdit(row.dataset.period, index, value.trim());
+              updateMemoIndicators();
+              updateCurrentStatus();
+            });
+            if (modalInput) modalInput.value = subject;
+          }
+        } else {
+          if (cell.classList.contains("empty-cell") || cell.dataset.subject === ".") return;
+          const subject = cell.dataset.subject;
+          if (!subject) return;
+
+          openSubjectModal({
+            name: subject,
+            room: classroomMap[subject] || "정보 없음",
+            teacher: teacherMap[subject] || "정보 없음"
           });
-          return;
-        }
-
-        const subject = cell.dataset.subject || "";
-        if (!subject) return;
-
-        // 단순 클릭: 편집 모달 열기
-        openInputModal("과목 수정", "과목명을 입력하세요", (value) => {
-          if (!value || !value.trim()) return;
-          renderSubjectCell(cell, value.trim());
-          saveCellEdit(row.dataset.period, index, value.trim());
-          updateMemoIndicators();
-          updateCurrentStatus();
-        });
-        if (modalInput) {
-          modalInput.value = subject;
         }
       });
     });
@@ -583,18 +584,13 @@ function enableTileEditing() {
 function updateThemeButton() {
   const isDark = document.body.classList.contains("dark-mode");
   themeToggle.textContent = isDark ? "라이트 모드" : "다크 모드";
-  themeToggle.classList.toggle("theme-target-light", isDark);
-  themeToggle.classList.toggle("theme-target-dark", !isDark);
 }
 
 function initTheme() {
   const savedTheme = localStorage.getItem("mirim-theme");
-  if (savedTheme === "dark") {
-    document.body.classList.add("dark-mode");
-  }
+  if (savedTheme === "dark") document.body.classList.add("dark-mode");
   updateThemeButton();
 }
-
 
 function getTodayScheduleDay() {
   const day = new Date().getDay();
@@ -611,26 +607,19 @@ function isMobileTimetableView() {
 
 function hideColumnByDay(day) {
   const targetHeader = document.querySelector(`thead th[data-day="${day}"]`);
-  if (targetHeader) {
-    targetHeader.classList.add("today-only-hidden");
-  }
+  if (targetHeader) targetHeader.classList.add("today-only-hidden");
 
   document.querySelectorAll("tbody tr[data-period]").forEach((row) => {
     const cells = row.querySelectorAll("td");
     if (cells.length === 5) {
       const targetCell = cells[day - 1];
-      if (targetCell) {
-        targetCell.classList.add("today-only-hidden");
-        targetCell.style.display = "";
-        targetCell.style.visibility = "visible";
-      }
+      if (targetCell) targetCell.classList.add("today-only-hidden");
     }
   });
 }
 
 function updateTodayOnlyButton(todayDay, isActive) {
   if (!todayOnlyToggle) return;
-
   const isEnabled = Boolean(todayDay);
   todayOnlyToggle.disabled = !isEnabled;
   todayOnlyToggle.classList.toggle("active", isActive && isEnabled);
@@ -643,22 +632,16 @@ function applyTodayOnlyMode() {
   const activeDay = getActiveScheduleDay();
   const shouldApply = isMobile || isTodayOnly;
   document.body.classList.toggle("today-only-mode", shouldApply);
-  document.body.classList.toggle("mobile-today-mode", isMobile);
 
   document.querySelectorAll(".today-only-hidden").forEach((node) => {
     node.classList.remove("today-only-hidden");
-    node.style.display = "";
-    node.style.visibility = "";
   });
 
   if (shouldApply) {
     [1, 2, 3, 4, 5].forEach((day) => {
-      if (day !== activeDay) {
-        hideColumnByDay(day);
-      }
+      if (day !== activeDay) hideColumnByDay(day);
     });
   }
-
   updateTodayOnlyButton(activeDay, shouldApply);
 }
 
@@ -666,17 +649,14 @@ function clearHighlights() {
   document.querySelectorAll("tbody tr").forEach((row) => row.classList.remove("today-row", "current-row", "break-target-row"));
   document.querySelectorAll("tbody td").forEach((cell) => cell.classList.remove("today-cell", "current-cell", "current-glow-cell"));
   document.querySelectorAll("thead th").forEach((cell) => cell.classList.remove("today-column-header", "current-day-column-header"));
-  document.querySelectorAll(".time-marker, .floating-time-line, .floating-time-label").forEach((node) => node.remove());
+  document.querySelectorAll(".floating-time-line, .floating-time-label").forEach((node) => node.remove());
 }
 
 function updateHighlights(currentSchedule, dayOfWeek, highlightSchedule) {
   clearHighlights();
-
   if (dayOfWeek >= 1 && dayOfWeek <= 5) {
     const headerCell = document.querySelector(`thead th[data-day="${dayOfWeek}"]`);
-    if (headerCell) {
-      headerCell.classList.add("today-column-header", "current-day-column-header");
-    }
+    if (headerCell) headerCell.classList.add("today-column-header", "current-day-column-header");
 
     document.querySelectorAll("tbody tr").forEach((row) => {
       const cells = row.querySelectorAll("td");
@@ -692,13 +672,10 @@ function updateHighlights(currentSchedule, dayOfWeek, highlightSchedule) {
     if (currentRow) {
       const isBreakTarget = currentSchedule && currentSchedule.type === "break";
       currentRow.classList.add(isBreakTarget ? "break-target-row" : "current-row");
-
       const cells = currentRow.querySelectorAll("td");
       if (cells.length === 5 && dayOfWeek >= 1 && dayOfWeek <= 5) {
         const currentCell = cells[dayOfWeek - 1];
-        if (currentCell) {
-          currentCell.classList.add("current-cell", "today-cell", "current-glow-cell");
-        }
+        if (currentCell) currentCell.classList.add("current-cell", "today-cell", "current-glow-cell");
       }
     }
   }
@@ -706,9 +683,7 @@ function updateHighlights(currentSchedule, dayOfWeek, highlightSchedule) {
 
 function renderFloatingTimeline(currentSchedule, highlightSchedule, dayOfWeek, progress) {
   const table = document.querySelector("table");
-  if (!table || !highlightSchedule) return;
-  if (!(dayOfWeek >= 1 && dayOfWeek <= 5)) return;
-  if (!currentTimeEl) return;
+  if (!table || !highlightSchedule || !(dayOfWeek >= 1 && dayOfWeek <= 5) || !currentTimeEl) return;
 
   const targetRow = document.querySelector(`tbody tr[data-period="${highlightSchedule.name}"]`);
   if (!targetRow) return;
@@ -720,29 +695,22 @@ function renderFloatingTimeline(currentSchedule, highlightSchedule, dayOfWeek, p
   const lastCell = cells[cells.length - 1];
   const isBreakTarget = currentSchedule && currentSchedule.type === "break";
   const clampedProgress = Math.max(0, Math.min(100, progress));
-  const rawLineTop = isBreakTarget
-    ? targetRow.offsetTop
-    : targetRow.offsetTop + ((targetRow.offsetHeight - 3) * clampedProgress / 100);
+  const rawLineTop = isBreakTarget ? targetRow.offsetTop : targetRow.offsetTop + ((targetRow.offsetHeight - 3) * clampedProgress / 100);
 
   const label = document.createElement("span");
   label.className = "floating-time-label";
   label.textContent = currentTimeEl.textContent;
-  label.style.visibility = "hidden";
   table.appendChild(label);
 
   const safeLeft = rowHeader.offsetLeft + 4;
   const syncedTop = isBreakTarget ? targetRow.offsetTop : rawLineTop;
-
   label.style.left = `${safeLeft}px`;
   label.style.top = `${syncedTop}px`;
-  label.style.visibility = "visible";
 
   const line = document.createElement("div");
   line.className = "floating-time-line";
   const lineLeft = safeLeft + label.offsetWidth - 6;
-  const tableRight = table.clientWidth - 12;
-  const lastCellRight = lastCell.offsetLeft + lastCell.offsetWidth - 12;
-  const lineRight = Math.max(tableRight, lastCellRight);
+  const lineRight = Math.max(table.clientWidth - 12, lastCell.offsetLeft + lastCell.offsetWidth - 12);
   line.style.left = `${lineLeft}px`;
   line.style.width = `${Math.max(0, lineRight - lineLeft)}px`;
   line.style.top = `${syncedTop}px`;
@@ -750,37 +718,20 @@ function renderFloatingTimeline(currentSchedule, highlightSchedule, dayOfWeek, p
 }
 
 function getCurrentSubjectAndRoom(currentSchedule, dayOfWeek) {
-  if (!currentSchedule) {
-    return { subject: "일과 시간 아님", room: "미지정" };
-  }
-
-  if (currentSchedule.type === "break") {
-    return { subject: "쉬는시간", room: "이동 시간" };
-  }
-
-  if (currentSchedule.merged) {
-    return { subject: currentSchedule.name, room: "공통 일정" };
-  }
-
-  if (!(dayOfWeek >= 1 && dayOfWeek <= 5)) {
-    return { subject: currentSchedule.name, room: "주말" };
-  }
+  if (!currentSchedule) return { subject: "일과 시간 아님", room: "미지정" };
+  if (currentSchedule.type === "break") return { subject: "쉬는시간", room: "이동 시간" };
+  if (currentSchedule.merged) return { subject: currentSchedule.name, room: "공통 일정" };
+  if (!(dayOfWeek >= 1 && dayOfWeek <= 5)) return { subject: currentSchedule.name, room: "주말" };
 
   const currentRow = document.querySelector(`tbody tr[data-period="${currentSchedule.name}"]`);
-  if (!currentRow) {
-    return { subject: currentSchedule.name, room: "미지정" };
-  }
+  if (!currentRow) return { subject: currentSchedule.name, room: "미지정" };
 
   const cells = currentRow.querySelectorAll("td");
-  if (cells.length !== 5) {
-    return { subject: currentSchedule.name, room: "미지정" };
-  }
+  if (cells.length !== 5) return { subject: currentSchedule.name, room: "미지정" };
 
   const currentCell = cells[dayOfWeek - 1];
-  const subject = currentCell && currentCell.dataset ? currentCell.dataset.subject || "" : "";
-  if (!subject) {
-    return { subject: "", room: "일과 시간 아님" };
-  }
+  const subject = currentCell ? currentCell.dataset.subject || "" : "";
+  if (!subject || subject === ".") return { subject: "", room: "일과 시간 아님" };
 
   return {
     subject,
@@ -797,30 +748,19 @@ function updateCurrentStatus() {
   const dayOfWeek = now.getDay();
 
   const currentSchedule = getCurrentSchedule(currentMinutes);
-  const highlightSchedule = currentSchedule && currentSchedule.type === "break"
-    ? getNextScheduleAfter(currentMinutes)
-    : currentSchedule;
-  const currentProgress = currentSchedule
-    ? (currentSchedule.type === "break" ? 0 : getScheduleProgress(currentSchedule, currentMinutes))
-    : 0;
+  const highlightSchedule = currentSchedule && currentSchedule.type === "break" ? currentSchedule.nextSchedule : currentSchedule;
+  const currentProgress = currentSchedule ? (currentSchedule.type === "break" ? 0 : getScheduleProgress(currentSchedule, currentMinutes)) : 0;
+  
   const currentPeriodEl = document.getElementById("currentPeriod");
   const remainingTimeLabelEl = document.getElementById("remainingTimeLabel");
   const remainingTimeEl = document.getElementById("remainingTime");
   const dayRemainingTimeEl = document.getElementById("dayRemainingTime");
   const currentRoomEl = document.getElementById("currentRoom");
-  const todayLabelEl = document.getElementById("todayLabel");
 
-  if (currentTimeEl) {
-    currentTimeEl.textContent = `${format12Hour(`${hours}:${minutes}`)}:${seconds}`;
-  }
+  const newTimeText = `${format12Hour(`${hours}:${minutes}`)}:${seconds}`;
+  updateRollingClock(newTimeText);
 
-  if (todayLabelEl) {
-    todayLabelEl.textContent = `${dayNames[dayOfWeek]}요일`;
-  }
-
-  if (remainingTimeLabelEl) {
-    remainingTimeLabelEl.textContent = currentSchedule && currentSchedule.type === "break" ? "남은 쉬는 시간" : "교시 남은 시간";
-  }
+  if (remainingTimeLabelEl) remainingTimeLabelEl.textContent = currentSchedule && currentSchedule.type === "break" ? "남은 쉬는 시간" : "교시 남은 시간";
 
   const isSchoolWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
   const dayScheduleEnd = getDayScheduleEnd(dayOfWeek);
@@ -828,12 +768,8 @@ function updateCurrentStatus() {
 
   if (dayRemainingTimeEl) {
     const dayStartMinutes = toMinutes(scheduleRanges[0].start);
-    const schoolPreviewStartMinutes = 6 * 60;
-
     if (isSchoolWeekday && dayScheduleEndMinutes !== null) {
-      if (currentMinutes >= schoolPreviewStartMinutes && currentMinutes < dayStartMinutes) {
-        dayRemainingTimeEl.textContent = formatBeforeSchoolTime(dayStartMinutes - currentMinutes);
-      } else if (currentMinutes >= dayStartMinutes && currentMinutes < dayScheduleEndMinutes) {
+      if (currentMinutes >= dayStartMinutes && currentMinutes < dayScheduleEndMinutes) {
         dayRemainingTimeEl.textContent = formatRemainingTime(dayScheduleEndMinutes - currentMinutes);
       } else {
         dayRemainingTimeEl.textContent = "일과 시간 아님";
@@ -848,28 +784,16 @@ function updateCurrentStatus() {
     const { subject, room } = getCurrentSubjectAndRoom(currentSchedule, dayOfWeek);
 
     if (currentPeriodEl) {
-      if (currentSchedule.type === "break") {
+      if (currentSchedule.type === "break" || currentSchedule.merged) {
         currentPeriodEl.textContent = `${currentSchedule.name} (${format12Hour(currentSchedule.start)} ~ ${format12Hour(currentSchedule.end)})`;
       } else if (!subject) {
         currentPeriodEl.textContent = "일과 시간 아님";
-      } else if (currentSchedule.merged) {
-        currentPeriodEl.textContent = `${currentSchedule.name} (${format12Hour(currentSchedule.start)} ~ ${format12Hour(currentSchedule.end)})`;
       } else {
         currentPeriodEl.textContent = `${currentSchedule.name} · ${subject}`;
       }
     }
-
-    if (remainingTimeEl) {
-      remainingTimeEl.textContent = !subject && currentSchedule.type === "schedule"
-        ? "일과 시간 아님"
-        : formatRemainingTime(remaining);
-    }
-
-    if (currentRoomEl) {
-      currentRoomEl.textContent = !subject && currentSchedule.type === "schedule"
-        ? "일과 시간 아님"
-        : room;
-    }
+    if (remainingTimeEl) remainingTimeEl.textContent = !subject && currentSchedule.type === "schedule" ? "일과 시간 아님" : formatRemainingTime(remaining);
+    if (currentRoomEl) currentRoomEl.textContent = !subject && currentSchedule.type === "schedule" ? "일과 시간 아님" : room;
   } else {
     if (currentPeriodEl) currentPeriodEl.textContent = "일과 시간 아님";
     if (remainingTimeEl) remainingTimeEl.textContent = "일과 시간 아님";
@@ -881,202 +805,151 @@ function updateCurrentStatus() {
   renderFloatingTimeline(currentSchedule, highlightSchedule, dayOfWeek, currentProgress);
 }
 
-if (themeToggle) {
-  themeToggle.addEventListener("click", () => {
-    triggerButtonPop(themeToggle);
-    document.body.classList.toggle("dark-mode");
-    const isDark = document.body.classList.contains("dark-mode");
-    localStorage.setItem("mirim-theme", isDark ? "dark" : "light");
-    updateThemeButton();
-  });
-}
-
-if (todayOnlyToggle) {
-  todayOnlyToggle.addEventListener("click", () => {
-    triggerButtonPop(todayOnlyToggle);
-    if (!isMobileTimetableView()) {
-      const isTodayOnly = localStorage.getItem("mirim-today-only") === "on";
-      localStorage.setItem("mirim-today-only", isTodayOnly ? "off" : "on");
-    }
-    applyTodayOnlyMode();
-  });
-}
-
 function loadCustomConfig() {
   resetInfoMapsToDefault();
-
   const saved = localStorage.getItem("tile-custom-json");
   if (!saved) {
     applyRoomBadges();
     return;
   }
-
   try {
     const config = JSON.parse(saved);
-
-    // Update teacher map
-    if (config.teachers && typeof config.teachers === "object") {
-      Object.assign(teacherMap, config.teachers);
+    if (config.teachers && typeof config.teachers === "object") Object.assign(teacherMap, config.teachers);
+    if (config.classrooms && typeof config.classrooms === "object") Object.assign(classroomMap, config.classrooms);
+    if (config.subjects && typeof config.subjects === "object") {
+      Object.entries(config.subjects).forEach(([subName, subData]) => {
+        if (subData.room) classroomMap[subName] = subData.room;
+        if (subData.teacher) teacherMap[subName] = subData.teacher;
+      });
     }
-
-    // Update classroom map
-    if (config.classrooms && typeof config.classrooms === "object") {
-      Object.assign(classroomMap, config.classrooms);
-    }
-
-    // Update schedule ranges (periods)
     if (config.scheduleRanges && Array.isArray(config.scheduleRanges)) {
       config.scheduleRanges.forEach(newPeriod => {
         if (!newPeriod.name || !newPeriod.start || !newPeriod.end) return;
         const existingIndex = scheduleRanges.findIndex(p => p.name === newPeriod.name);
-        if (existingIndex >= 0) {
-          scheduleRanges[existingIndex] = { ...scheduleRanges[existingIndex], ...newPeriod };
-        }
+        if (existingIndex >= 0) scheduleRanges[existingIndex] = { ...scheduleRanges[existingIndex], ...newPeriod };
       });
     }
-  } catch (e) {
-    console.error("Failed to load custom config:", e);
+  } catch (error) {
+    console.error("JSON 파싱 에러:", error);
   }
-
   applyRoomBadges();
 }
 
-loadCustomConfig();
-updateIPhoneSafeZone();
+// 초기화 순서 강제 세팅
 initTheme();
-applyTodayOnlyMode();
-loadCellEdits();
+loadCustomConfig();
 loadScheduleEdits();
+loadCellEdits();
 enableTileEditing();
 updateMemoIndicators();
-updateCurrentStatus();
 setInterval(updateCurrentStatus, 1000);
+updateCurrentStatus();
+applyTodayOnlyMode();
 
-if (customToggle && customPanel) {
-  customToggle.addEventListener("click", () => {
-    triggerButtonPop(customToggle);
-    customPanel.classList.toggle("is-open");
-  });
-}
+// ===== 버튼 이벤트 리스너 통합 정의 =====
 
-if (customClose && customPanel) {
-  customClose.addEventListener("click", () => {
-    customPanel.classList.remove("is-open");
-  });
-}
+themeToggle?.addEventListener("click", () => {
+  document.body.classList.toggle("dark-mode");
+  const isDark = document.body.classList.contains("dark-mode");
+  localStorage.setItem("mirim-theme", isDark ? "dark" : "light");
+  updateThemeButton();
+  triggerButtonPop(themeToggle);
+});
 
-if (customInput) {
-  customInput.value = localStorage.getItem("tile-custom-json") || `{
-  "message": "Tile 수정 기능 준비 완료 ✨"
-}`;
-}
+todayOnlyToggle?.addEventListener("click", () => {
+  const todayDay = getTodayScheduleDay();
+  if (!todayDay) return;
+  const isTodayOnly = localStorage.getItem("mirim-today-only") === "on";
+  localStorage.setItem("mirim-today-only", isTodayOnly ? "off" : "on");
+  applyTodayOnlyMode();
+  updateCurrentStatus();
+  triggerButtonPop(todayOnlyToggle);
+});
 
-if (customSave && customInput) {
-  customSave.addEventListener("click", () => {
-    try {
-      const parsed = JSON.parse(customInput.value);
-      
-      // Validate basic structure
-      if (typeof parsed !== "object" || parsed === null) {
-        alert("유효한 JSON 객체여야 합니다.");
-        return;
-      }
-
-      localStorage.setItem("tile-custom-json", JSON.stringify(parsed));
-      
-      // Reload config without page refresh
-      loadCustomConfig();
-      applyRoomBadges();
-      updateCurrentStatus();
-      
-      alert("설정 저장 완료 ✨");
-    } catch (err) {
-      alert(`JSON 형식 오류: ${err.message}`);
-    }
-  });
-}
-
-if (customReset && customInput) {
-  customReset.addEventListener("click", () => {
-    localStorage.removeItem("tile-custom-json");
-    localStorage.removeItem(CELL_EDIT_STORAGE_KEY);
-    localStorage.removeItem(SCHEDULE_EDIT_STORAGE_KEY);
-
-    customInput.value = `{
-  "message": "Tile 수정 기능 준비 완료 ✨"
-}`;
-
-    // Reset to default
-    loadCustomConfig();
-    applyRoomBadges();
-    updateCurrentStatus();
-
-    alert("시간표 및 설정 초기화 완료. 새로고침 해주세요.");
-  });
-}
-
-if (customLoadExample && customInput) {
-  customLoadExample.addEventListener("click", () => {
-    customInput.value = `{
-  "teachers": {
-    "MC": "정하나",
-    "JAVA": "민주리"
-  },
-  "classrooms": {
-    "MC": "UI Lab실",
-    "JAVA": "제4소프트웨어랩"
-  },
-  "scheduleRanges": [
-    {
-      "name": "1교시",
-      "start": "08:20",
-      "end": "09:10"
-    }
-  ]
-}`;
-  });
-}
-
-// 메모 저장 및 초기화 기능 추가
-if (memoSave && memoInput) {
-  memoSave.addEventListener("click", () => {
-    try {
-      const memoText = memoInput.value;
-      localStorage.setItem("tile-memo-content", memoText);
-      alert("메모 저장 완료 ✨");
-    } catch (err) {
-      alert(`저장 오류: ${err.message}`);
-    }
-  });
-}
-
-if (memoReset && memoInput) {
-  memoReset.addEventListener("click", () => {
-    localStorage.removeItem("tile-memo-content");
-    memoInput.value = "";
-    alert("메모 초기화 완료 ✨");
-  });
-}
-
-// 메모 패널 토글
-const memoToggle = document.getElementById("memoToggle");
-if (memoToggle && memoPanel) {
-  memoToggle.addEventListener("click", () => {
-    triggerButtonPop(memoToggle);
-    memoPanel.classList.toggle("is-open");
-  });
-}
-
-if (memoClose && memoPanel) {
-  memoClose.addEventListener("click", () => {
-    memoPanel.classList.remove("is-open");
-  });
-}
-
-// 페이지 로드 시 저장된 메모 불러오기
-if (memoInput) {
-  const savedMemo = localStorage.getItem("tile-memo-content");
-  if (savedMemo) {
-    memoInput.value = savedMemo;
+customToggle?.addEventListener("click", () => {
+  const nextEditMode = !isTileEditModeActive();
+  setTileEditMode(nextEditMode);
+  if (nextEditMode && customInput) {
+    setTimeout(() => customInput.focus(), 100);
   }
-}
+  triggerButtonPop(customToggle);
+});
+
+customClose?.addEventListener("click", () => {
+  setTileEditMode(false);
+});
+
+customLoadExample?.addEventListener("click", () => {
+  const example = {
+    teachers: { ...defaultTeacherMap },
+    classrooms: { ...defaultClassroomMap },
+    scheduleRanges: scheduleRanges.map(item => ({ name: item.name, start: item.start, end: item.end }))
+  };
+  if (customInput) customInput.value = JSON.stringify(example, null, 2);
+  triggerButtonPop(customLoadExample);
+});
+
+customSave?.addEventListener("click", () => {
+  if (!customInput) return;
+  try {
+    const config = JSON.parse(customInput.value);
+    localStorage.setItem("tile-custom-json", JSON.stringify(config));
+    loadCustomConfig();
+    loadCellEdits();
+    updateCurrentStatus();
+    triggerButtonPop(customSave);
+    alert("저장되었습니다!");
+    setTileEditMode(false);
+  } catch (error) {
+    alert("JSON 형식이 올바르지 않습니다: " + error.message);
+  }
+});
+
+customReset?.addEventListener("click", () => {
+  if (!confirm("정말 초기화하시겠습니까?")) return;
+  localStorage.removeItem("tile-custom-json");
+  localStorage.removeItem(CELL_EDIT_STORAGE_KEY);
+  localStorage.removeItem(SCHEDULE_EDIT_STORAGE_KEY);
+  loadCustomConfig();
+  loadCellEdits();
+  updateCurrentStatus();
+  applyTodayOnlyMode();
+  triggerButtonPop(customReset);
+  setTileEditMode(false);
+});
+
+memoToggle?.addEventListener("click", () => {
+  if (!memoPanel) return;
+  const isOpen = memoPanel.classList.contains("is-open");
+  memoPanel.classList.toggle("is-open");
+  memoPanel.setAttribute("aria-hidden", isOpen);
+  if (!isOpen && memoInput) {
+    const saved = localStorage.getItem("tile-memo");
+    if (saved) memoInput.value = saved;
+    setTimeout(() => memoInput.focus(), 100);
+  }
+  triggerButtonPop(memoToggle);
+});
+
+memoClose?.addEventListener("click", () => {
+  memoPanel?.classList.remove("is-open");
+  memoPanel?.setAttribute("aria-hidden", "true");
+});
+
+memoSave?.addEventListener("click", () => {
+  if (!memoInput) return;
+  localStorage.setItem("tile-memo", memoInput.value);
+  triggerButtonPop(memoSave);
+  alert("메모가 저장되었습니다!");
+  memoPanel?.classList.remove("is-open");
+  memoPanel?.setAttribute("aria-hidden", "true");
+});
+
+memoReset?.addEventListener("click", () => {
+  if (!confirm("메모를 초기화하시겠습니까?")) return;
+  if (memoInput) memoInput.value = "";
+  localStorage.removeItem("tile-memo");
+  triggerButtonPop(memoReset);
+  memoPanel?.classList.remove("is-open");
+  memoPanel?.setAttribute("aria-hidden", "true");
+});
