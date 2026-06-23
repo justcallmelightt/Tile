@@ -68,14 +68,13 @@ const scheduleRanges = [
   { name: "2교시", start: "09:40", end: "10:30" },
   { name: "3교시", start: "10:40", end: "11:30" },
   { name: "4교시", start: "11:40", end: "12:30" },
-  { name: "중식", start: "12:30", end: "13:35", merged: true },
-  { name: "5교시", start: "13:35", end: "14:25" },
-  { name: "6교시", start: "14:25", end: "15:15" },
+  { name: "중식", start: "12:30", end: "13:25", merged: true },
+  { name: "5교시", start: "13:25", end: "14:25" },
+  { name: "6교시", start: "14:35", end: "15:25" },
   { name: "7교시", start: "15:40", end: "16:30" },
-  { name: "종례", start: "16:30", end: "16:40", merged: true },
-  { name: "방과후 A", start: "16:40", end: "17:40" },
-  { name: "석식", start: "17:40", end: "18:40", merged: true },
-  { name: "방과후 B", start: "18:40", end: "21:00" }
+  { name: "종례", start: "16:30", end: "16:50", merged: true },
+  { name: "석식", start: "16:50", end: "18:00", merged: true },
+  { name: "야자", start: "18:00", end: "21:00", merged: true }
 ];
 
 const dayNames = ["일", "월", "화", "수", "목", "금", "토"];
@@ -242,16 +241,24 @@ function format12Hour(timeText) {
   return `${period} ${paddedHour}:${minute}`;
 }
 
+function formatClockTime(hours, minutes, seconds) {
+  return `${format12Hour(`${hours}:${minutes}`)}:${seconds}`;
+}
+
+function formatTimelineTime(hours, minutes, seconds) {
+  return formatClockTime(hours, minutes, seconds);
+}
+
 // 롤링 클럭 애니메이션 구동 함수
-function updateRollingClock(newTimeStr) {
-  if (!currentTimeEl) return;
-  const oldTimeStr = currentTimeEl.dataset.time || "";
+function updateRollingClock(newTimeStr, targetEl = currentTimeEl) {
+  if (!targetEl) return;
+  const oldTimeStr = targetEl.dataset.time || "";
   if (oldTimeStr === newTimeStr) return;
 
-  currentTimeEl.dataset.time = newTimeStr;
+  targetEl.dataset.time = newTimeStr;
 
   if (oldTimeStr.length !== newTimeStr.length) {
-    currentTimeEl.innerHTML = "";
+    targetEl.innerHTML = "";
     for (let i = 0; i < newTimeStr.length; i++) {
       const char = newTimeStr[i];
       const span = document.createElement("span");
@@ -259,12 +266,12 @@ function updateRollingClock(newTimeStr) {
       if (char === " ") span.classList.add("time-space");
       else if (char === ":") span.classList.add("time-separator");
       span.textContent = char;
-      currentTimeEl.appendChild(span);
+      targetEl.appendChild(span);
     }
     return;
   }
 
-  const children = currentTimeEl.children;
+  const children = targetEl.children;
   for (let i = 0; i < newTimeStr.length; i++) {
     const newChar = newTimeStr[i];
     const oldChar = oldTimeStr[i];
@@ -649,6 +656,9 @@ function clearHighlights() {
   document.querySelectorAll("tbody tr").forEach((row) => row.classList.remove("today-row", "current-row", "break-target-row"));
   document.querySelectorAll("tbody td").forEach((cell) => cell.classList.remove("today-cell", "current-cell", "current-glow-cell"));
   document.querySelectorAll("thead th").forEach((cell) => cell.classList.remove("today-column-header", "current-day-column-header"));
+}
+
+function removeFloatingTimeline() {
   document.querySelectorAll(".floating-time-line, .floating-time-label").forEach((node) => node.remove());
 }
 
@@ -683,38 +693,55 @@ function updateHighlights(currentSchedule, dayOfWeek, highlightSchedule) {
 
 function renderFloatingTimeline(currentSchedule, highlightSchedule, dayOfWeek, progress) {
   const table = document.querySelector("table");
-  if (!table || !highlightSchedule || !(dayOfWeek >= 1 && dayOfWeek <= 5) || !currentTimeEl) return;
+  if (!table || !highlightSchedule || !(dayOfWeek >= 1 && dayOfWeek <= 5) || !currentTimeEl) {
+    removeFloatingTimeline();
+    return;
+  }
 
   const targetRow = document.querySelector(`tbody tr[data-period="${highlightSchedule.name}"]`);
-  if (!targetRow) return;
+  if (!targetRow) {
+    removeFloatingTimeline();
+    return;
+  }
 
   const rowHeader = targetRow.querySelector("th");
   const cells = targetRow.querySelectorAll("td");
-  if (!rowHeader || cells.length === 0) return;
+  if (!rowHeader || cells.length === 0) {
+    removeFloatingTimeline();
+    return;
+  }
 
   const lastCell = cells[cells.length - 1];
   const isBreakTarget = currentSchedule && currentSchedule.type === "break";
   const clampedProgress = Math.max(0, Math.min(100, progress));
   const rawLineTop = isBreakTarget ? targetRow.offsetTop : targetRow.offsetTop + ((targetRow.offsetHeight - 3) * clampedProgress / 100);
 
-  const label = document.createElement("span");
-  label.className = "floating-time-label";
-  label.textContent = currentTimeEl.textContent;
-  table.appendChild(label);
+  let label = table.querySelector(".floating-time-label");
+  if (!label) {
+    label = document.createElement("span");
+    label.className = "floating-time-label";
+    table.appendChild(label);
+  }
+
+  const timelineTime = currentTimeEl.dataset.timelineTime || currentTimeEl.dataset.time || currentTimeEl.textContent;
+  updateRollingClock(timelineTime, label);
 
   const safeLeft = rowHeader.offsetLeft + 4;
   const syncedTop = isBreakTarget ? targetRow.offsetTop : rawLineTop;
   label.style.left = `${safeLeft}px`;
   label.style.top = `${syncedTop}px`;
 
-  const line = document.createElement("div");
-  line.className = "floating-time-line";
+  let line = table.querySelector(".floating-time-line");
+  if (!line) {
+    line = document.createElement("div");
+    line.className = "floating-time-line";
+    table.appendChild(line);
+  }
   const lineLeft = safeLeft + label.offsetWidth - 6;
   const lineRight = Math.max(table.clientWidth - 12, lastCell.offsetLeft + lastCell.offsetWidth - 12);
   line.style.left = `${lineLeft}px`;
   line.style.width = `${Math.max(0, lineRight - lineLeft)}px`;
   line.style.top = `${syncedTop}px`;
-  table.appendChild(line);
 }
 
 function getCurrentSubjectAndRoom(currentSchedule, dayOfWeek) {
@@ -757,7 +784,8 @@ function updateCurrentStatus() {
   const dayRemainingTimeEl = document.getElementById("dayRemainingTime");
   const currentRoomEl = document.getElementById("currentRoom");
 
-  const newTimeText = `${format12Hour(`${hours}:${minutes}`)}:${seconds}`;
+  const newTimeText = formatClockTime(hours, minutes, seconds);
+  if (currentTimeEl) currentTimeEl.dataset.timelineTime = formatTimelineTime(hours, minutes, seconds);
   updateRollingClock(newTimeText);
 
   if (remainingTimeLabelEl) remainingTimeLabelEl.textContent = currentSchedule && currentSchedule.type === "break" ? "남은 쉬는 시간" : "교시 남은 시간";
