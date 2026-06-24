@@ -1314,6 +1314,7 @@ body.mobile-today-mode col.day-col {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 0.58em;
   min-width: 0.58em;
   text-align: center;
   vertical-align: middle;
