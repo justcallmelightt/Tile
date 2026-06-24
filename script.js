@@ -52,14 +52,6 @@ const scheduleRanges = [
   { name: "방과후 B", start: "18:20", end: "20:00" }
 ];
 
-const breakRanges = [
-  { name: "쉬는시간", start: "09:10", end: "09:20" },
-  { name: "쉬는시간", start: "10:10", end: "10:20" },
-  { name: "쉬는시간", start: "11:10", end: "11:20" },
-  { name: "쉬는시간", start: "13:50", end: "14:00" },
-  { name: "쉬는시간", start: "14:50", end: "15:00" }
-];
-
 const dayNames = ["일", "월", "화", "수", "목", "금", "토"];
 const themeToggle = document.getElementById("themeToggle");
 const todayOnlyToggle = document.getElementById("todayOnlyToggle");
@@ -122,7 +114,11 @@ function getRollingTimeCharClass(char) {
 }
 
 function renderStaticRollingDigit(element, char) {
-  element.innerHTML = `<span class="time-static">${char}</span>`;
+  element.innerHTML = `
+    <span class="time-char-inner">
+      <span class="time-static">${char}</span>
+    </span>
+  `;
   element.dataset.value = char;
 }
 
@@ -486,11 +482,17 @@ function getCurrentSchedule(minutesNow) {
     }
   }
 
-  for (const item of breakRanges) {
-    const start = toMinutes(item.start);
-    const end = toMinutes(item.end);
-    if (minutesNow >= start && minutesNow < end) {
-      return { ...item, type: "break" };
+  // 교시 사이 빈틈을 쉬는시간으로 자동 인식 (커스텀 시간 수정에도 항상 정확하게 대응)
+  for (let i = 0; i < scheduleRanges.length - 1; i++) {
+    const prevEnd = toMinutes(scheduleRanges[i].end);
+    const nextStart = toMinutes(scheduleRanges[i + 1].start);
+    if (minutesNow >= prevEnd && minutesNow < nextStart) {
+      return {
+        name: "쉬는시간",
+        start: scheduleRanges[i].end,
+        end: scheduleRanges[i + 1].start,
+        type: "break"
+      };
     }
   }
 
@@ -724,6 +726,17 @@ function loadCellEdits() {
   }
 }
 
+function isTileEditModeActive() {
+  return document.body.classList.contains("edit-mode");
+}
+
+function setTileEditMode(isActive) {
+  document.body.classList.toggle("edit-mode", isActive);
+  customToggle?.classList.toggle("active", isActive);
+  if (customToggle) customToggle.textContent = isActive ? "수정 종료" : "수정";
+  customPanel?.classList.toggle("is-open", isActive);
+}
+
 function enableTileEditing() {
   const subjectMemo = document.getElementById("subjectMemo");
   const subjectSave = document.getElementById("subjectSave");
@@ -736,6 +749,8 @@ function enableTileEditing() {
     if (header) {
       header.style.cursor = "pointer";
       header.addEventListener("click", () => {
+        if (!isTileEditModeActive()) return;
+
         const period = row.dataset.period;
         const scheduleItem = scheduleRanges.find((item) => item.name === period);
         const current = scheduleItem ? `${scheduleItem.start}-${scheduleItem.end}` : "";
@@ -759,33 +774,44 @@ function enableTileEditing() {
     cells.forEach((cell, index) => {
       if (cell.hasAttribute("colspan")) return;
 
-      cell.style.cursor = cell.classList.contains("empty-cell") ? "pointer" : "default";
+      cell.style.cursor = "pointer";
 
       cell.addEventListener("click", () => {
-        if (cell.classList.contains("empty-cell")) {
-          openInputModal("과목 추가", "과목명을 입력하세요", (value) => {
+        if (isTileEditModeActive()) {
+          if (cell.classList.contains("empty-cell")) {
+            openInputModal("과목 추가", "과목명을 입력하세요", (value) => {
+              if (!value || !value.trim()) return;
+              renderSubjectCell(cell, value.trim());
+              saveCellEdit(row.dataset.period, index, value.trim());
+              updateMemoIndicators();
+              updateCurrentStatus();
+            });
+            return;
+          }
+
+          const subject = cell.dataset.subject || "";
+          if (!subject) return;
+
+          openInputModal("과목 수정", "과목명을 입력하세요", (value) => {
             if (!value || !value.trim()) return;
             renderSubjectCell(cell, value.trim());
             saveCellEdit(row.dataset.period, index, value.trim());
             updateMemoIndicators();
             updateCurrentStatus();
           });
-          return;
-        }
+          if (modalInput) {
+            modalInput.value = subject;
+          }
+        } else {
+          if (cell.classList.contains("empty-cell")) return;
+          const subject = cell.dataset.subject || "";
+          if (!subject) return;
 
-        const subject = cell.dataset.subject || "";
-        if (!subject) return;
-
-        // 단순 클릭: 편집 모달 열기
-        openInputModal("과목 수정", "과목명을 입력하세요", (value) => {
-          if (!value || !value.trim()) return;
-          renderSubjectCell(cell, value.trim());
-          saveCellEdit(row.dataset.period, index, value.trim());
-          updateMemoIndicators();
-          updateCurrentStatus();
-        });
-        if (modalInput) {
-          modalInput.value = subject;
+          openSubjectModal({
+            name: subject,
+            room: classroomMap[subject] || "정보 없음",
+            teacher: teacherMap[subject] || "정보 없음"
+          });
         }
       });
     });
@@ -1150,17 +1176,55 @@ function loadCustomConfig() {
   try {
     const config = JSON.parse(saved);
 
-    // Update teacher map
+    // 1. 선생님과 교실 정보 매핑
     if (config.teachers && typeof config.teachers === "object") {
       Object.assign(teacherMap, config.teachers);
     }
-
-    // Update classroom map
     if (config.classrooms && typeof config.classrooms === "object") {
       Object.assign(classroomMap, config.classrooms);
     }
+    if (config.subjects && typeof config.subjects === "object") {
+      Object.entries(config.subjects).forEach(([subName, subData]) => {
+        if (subData.room) classroomMap[subName] = subData.room;
+        if (subData.teacher) teacherMap[subName] = subData.teacher;
+      });
+    }
 
-    // Update schedule ranges (periods)
+    // 2. 'periods' 기반 시간표 전체 덮어쓰기 (시간 + 요일별 과목)
+    if (config.periods && Array.isArray(config.periods)) {
+      config.periods.forEach(periodData => {
+        if (!periodData.name) return;
+
+        // 시간(scheduleRanges) 데이터 업데이트
+        const existingIndex = scheduleRanges.findIndex(p => p.name === periodData.name);
+        if (existingIndex >= 0) {
+          if (periodData.start) scheduleRanges[existingIndex].start = periodData.start;
+          if (periodData.end) scheduleRanges[existingIndex].end = periodData.end;
+        }
+
+        // HTML 테이블에서 해당 교시의 행(row) 찾기
+        const row = document.querySelector(`tbody tr[data-period="${periodData.name}"]`);
+        if (!row) return;
+
+        // 화면의 교시별 텍스트 시간 업데이트
+        if (periodData.start && periodData.end) {
+          updateRowTimeText(row, periodData.start, periodData.end);
+        }
+
+        // subjects 배열이 있으면 월~금 칸(td)에 과목 렌더링
+        if (periodData.subjects && Array.isArray(periodData.subjects)) {
+          const cells = row.querySelectorAll("td[data-subject], td.empty-cell");
+          periodData.subjects.forEach((subjectName, index) => {
+            const cell = cells[index];
+            if (cell) {
+              renderSubjectCell(cell, subjectName);
+            }
+          });
+        }
+      });
+    }
+
+    // 기존 scheduleRanges 설정 호환성 유지
     if (config.scheduleRanges && Array.isArray(config.scheduleRanges)) {
       config.scheduleRanges.forEach(newPeriod => {
         if (!newPeriod.name || !newPeriod.start || !newPeriod.end) return;
@@ -1196,13 +1260,13 @@ setInterval(() => {
 if (customToggle && customPanel) {
   customToggle.addEventListener("click", () => {
     triggerButtonPop(customToggle);
-    customPanel.classList.toggle("is-open");
+    setTileEditMode(!isTileEditModeActive());
   });
 }
 
 if (customClose && customPanel) {
   customClose.addEventListener("click", () => {
-    customPanel.classList.remove("is-open");
+    setTileEditMode(false);
   });
 }
 
@@ -1231,6 +1295,7 @@ if (customSave && customInput) {
       updateCurrentStatus();
       
       alert("설정 저장 완료 ✨");
+      setTileEditMode(false);
     } catch (err) {
       alert(`JSON 형식 오류: ${err.message}`);
     }
@@ -1253,6 +1318,7 @@ if (customReset && customInput) {
     updateCurrentStatus();
 
     alert("시간표 및 설정 초기화 완료. 새로고침 해주세요.");
+    setTileEditMode(false);
   });
 }
 
