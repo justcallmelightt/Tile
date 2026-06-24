@@ -11,6 +11,13 @@
 > <img src="https://img.shields.io/badge/iOS-Alpha-red?style=for-the-badge&logo=apple&logoColor=white&labelColor=000000"> <img src="https://img.shields.io/badge/Android-Planned-3178C6?style=for-the-badge&logo=android&logoColor=white&labelColor=3DDC84"> <img src="https://img.shields.io/badge/Web-Pre_Alpha-orange?style=for-the-badge&logo=googlechrome&logoColor=white&labelColor=4285F4"> <br>
 > **Web: [Tile](https://justcallmelightt.github.io/Tile/) | App: Coming Soon**
 
+## 👥 Contributors
+
+| 프로필 | Github | 역할 (Role) | 담당 업무 (Contributions) |
+| :---: | :---: | :---: | :--- |
+| <img src="https://github.com/justcallmelightt.png" width="80"> | **권율** ([@justcallmelightt](https://github.com/justcallmelightt)) | Founder of Tile | - Tile 서비스 전체 아이디어 기획 및 초기 Product Concept 설계<br>- 서비스 방향성 정의 및 전체 Product Vision 수립<br>- 프로젝트 전체 Frontend Architecture 및 Core System Structure 직접 설계<br>- 핵심 기능 로직 설계 및 주요 Features 대부분 직접 Development<br>- Dynamic Rendering 기반 실시간 UI 업데이트 로직 구현<br>- State Management 및 LocalStorage 기반 사용자 데이터 Persistence 시스템 구현<br>- Modal System, Overlay Logic, Custom Panel 등 Interactive Component Architecture 설계<br>- UI/UX 전체 구조 설계 및 실제 사용 환경 기준 User Flow 지속 개선<br>- Animation, Transition, Motion Interaction 등 세부 Interaction Design 직접 구현 및 최적화<br>- Responsive Layout 설계 및 다양한 Screen Size 환경 대응 구조 설계<br>- Mobile Environment 중심 UX 최적화 및 Device-specific Behavior 직접 구현<br>- Apple Ecosystem (iPhone · iPad · Apple Watch) 기반 Cross-device Experience 설계 및 대응<br>- Apple-like Design Philosophy 기반 Interface Design 및 디테일 조정<br>- 실시간 Timeline, Schedule Tracking, Rolling Clock Animation 등 Live UI System 구현<br>- Performance Optimization 및 불필요한 Re-render 최소화를 위한 구조 개선<br>- 전체 Code Structure 설계 및 Maintainability 고려한 프로젝트 구조 관리<br>- 프로젝트 전반 Development Lifecycle 관리 및 전체 Development Process Lead<br>- 전체 서비스 Architecture 설계부터 Deployment 직전 단계까지 End-to-End Development 주도<br>- 프로젝트 주요 Technical Decision Making 및 전체 기술 스택 방향 결정 |
+| <img src="https://github.com/eonpisa.png" width="80"> | **eonpisa** ([@eonpisa](https://github.com/eonpisa)) | **Alpha Tester** | - Alpha Tester <br> - Custom TimeTable 기능 Tester |
+
 **Tile**은 HTML 방과후 수업 시간에 “간단한 시간표를 직접 만들어보자”는 생각에서 시작한 프로젝트입니다.  
 처음에는 정적인 형태의 단순한 시간표 페이지였지만, 만들면서 아쉬운 점이 점점 보이기 시작했습니다.  
 “지금 몇 교시인지 바로 알 수 있으면 좋겠다”, “남은 시간을 한눈에 볼 수 있으면 좋겠다”, “현재 교실과 진행 상황까지 함께 보이면 훨씬 편하지 않을까” 같은 고민이 쌓이면서, 이 프로젝트는 단순한 표를 넘어서 **실시간 상태를 반영하는 시간표 웹 프로젝트**로 확장되었습니다.
