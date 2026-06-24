@@ -1172,17 +1172,55 @@ function loadCustomConfig() {
   try {
     const config = JSON.parse(saved);
 
-    // Update teacher map
+    // 1. 선생님과 교실 정보 매핑
     if (config.teachers && typeof config.teachers === "object") {
       Object.assign(teacherMap, config.teachers);
     }
-
-    // Update classroom map
     if (config.classrooms && typeof config.classrooms === "object") {
       Object.assign(classroomMap, config.classrooms);
     }
+    if (config.subjects && typeof config.subjects === "object") {
+      Object.entries(config.subjects).forEach(([subName, subData]) => {
+        if (subData.room) classroomMap[subName] = subData.room;
+        if (subData.teacher) teacherMap[subName] = subData.teacher;
+      });
+    }
 
-    // Update schedule ranges (periods)
+    // 2. 'periods' 기반 시간표 전체 덮어쓰기 (시간 + 요일별 과목)
+    if (config.periods && Array.isArray(config.periods)) {
+      config.periods.forEach(periodData => {
+        if (!periodData.name) return;
+
+        // 시간(scheduleRanges) 데이터 업데이트
+        const existingIndex = scheduleRanges.findIndex(p => p.name === periodData.name);
+        if (existingIndex >= 0) {
+          if (periodData.start) scheduleRanges[existingIndex].start = periodData.start;
+          if (periodData.end) scheduleRanges[existingIndex].end = periodData.end;
+        }
+
+        // HTML 테이블에서 해당 교시의 행(row) 찾기
+        const row = document.querySelector(`tbody tr[data-period="${periodData.name}"]`);
+        if (!row) return;
+
+        // 화면의 교시별 텍스트 시간 업데이트
+        if (periodData.start && periodData.end) {
+          updateRowTimeText(row, periodData.start, periodData.end);
+        }
+
+        // subjects 배열이 있으면 월~금 칸(td)에 과목 렌더링
+        if (periodData.subjects && Array.isArray(periodData.subjects)) {
+          const cells = row.querySelectorAll("td[data-subject], td.empty-cell");
+          periodData.subjects.forEach((subjectName, index) => {
+            const cell = cells[index];
+            if (cell) {
+              renderSubjectCell(cell, subjectName);
+            }
+          });
+        }
+      });
+    }
+
+    // 기존 scheduleRanges 설정 호환성 유지
     if (config.scheduleRanges && Array.isArray(config.scheduleRanges)) {
       config.scheduleRanges.forEach(newPeriod => {
         if (!newPeriod.name || !newPeriod.start || !newPeriod.end) return;
