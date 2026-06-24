@@ -114,7 +114,11 @@ function getRollingTimeCharClass(char) {
 }
 
 function renderStaticRollingDigit(element, char) {
-  element.innerHTML = `<span class="time-static">${char}</span>`;
+  element.innerHTML = `
+    <span class="time-char-inner">
+      <span class="time-static">${char}</span>
+    </span>
+  `;
   element.dataset.value = char;
 }
 
