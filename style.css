@@ -16,6 +16,9 @@
   --current: rgba(16, 185, 129, 0.16);
   --current-border: rgba(52, 211, 153, 0.45);
   --current-bar: rgba(255, 69, 58, 0.95);
+  --next: rgba(250, 204, 21, 0.17);
+  --next-border: rgba(250, 204, 21, 0.5);
+  --next-bar: rgba(250, 204, 21, 0.96);
   --period-progress: 0%;
   --toggle-bg: rgba(255, 255, 255, 0.08);
   --cursor-x: 50vw;
@@ -40,6 +43,9 @@ body.light-mode {
   --current: rgba(16, 185, 129, 0.12);
   --current-border: rgba(16, 185, 129, 0.34);
   --current-bar: rgba(255, 59, 48, 0.9);
+  --next: rgba(250, 204, 21, 0.2);
+  --next-border: rgba(234, 179, 8, 0.42);
+  --next-bar: rgba(234, 179, 8, 0.96);
   --toggle-bg: rgba(17, 24, 39, 0.06);
 }
 
@@ -258,10 +264,37 @@ body.dark-mode .theme-toggle.theme-target-light:hover {
   transition: background 0.28s ease, border-color 0.28s ease;
 }
 
+#statusSentinel {
+  height: 1px;
+}
+
+#statusCardSpacer {
+  height: 0;
+}
+
 .status-card {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
+  transition: box-shadow 0.28s ease;
+}
+
+@keyframes statusCardSlideIn {
+  from {
+    transform: translateY(-24px);
+    opacity: 0.45;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.status-card.is-pinned {
+  position: fixed;
+  z-index: 40;
+  animation: statusCardSlideIn 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  box-shadow: 0 16px 32px rgba(17, 24, 39, 0.24);
 }
 
 .summary-card {
@@ -867,6 +900,33 @@ tbody tr.current-row > th:hover {
     0 0 28px rgba(16, 185, 129, 0.48);
 }
 
+tbody tr.break-target-row > th,
+tbody tr.break-target-row > td {
+  background: var(--next);
+  box-shadow: inset 0 0 0 1px var(--next-border);
+}
+
+tbody tr.break-target-row > td.next-glow-cell {
+  position: relative;
+  z-index: 4;
+  background: rgba(250, 204, 21, 0.26);
+  box-shadow:
+    inset 0 0 0 1px rgba(250, 204, 21, 0.72),
+    inset 0 0 24px rgba(250, 204, 21, 0.28),
+    0 0 20px rgba(250, 204, 21, 0.36);
+}
+
+tbody tr.break-target-row > td:hover,
+tbody tr.break-target-row > th:hover {
+  position: relative;
+  z-index: 4;
+  background: rgba(250, 204, 21, 0.3);
+  box-shadow:
+    inset 0 0 0 1px rgba(250, 204, 21, 0.82),
+    inset 0 0 32px rgba(250, 204, 21, 0.34),
+    0 0 28px rgba(250, 204, 21, 0.46);
+}
+
 tbody tr.current-row > th::after,
 tbody tr.current-row > td::after {
   content: "";
@@ -924,7 +984,7 @@ tbody tr.break-target-row > td::after {
   right: -1px;
   top: 0;
   height: 3px;
-  background: var(--current-bar);
+  background: var(--next-bar);
   z-index: 3;
   pointer-events: none;
 }
@@ -956,7 +1016,7 @@ tbody tr.break-target-row > th .time-marker {
   min-width: 42px;
   padding: 2px 7px;
   border-radius: 999px;
-  background: var(--current-bar);
+  background: var(--next-bar);
   color: #ffffff;
   font-size: 0.72rem;
   font-weight: 700;
@@ -1017,6 +1077,11 @@ thead th.current-day-column-header {
   z-index: 7;
   pointer-events: none;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14);
+}
+
+.floating-time-line.next-time-line,
+.floating-time-label.next-time-line {
+  background: var(--current-bar);
 }
 
 tbody tr.current-row > th::after,
