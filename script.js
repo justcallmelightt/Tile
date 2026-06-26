@@ -1392,34 +1392,97 @@ function loadCustomConfig() {
 }
 
 const statusCardEl = document.querySelector(".status-card");
-const statusSentinelEl = document.getElementById("statusSentinel");
-const statusCardSpacerEl = document.getElementById("statusCardSpacer");
+let statusSentinelEl = document.getElementById("statusSentinel");
+let statusCardSpacerEl = document.getElementById("statusCardSpacer");
 const containerEl = document.querySelector(".container");
 const STATUS_CARD_TOP_GAP = 12;
+
+if (statusCardEl && statusCardEl.parentElement) {
+  if (!statusSentinelEl) {
+    statusSentinelEl = document.createElement("div");
+    statusSentinelEl.id = "statusSentinel";
+    statusSentinelEl.setAttribute("aria-hidden", "true");
+    statusSentinelEl.style.height = "1px";
+    statusCardEl.parentElement.insertBefore(statusSentinelEl, statusCardEl);
+  }
+  if (!statusCardSpacerEl) {
+    statusCardSpacerEl = document.createElement("div");
+    statusCardSpacerEl.id = "statusCardSpacer";
+    statusCardSpacerEl.setAttribute("aria-hidden", "true");
+    statusCardSpacerEl.style.height = "0px";
+    statusCardEl.parentElement.insertBefore(statusCardSpacerEl, statusCardEl.nextSibling);
+  }
+}
+
+function animateStatusCardSlideIn(el) {
+  const duration = 650;
+  const startY = -(window.innerHeight || 800);
+  const startTime = Date.now();
+
+  el.style.transition = "none";
+  el.style.opacity = "0.3";
+  el.style.transform = `translateY(${startY}px)`;
+
+  function step() {
+    const elapsed = Date.now() - startTime;
+    const t = Math.min(elapsed / duration, 1);
+    const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
+
+    el.style.transform = `translateY(${startY * (1 - eased)}px)`;
+    el.style.opacity = String(0.3 + 0.7 * eased);
+
+    if (t < 1) {
+      setTimeout(step, 16);
+    } else {
+      el.style.transform = "translateY(0)";
+      el.style.opacity = "1";
+    }
+  }
+
+  setTimeout(step, 16);
+}
 
 function updateStatusCardPin() {
   if (!statusCardEl || !statusSentinelEl || !statusCardSpacerEl || !containerEl) return;
 
-  const sentinelTop = statusSentinelEl.getBoundingClientRect().top;
-  const shouldPin = sentinelTop < STATUS_CARD_TOP_GAP;
   const isPinned = statusCardEl.classList.contains("is-pinned");
+  const shouldPin = isPinned
+    ? statusSentinelEl.getBoundingClientRect().top < STATUS_CARD_TOP_GAP
+    : statusCardSpacerEl.getBoundingClientRect().top < 0;
 
   if (shouldPin && !isPinned) {
     const containerRect = containerEl.getBoundingClientRect();
     const containerPaddingLeft = parseFloat(getComputedStyle(containerEl).paddingLeft) || 0;
     const containerPaddingRight = parseFloat(getComputedStyle(containerEl).paddingRight) || 0;
     const cardHeight = statusCardEl.getBoundingClientRect().height;
+    // .top-grid is a CSS grid with a row gap between .status-card and the
+    // spacer. That gap only renders while both items are present — once the
+    // card is pulled out into <body>, the spacer is the lone grid item and
+    // the gap collapses, yanking everything below upward. Bake the gap into
+    // the spacer's height so the total occupied space stays the same.
+    const topGridEl = statusCardEl.parentElement;
+    const rowGap = parseFloat(getComputedStyle(topGridEl).rowGap) || 0;
 
-    statusCardSpacerEl.style.height = `${cardHeight}px`;
+    statusCardSpacerEl.style.height = `${cardHeight + rowGap}px`;
     statusCardEl.style.left = `${containerRect.left + containerPaddingLeft}px`;
     statusCardEl.style.width = `${containerRect.width - containerPaddingLeft - containerPaddingRight}px`;
     statusCardEl.style.top = `${STATUS_CARD_TOP_GAP}px`;
+    // .container has backdrop-filter, which makes position:fixed descendants
+    // anchor to .container instead of the real viewport. Moving the card to
+    // <body> (a sibling of the filtered ancestor) makes it truly viewport-fixed.
+    document.body.appendChild(statusCardEl);
     statusCardEl.classList.add("is-pinned");
+
+    animateStatusCardSlideIn(statusCardEl);
   } else if (!shouldPin && isPinned) {
     statusCardEl.classList.remove("is-pinned");
     statusCardEl.style.left = "";
     statusCardEl.style.width = "";
     statusCardEl.style.top = "";
+    statusCardEl.style.transition = "";
+    statusCardEl.style.transform = "";
+    statusCardEl.style.opacity = "";
+    statusCardSpacerEl.parentElement.insertBefore(statusCardEl, statusCardSpacerEl);
     statusCardSpacerEl.style.height = "0px";
   } else if (shouldPin && isPinned) {
     // Keep the pinned card's width/position in sync (e.g. orientation/resize changes)
