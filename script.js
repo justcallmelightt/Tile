@@ -1033,7 +1033,6 @@ function updateHighlights(currentSchedule, dayOfWeek, highlightSchedule) {
 
   if (currentSchedule && currentSchedule.type === "schedule") {
     highlightScheduleRow(currentSchedule, dayOfWeek, "current-row", "current-glow-cell");
-    highlightScheduleRow(getScheduleAfter(currentSchedule), dayOfWeek, "break-target-row", "next-glow-cell");
   } else if (highlightSchedule) {
     highlightScheduleRow(highlightSchedule, dayOfWeek, "break-target-row", "next-glow-cell");
   }
@@ -1416,7 +1415,7 @@ if (statusCardEl && statusCardEl.parentElement) {
 
 function animateStatusCardSlideIn(el) {
   const duration = 650;
-  const startY = -(window.innerHeight || 800);
+  const startY = -((window.innerHeight || 800) + 300);
   const startTime = Date.now();
 
   el.style.transition = "none";
