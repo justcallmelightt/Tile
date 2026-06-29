@@ -279,21 +279,9 @@ body.dark-mode .theme-toggle.theme-target-light:hover {
   transition: box-shadow 0.28s ease;
 }
 
-@keyframes statusCardSlideIn {
-  from {
-    transform: translateY(-24px);
-    opacity: 0.45;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
 .status-card.is-pinned {
   position: fixed;
   z-index: 40;
-  animation: statusCardSlideIn 3s cubic-bezier(0.22, 1, 0.36, 1);
   box-shadow: 0 16px 32px rgba(17, 24, 39, 0.24);
 }
 
