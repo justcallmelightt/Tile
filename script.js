@@ -1413,22 +1413,26 @@ if (statusCardEl && statusCardEl.parentElement) {
   }
 }
 
+let statusCardAnimationToken = 0;
+
 function animateStatusCardSlideIn(el) {
-  const duration = 650;
-  const startY = -((window.innerHeight || 800) + 300);
+  const myToken = ++statusCardAnimationToken;
+  const duration = 1000;
+  const startY = -((window.innerHeight || 800) * 2 + 500);
   const startTime = Date.now();
 
   el.style.transition = "none";
-  el.style.opacity = "0.3";
+  el.style.opacity = "0";
   el.style.transform = `translateY(${startY}px)`;
 
   function step() {
+    if (myToken !== statusCardAnimationToken) return; // superseded by a newer pin/unpin, stop touching styles
     const elapsed = Date.now() - startTime;
     const t = Math.min(elapsed / duration, 1);
     const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
 
     el.style.transform = `translateY(${startY * (1 - eased)}px)`;
-    el.style.opacity = String(0.3 + 0.7 * eased);
+    el.style.opacity = String(eased);
 
     if (t < 1) {
       setTimeout(step, 16);
@@ -1440,6 +1444,7 @@ function animateStatusCardSlideIn(el) {
 
   setTimeout(step, 16);
 }
+
 
 function updateStatusCardPin() {
   if (!statusCardEl || !statusSentinelEl || !statusCardSpacerEl || !containerEl) return;
