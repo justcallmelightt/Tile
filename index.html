@@ -22,6 +22,55 @@
   gtag('config', 'G-G0FCVJ0M52');
 </script>
   <!-- Tile 2.0: large update preparation / future custom timetable platform -->
+  <div id="setupModal" class="setup-modal hidden" aria-hidden="true">
+    <div class="setup-card" role="dialog" aria-modal="true" aria-labelledby="setupTitle">
+      <div class="setup-header">
+        <h2 id="setupTitle">학교 설정</h2>
+        <button id="closeSchoolSettings" type="button" aria-label="닫기">✕</button>
+      </div>
+      <input
+          id="schoolInput"
+          placeholder="학교 이름 입력"
+      >
+      <div id="schoolResults"></div>
+      <div class="setup-row">
+        <input
+            id="gradeInput"
+            placeholder="학년"
+            type="number"
+            min="1"
+        >
+        <input
+            id="classInput"
+            placeholder="반"
+            type="number"
+            min="1"
+        >
+      </div>
+      <div class="setup-actions">
+        <button id="saveSchool" class="theme-toggle" type="button">저장</button>
+        <button id="neisSync" class="theme-toggle" type="button">NEIS 동기화</button>
+      </div>
+    </div>
+  </div>
+  <div id="appSettingsModal" class="setup-modal hidden" aria-hidden="true">
+    <div class="setup-card settings-card" role="dialog" aria-modal="true" aria-labelledby="appSettingsTitle">
+      <div class="setup-header">
+        <h2 id="appSettingsTitle">설정</h2>
+        <button id="closeAppSettings" type="button" aria-label="닫기">✕</button>
+      </div>
+      <label class="field-label" for="allergyInput">알레르기 / 피하고 싶은 재료</label>
+      <textarea
+          id="allergyInput"
+          placeholder="예) 새우, 우유, 땅콩 또는 9, 2, 4"
+      ></textarea>
+      <p class="settings-help">쉼표로 구분해서 입력하면 급식 메뉴에서 해당 항목을 찾아 경고를 표시합니다.</p>
+      <div class="setup-actions">
+        <button id="saveAppSettings" class="theme-toggle save-action" type="button">저장</button>
+        <button id="resetAppSettings" class="theme-toggle" type="button">초기화</button>
+      </div>
+    </div>
+  </div>
   <div class="iphone-safe-zone" aria-hidden="true"></div>
 
   <div class="container">
@@ -33,8 +82,15 @@
       <div class="controls">
         <button class="theme-toggle" id="themeToggle" type="button">다크 모드</button>
         <button class="theme-toggle today-toggle" id="todayOnlyToggle" type="button">오늘 일과만 보기</button>
-        <button class="theme-toggle custom-toggle" id="customToggle" type="button">수정</button>
-        <button class="theme-toggle" id="memoToggle" type="button">메모</button>
+        <div class="tool-menu" id="toolMenu">
+          <button class="theme-toggle" id="toolMenuToggle" type="button" aria-expanded="false">도구</button>
+          <div class="tool-menu-panel" id="toolMenuPanel" aria-hidden="true">
+            <button id="schoolSettingsToggle" type="button">학교 설정</button>
+            <button id="appSettingsToggle" type="button">설정</button>
+            <button id="mealToggle" type="button">급식 보기</button>
+            <button id="customToggle" class="custom-toggle" type="button">JSON으로 수정</button>
+          </div>
+        </div>
       </div>
     </div>
     <div class="top-grid">
@@ -59,13 +115,17 @@
           <span class="status-label">현재 교실</span>
           <span class="status-value" id="currentRoom">확인 중...</span>
         </div>
+        <div class="status-item">
+          <span class="status-label">NEIS</span>
+          <span class="status-value" id="neisStatus">대기 중</span>
+        </div>
       </div>
     </div>
 
     <section class="custom-panel" id="customPanel" aria-hidden="true">
       <div class="custom-panel-header">
         <div>
-          <h2>Tile 수정</h2>
+          <h2>JSON으로 수정</h2>
           <p>JSON으로 시간표, 교실, 선생님 정보를 수정할 수 있습니다.</p>
         </div>
         <button class="custom-close" id="customClose" type="button">닫기</button>
@@ -101,6 +161,33 @@
       <div class="custom-actions">
         <button class="theme-toggle" id="memoSave" type="button">저장</button>
         <button class="theme-toggle" id="memoReset" type="button">초기화</button>
+      </div>
+    </section>
+
+    <section class="custom-panel meal-panel" id="mealPanel" aria-hidden="true">
+      <div class="custom-panel-header">
+        <div>
+          <h2>오늘 급식</h2>
+          <p>NEIS에서 불러온 조식, 중식, 석식을 따로 확인할 수 있습니다.</p>
+        </div>
+        <button class="custom-close" id="mealClose" type="button">닫기</button>
+      </div>
+      <div class="meal-list" id="mealList">
+        <div class="meal-card">
+          <span class="meal-type">조식</span>
+          <p id="breakfastMenu">아직 불러온 급식 정보가 없습니다.</p>
+          <div class="meal-warning" id="breakfastWarning"></div>
+        </div>
+        <div class="meal-card">
+          <span class="meal-type">중식</span>
+          <p id="lunchMenu">아직 불러온 급식 정보가 없습니다.</p>
+          <div class="meal-warning" id="lunchWarning"></div>
+        </div>
+        <div class="meal-card">
+          <span class="meal-type">석식</span>
+          <p id="dinnerMenu">아직 불러온 급식 정보가 없습니다.</p>
+          <div class="meal-warning" id="dinnerWarning"></div>
+        </div>
       </div>
     </section>
 
@@ -156,7 +243,8 @@
           <tr data-period="4교시">
             <th>4교시<br /><span class="time">오전 11:20 ~ 오후 12:10</span></th>
             <td data-subject="성공적인 직업생활"><div class="subject"><span class="subject-name">성공적인 직업생활</span></div></td>
-            <td data-subject="성공적인 직업생활"><div class="subject"><span class="subject-name">성공적인 직업생활</span></div></td>
+            <td data-subject="성공적인 직업생활
+            "><div class="subject"><span class="subject-name">성공적인 직업생활</span></div></td>
             <td data-subject="한국사"><div class="subject"><span class="subject-name">한국사</span></div></td>
             <td data-subject="일본어"><div class="subject"><span class="subject-name">일본어</span></div></td>
             <td data-subject="일본어"><div class="subject"><span class="subject-name">일본어</span></div></td>
@@ -238,8 +326,27 @@
         <input id="modalInput" type="text" placeholder="입력하세요" />
         <button id="modalConfirm" type="button">확인</button>
       </div>
+
+      <div id="subjectEditMode" class="mode-hidden">
+        <h2 id="subjectEditTitle">과목 수정</h2>
+        <label class="field-label" for="subjectEditName">과목</label>
+        <input id="subjectEditName" type="text" placeholder="과목명" />
+        <label class="field-label" for="subjectEditRoom">교실</label>
+        <input id="subjectEditRoom" type="text" placeholder="교실" />
+        <label class="field-label" for="subjectEditTeacher">선생님</label>
+        <input id="subjectEditTeacher" type="text" placeholder="선생님" />
+        <label class="field-label" for="subjectEditMemo">메모</label>
+        <textarea id="subjectEditMemo" placeholder="이 과목에 대한 메모를 적어두세요"></textarea>
+        <div class="subject-actions">
+          <button id="subjectEditSave" type="button">저장</button>
+          <button id="subjectEditReset" type="button">초기화</button>
+          <button id="subjectEditNeis" type="button">NEIS에서 연동</button>
+        </div>
+      </div>
     </div>
   </div>
-  <script src="./script.js"></script>
+  <script src="./config.public.js"></script> 
+  <script src="./neis.js"></script> 
+  <script src="./script.js"></script> 
 </body>
 </html>
