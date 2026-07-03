@@ -5,9 +5,31 @@ const ALLOWED_ENDPOINTS = new Set([
   "hisTimetable"
 ]);
 
+const ALLOWED_ORIGINS = new Set([
+  "https://justcallmelightt.github.io",
+  "https://tile0.vercel.app",
+  "http://localhost:5506",
+  "http://127.0.0.1:5506"
+]);
+
+function setCorsHeaders(request, response) {
+  const origin = request.headers.origin;
+  const allowedOrigin = ALLOWED_ORIGINS.has(origin) ? origin : "https://tile0.vercel.app";
+  response.setHeader("Access-Control-Allow-Origin", allowedOrigin);
+  response.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  response.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  response.setHeader("Vary", "Origin");
+}
+
 export default async function handler(request, response) {
+  setCorsHeaders(request, response);
+
+  if (request.method === "OPTIONS") {
+    return response.status(204).end();
+  }
+
   if (request.method !== "GET") {
-    response.setHeader("Allow", "GET");
+    response.setHeader("Allow", "GET, OPTIONS");
     return response.status(405).json({ error: "Method not allowed" });
   }
 
