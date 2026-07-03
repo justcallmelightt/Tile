@@ -9,7 +9,7 @@
   <link rel="icon" href="favicon-32x32.png" sizes="32x32" />
   <link rel="icon" href="favicon-96x96.png" sizes="96x96" />
   <link rel="apple-touch-icon" href="/favicon-96x96.png">
-  <link rel="stylesheet" href="./style.css" />
+  <link rel="stylesheet" href="./style.css?v=20260703-script-fix" />
 </head>
 <body>
   <!-- Google tag (gtag.js) -->
@@ -72,6 +72,34 @@
     </div>
   </div>
   <div class="iphone-safe-zone" aria-hidden="true"></div>
+  <div class="floating-topbar" id="floatingTopbar" aria-hidden="true">
+    <div class="status-card" id="floatingStatusCard">
+      <div class="status-item">
+        <span class="status-label">현재 시간</span>
+        <span class="status-value" id="topbarTime">불러오는 중...</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">현재 진행</span>
+        <span class="status-value" id="topbarPeriod">확인 중...</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label" id="topbarRemainingLabel">교시 남은 시간</span>
+        <span class="status-value" id="topbarRemaining">계산 중...</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">일과 남은 시간</span>
+        <span class="status-value" id="topbarDayRemaining">계산 중...</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">현재 교실</span>
+        <span class="status-value" id="topbarRoom">확인 중...</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">NEIS</span>
+        <span class="status-value" id="topbarNeis">대기 중</span>
+      </div>
+    </div>
+  </div>
 
   <div class="container">
     <div class="hero">
@@ -345,8 +373,8 @@
       </div>
     </div>
   </div>
-  <script src="./config.public.js"></script> 
-  <script src="./neis.js"></script> 
-  <script src="./script.js"></script> 
+  <script src="./config.public.js?v=20260703-script-fix"></script> 
+  <script src="./neis.js?v=20260703-script-fix"></script> 
+  <script src="./script.js?v=20260703-script-fix"></script> 
 </body>
 </html>
