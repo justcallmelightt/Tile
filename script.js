@@ -63,6 +63,7 @@ const breakRanges = [
 const dayNames = ["일", "월", "화", "수", "목", "금", "토"];
 const themeToggle = document.getElementById("themeToggle");
 const todayOnlyToggle = document.getElementById("todayOnlyToggle");
+const schoolSubtitle = document.getElementById("schoolSubtitle");
 const customToggle = document.getElementById("customToggle");
 const customPanel = document.getElementById("customPanel");
 const customClose = document.getElementById("customClose");
@@ -128,7 +129,9 @@ const CELL_EDIT_STORAGE_KEY = "tile-cell-edits";
 const SCHEDULE_EDIT_STORAGE_KEY = "tile-schedule-edits";
 const SUBJECT_MEMO_STORAGE_KEY = "tile-subject-memos";
 const SUBJECT_INFO_EDIT_STORAGE_KEY = "tile-subject-info-edits";
+const CELL_INFO_EDIT_STORAGE_KEY = "tile-cell-info-edits";
 const PERIOD_INFO_EDIT_STORAGE_KEY = "tile-period-info-edits";
+const INFO_STORAGE_MIGRATION_KEY = "tile-info-storage-migrated-v2";
 const MEAL_STORAGE_KEY = "tile-meals";
 const APP_SETTINGS_STORAGE_KEY = "tile-app-settings";
 let selectedSubjectCell = null;
@@ -396,11 +399,6 @@ function getCellMemoKey(row, index) {
   return `${row.dataset.period}_${index}`;
 }
 
-function getPeriodInfoKey(rowOrPeriod) {
-  if (!rowOrPeriod) return "";
-  return typeof rowOrPeriod === "string" ? rowOrPeriod : rowOrPeriod.dataset.period || "";
-}
-
 function readJsonStorage(key, fallback = {}) {
   try {
     return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback));
@@ -412,6 +410,14 @@ function readJsonStorage(key, fallback = {}) {
 
 function writeJsonStorage(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
+}
+
+function migrateLegacyInfoStorage() {
+  if (localStorage.getItem(INFO_STORAGE_MIGRATION_KEY) === "done") return;
+
+  localStorage.removeItem(PERIOD_INFO_EDIT_STORAGE_KEY);
+  localStorage.removeItem(SUBJECT_INFO_EDIT_STORAGE_KEY);
+  localStorage.setItem(INFO_STORAGE_MIGRATION_KEY, "done");
 }
 
 function getCellStorageIndex(row, cell) {
@@ -458,27 +464,33 @@ function deleteSubjectInfoEdit(subject) {
   writeJsonStorage(SUBJECT_INFO_EDIT_STORAGE_KEY, edits);
 }
 
-function getPeriodInfo(period) {
-  const edits = readJsonStorage(PERIOD_INFO_EDIT_STORAGE_KEY);
-  return edits[period] || {};
+function getCellInfoKey(row, index) {
+  if (!row || index == null) return "";
+  return `${row.dataset.period}_${index}`;
 }
 
-function savePeriodInfo(period, info = {}) {
-  if (!period) return;
-  const edits = readJsonStorage(PERIOD_INFO_EDIT_STORAGE_KEY);
+function getCellInfo(row, index) {
+  const edits = readJsonStorage(CELL_INFO_EDIT_STORAGE_KEY);
+  return edits[getCellInfoKey(row, index)] || {};
+}
+
+function saveCellInfo(row, index, info = {}) {
+  const key = getCellInfoKey(row, index);
+  if (!key) return;
+
+  const edits = readJsonStorage(CELL_INFO_EDIT_STORAGE_KEY);
   const normalized = {
     room: info.room || "",
-    teacher: info.teacher || "",
-    memo: info.memo || ""
+    teacher: info.teacher || ""
   };
 
-  if (normalized.room || normalized.teacher || normalized.memo) {
-    edits[period] = normalized;
+  if (normalized.room || normalized.teacher) {
+    edits[key] = normalized;
   } else {
-    delete edits[period];
+    delete edits[key];
   }
 
-  writeJsonStorage(PERIOD_INFO_EDIT_STORAGE_KEY, edits);
+  writeJsonStorage(CELL_INFO_EDIT_STORAGE_KEY, edits);
 }
 
 function openSubjectEditor(cell, row, index) {
@@ -490,16 +502,16 @@ function openSubjectEditor(cell, row, index) {
   const subject = cell.dataset.subject || "";
   const memos = readJsonStorage(SUBJECT_MEMO_STORAGE_KEY);
   const memoKey = getCellMemoKey(row, index);
-  const periodInfo = getPeriodInfo(getPeriodInfoKey(row));
+  const cellInfo = getCellInfo(row, index);
 
   if (modalInfoMode) modalInfoMode.classList.add("mode-hidden");
   if (modalInputMode) modalInputMode.classList.add("mode-hidden");
   subjectEditMode.classList.remove("mode-hidden");
   if (subjectEditTitle) subjectEditTitle.textContent = subject ? "과목 수정" : "과목 추가";
   if (subjectEditName) subjectEditName.value = subject;
-  if (subjectEditRoom) subjectEditRoom.value = periodInfo.room || classroomMap[subject] || "";
-  if (subjectEditTeacher) subjectEditTeacher.value = periodInfo.teacher || teacherMap[subject] || "";
-  if (subjectEditMemo) subjectEditMemo.value = periodInfo.memo || memos[memoKey] || "";
+  if (subjectEditRoom) subjectEditRoom.value = cellInfo.room || classroomMap[subject] || "";
+  if (subjectEditTeacher) subjectEditTeacher.value = cellInfo.teacher || teacherMap[subject] || "";
+  if (subjectEditMemo) subjectEditMemo.value = memos[memoKey] || "";
 
   showSubjectOverlay();
   setTimeout(() => subjectEditName?.focus(), 100);
@@ -564,7 +576,6 @@ function updateMemoIndicators() {
     const row = cell.closest("tr");
     const cellIndex = getCellStorageIndex(row, cell);
     const memoKey = getCellMemoKey(row, cellIndex);
-    const periodInfo = getPeriodInfo(getPeriodInfoKey(row));
     const subjectWrap = cell.querySelector(".subject");
     const subjectNameEl = subjectWrap?.querySelector(".subject-name");
 
@@ -573,7 +584,7 @@ function updateMemoIndicators() {
     const existing = subjectWrap.querySelector(".memo-indicator");
     if (existing) existing.remove();
 
-    if ((periodInfo.memo || memos[memoKey] || "").trim()) {
+    if ((memos[memoKey] || "").trim()) {
       const dot = document.createElement("span");
       dot.className = "memo-indicator";
       dot.setAttribute("aria-hidden", "true");
@@ -585,7 +596,6 @@ function updateMemoIndicators() {
 
 subjectEditSave?.addEventListener("click", () => {
   if (!selectedSubjectCell || !selectedSubjectRow) return;
-  const previousSubject = selectedSubjectCell.dataset.subject || "";
   const subject = subjectEditName?.value.trim() || "";
   if (!subject) return;
 
@@ -593,25 +603,15 @@ subjectEditSave?.addEventListener("click", () => {
   const teacher = subjectEditTeacher?.value.trim() || "";
   const memo = subjectEditMemo?.value.trim() || "";
   const memoKey = getCellMemoKey(selectedSubjectRow, selectedSubjectIndex);
-  const periodKey = getPeriodInfoKey(selectedSubjectRow);
 
   renderSubjectCell(selectedSubjectCell, subject);
   saveCellEdit(selectedSubjectRow.dataset.period, selectedSubjectIndex, subject);
-
-  if (room) classroomMap[subject] = room;
-  else delete classroomMap[subject];
-
-  if (teacher) teacherMap[subject] = teacher;
-  else delete teacherMap[subject];
-
-  saveSubjectInfoEdit(subject, { room, teacher });
-  if (previousSubject && previousSubject !== subject) deleteSubjectInfoEdit(previousSubject);
 
   const memos = readJsonStorage(SUBJECT_MEMO_STORAGE_KEY);
   if (memo) memos[memoKey] = memo;
   else delete memos[memoKey];
   writeJsonStorage(SUBJECT_MEMO_STORAGE_KEY, memos);
-  savePeriodInfo(periodKey, { room, teacher, memo });
+  saveCellInfo(selectedSubjectRow, selectedSubjectIndex, { room, teacher });
 
   applyRoomBadges();
   updateMemoIndicators();
@@ -622,10 +622,8 @@ subjectEditSave?.addEventListener("click", () => {
 subjectEditReset?.addEventListener("click", () => {
   if (!selectedSubjectCell || !selectedSubjectRow) return;
 
-  const currentSubject = selectedSubjectCell.dataset.subject || "";
   const defaultSubject = getDefaultCellSubject(selectedSubjectRow, selectedSubjectIndex);
   const memoKey = getCellMemoKey(selectedSubjectRow, selectedSubjectIndex);
-  const periodKey = getPeriodInfoKey(selectedSubjectRow);
 
   if (defaultSubject) {
     renderSubjectCell(selectedSubjectCell, defaultSubject);
@@ -637,14 +635,10 @@ subjectEditReset?.addEventListener("click", () => {
     saveCellEdit(selectedSubjectRow.dataset.period, selectedSubjectIndex, "");
   }
 
-  deleteSubjectInfoEdit(currentSubject);
-  resetInfoMapsToDefault();
-  loadSubjectInfoEdits();
-
   const memos = readJsonStorage(SUBJECT_MEMO_STORAGE_KEY);
   delete memos[memoKey];
   writeJsonStorage(SUBJECT_MEMO_STORAGE_KEY, memos);
-  savePeriodInfo(periodKey, {});
+  saveCellInfo(selectedSubjectRow, selectedSubjectIndex, {});
 
   applyRoomBadges();
   updateMemoIndicators();
@@ -927,7 +921,8 @@ function applyRoomBadges() {
   cells.forEach((cell) => {
     const subject = cell.dataset.subject;
     const row = cell.closest("tr");
-    const periodInfo = getPeriodInfo(getPeriodInfoKey(row));
+    const cellIndex = getCellStorageIndex(row, cell);
+    const cellInfo = getCellInfo(row, cellIndex);
     const subjectWrap = cell.querySelector(".subject");
     if (!subjectWrap) return;
 
@@ -937,7 +932,7 @@ function applyRoomBadges() {
     const existingTeacher = subjectWrap.querySelector(".teacher-info");
     if (existingTeacher) existingTeacher.remove();
 
-    const room = periodInfo.room || classroomMap[subject];
+    const room = cellInfo.room || classroomMap[subject];
     if (room) {
       const roomTag = document.createElement("span");
       roomTag.className = "room-info";
@@ -945,7 +940,7 @@ function applyRoomBadges() {
       subjectWrap.appendChild(roomTag);
     }
 
-    const teacher = periodInfo.teacher || teacherMap[subject];
+    const teacher = cellInfo.teacher || teacherMap[subject];
     if (teacher) {
       const teacherTag = document.createElement("span");
       teacherTag.className = "teacher-info";
@@ -993,11 +988,12 @@ function renderSubjectCell(cell, subject) {
   if (!subject) {
     cell.removeAttribute("data-subject");
     cell.classList.add("empty-cell");
+    cell.classList.remove("neis-empty-cell");
     cell.textContent = "";
     return;
   }
   cell.dataset.subject = subject;
-  cell.classList.remove("empty-cell");
+  cell.classList.remove("empty-cell", "neis-empty-cell");
 
   let subjectWrap = cell.querySelector(".subject");
 
@@ -1050,6 +1046,10 @@ function setSubjectInfo(subject, info = {}) {
   if (!subject) return;
   if (info.room) classroomMap[subject] = info.room;
   if (info.teacher) teacherMap[subject] = info.teacher;
+  saveSubjectInfoEdit(subject, {
+    room: classroomMap[subject] || "",
+    teacher: teacherMap[subject] || ""
+  });
   applyRoomBadges();
 }
 
@@ -1221,6 +1221,7 @@ function updateFloatingTopbar() {
     const shouldShow = window.scrollY > 260 && threshold < 120;
 
     floatingTopbar.classList.toggle("is-visible", shouldShow);
+    document.body.classList.toggle("floating-topbar-visible", shouldShow);
     floatingTopbar.setAttribute("aria-hidden", String(!shouldShow));
     topbarFrame = null;
   });
@@ -1413,8 +1414,9 @@ function getCurrentSubjectAndRoom(currentSchedule, dayOfWeek) {
     return { subject: "", room: "일과 시간 아님" };
   }
 
-  const periodInfo = getPeriodInfo(getPeriodInfoKey(currentRow));
-  const room = periodInfo.room || classroomMap[subject];
+  const currentCellIndex = getCellStorageIndex(currentRow, currentCell);
+  const cellInfo = getCellInfo(currentRow, currentCellIndex);
+  const room = cellInfo.room || classroomMap[subject];
   return {
     subject,
     room: room ? `교실: ${room}` : "미지정"
@@ -1602,6 +1604,7 @@ function loadCustomConfig() {
   applyRoomBadges();
 }
 
+migrateLegacyInfoStorage();
 loadCustomConfig();
 loadSubjectInfoEdits();
 applyRoomBadges();
@@ -1611,6 +1614,7 @@ loadAppSettings();
 updateIPhoneSafeZone();
 initTheme();
 initCursorGlow();
+updateSchoolSubtitle();
 syncFloatingTopbar();
 updateFloatingTopbar();
 applyTodayOnlyMode();
@@ -1631,6 +1635,9 @@ window.addEventListener("resize", updateFloatingTopbar, { passive: true });
 window.TileApp = {
   renderSubjectCell,
   setSubjectInfo,
+  setSchoolDepartment(department = "") {
+    updateSavedTileUser({ department });
+  },
   setMeal(period, text, rawText = "") {
     if (period === "조식" || period === "중식" || period === "석식") saveMeal(period, text, rawText);
   },
@@ -1693,6 +1700,7 @@ if (customReset && customInput) {
     localStorage.removeItem(CELL_EDIT_STORAGE_KEY);
     localStorage.removeItem(SCHEDULE_EDIT_STORAGE_KEY);
     localStorage.removeItem(SUBJECT_INFO_EDIT_STORAGE_KEY);
+    localStorage.removeItem(CELL_INFO_EDIT_STORAGE_KEY);
     localStorage.removeItem(PERIOD_INFO_EDIT_STORAGE_KEY);
     localStorage.removeItem(SUBJECT_MEMO_STORAGE_KEY);
 
@@ -1783,6 +1791,7 @@ const schoolInput =
 
 const schoolResults =
     document.getElementById("schoolResults");
+const selectedSchoolInfo = document.getElementById("selectedSchoolInfo");
 
 const gradeInput = document.getElementById("gradeInput");
 const classInput = document.getElementById("classInput");
@@ -1811,6 +1820,57 @@ function getSavedTileUser() {
     }
 }
 
+function updateSchoolSubtitle(user = getSavedTileUser()) {
+    if (!schoolSubtitle) return;
+
+    const schoolName = user?.school?.name || "미림마이스터고등학교";
+    const grade = user?.grade || "1";
+    const classNum = user?.classNum || "2";
+    const department = user?.department || "";
+    schoolSubtitle.textContent = `${schoolName} | ${grade}학년 ${classNum}반${department ? ` · ${department}` : ""}`;
+}
+
+function renderSelectedSchoolInfo(school = selectedSchool) {
+    if (!selectedSchoolInfo) return;
+
+    if (!school) {
+        selectedSchoolInfo.classList.remove("is-visible");
+        selectedSchoolInfo.innerHTML = "";
+        return;
+    }
+
+    const inferredKind = /국제중학교|국제중/.test(school.name || "") ? "국제중학교" : "";
+    const typeText = [school.kind, inferredKind, school.highSchoolType]
+        .filter(Boolean)
+        .filter((value, index, array) => array.indexOf(value) === index)
+        .join(" · ") || "학교 정보";
+    selectedSchoolInfo.classList.add("is-visible");
+    selectedSchoolInfo.innerHTML = `
+      <div>
+        <span>설립 구분</span>
+        <strong>${school.foundation || "확인 중"}</strong>
+      </div>
+      <div>
+        <span>학교 종류</span>
+        <strong>${typeText}</strong>
+      </div>
+      <div>
+        <span>교육청</span>
+        <strong>${school.officeName || school.office || "확인 중"}</strong>
+      </div>
+    `;
+}
+
+function updateSavedTileUser(updates = {}) {
+    const user = getSavedTileUser();
+    if (!user) return null;
+
+    const nextUser = { ...user, ...updates };
+    localStorage.setItem("tile_user", JSON.stringify(nextUser));
+    updateSchoolSubtitle(nextUser);
+    return nextUser;
+}
+
 function fillSchoolSettingsFromSavedUser() {
     const user = getSavedTileUser();
     if (!user) return;
@@ -1818,6 +1878,7 @@ function fillSchoolSettingsFromSavedUser() {
     if (schoolInput && user.school?.name) schoolInput.value = user.school.name;
     if (gradeInput && user.grade) gradeInput.value = user.grade;
     if (classInput && user.classNum) classInput.value = user.classNum;
+    renderSelectedSchoolInfo(selectedSchool);
 }
 
 function saveSchoolSettings({ showAlert = true } = {}) {
@@ -1841,6 +1902,7 @@ function saveSchoolSettings({ showAlert = true } = {}) {
     };
 
     localStorage.setItem("tile_user", JSON.stringify(user));
+    updateSchoolSubtitle(user);
     return user;
 }
 
@@ -1894,10 +1956,11 @@ setupModal?.addEventListener("click", (event) => {
     if (event.target === setupModal) closeSchoolSettingsModal();
 });
 
-saveSchoolButton?.addEventListener("click", () => {
+saveSchoolButton?.addEventListener("click", async () => {
     const user = saveSchoolSettings();
     if (!user) return;
-    closeSchoolSettingsModal();
+    const didSync = await syncNeis({ user });
+    if (didSync) closeSchoolSettingsModal();
 });
 
 schoolInput?.addEventListener(
@@ -1907,6 +1970,7 @@ schoolInput?.addEventListener(
         const query = schoolInput.value.trim();
         if (!schoolResults) return;
         selectedSchool = null;
+        renderSelectedSchoolInfo(null);
         if (query.length < 2) {
             schoolResults.innerHTML = "";
             return;
@@ -1944,22 +2008,13 @@ schoolInput?.addEventListener(
                     school.name;
 
                 schoolResults.innerHTML = "";
+                renderSelectedSchoolInfo(school);
             };
 
             schoolResults.appendChild(div);
         });
     }
 );
-
-document.getElementById("neisSync")?.addEventListener("click", (event) => {
-    const user = saveSchoolSettings();
-    if (!user) {
-        event.stopImmediatePropagation();
-        return;
-    }
-    event.stopImmediatePropagation();
-    syncNeis({ user });
-}, true);
 
 async function init() {
 
