@@ -161,16 +161,36 @@
     throw new Error(result?.MESSAGE || "NEIS 응답에 데이터가 없습니다.");
   }
 
+  function shouldFallbackToDirect(response, message) {
+    if (!proxyBase || config.apiKey) return false;
+    return response.status === 404 || message.includes("NOT_FOUND") || message.includes("The page could not be found");
+  }
+
+  async function fetchNeis(endpoint, params, options = {}) {
+    return fetch(createUrl(endpoint, params, options));
+  }
+
   async function request(endpoint, params, rowKey) {
     let response;
     try {
-      response = await fetch(createUrl(endpoint, params));
+      response = await fetchNeis(endpoint, params);
     } catch (error) {
-      throw new Error(proxyBase ? "NEIS 프록시 연결 실패" : "NEIS 연결 실패");
+      if (proxyBase && !config.apiKey) {
+        response = await fetchNeis(endpoint, params, { forceDirect: true });
+      } else {
+        throw new Error("NEIS 연결 실패");
+      }
     }
 
     if (!response.ok) {
       const message = await readErrorMessage(response);
+      if (shouldFallbackToDirect(response, message)) {
+        response = await fetchNeis(endpoint, params, { forceDirect: true });
+        if (response.ok) {
+          const data = await response.json();
+          return readRowsOrThrow(data, rowKey, { allowPartial: rowKey === "hisTimetable", forceDirect: true });
+        }
+      }
       const hint = message.includes("NEIS_KEY")
         ? "NEIS 프록시 키 설정이 필요합니다."
         : message.includes("NOT_FOUND")
