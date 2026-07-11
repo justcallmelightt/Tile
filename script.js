@@ -125,6 +125,12 @@ const subjectEditMemo = document.getElementById("subjectEditMemo");
 const subjectEditSave = document.getElementById("subjectEditSave");
 const subjectEditReset = document.getElementById("subjectEditReset");
 const subjectEditNeis = document.getElementById("subjectEditNeis");
+const subjectBulkMode = document.getElementById("subjectBulkMode");
+const subjectBulkTitle = document.getElementById("subjectBulkTitle");
+const subjectBulkRows = document.getElementById("subjectBulkRows");
+const subjectBulkSave = document.getElementById("subjectBulkSave");
+const subjectBulkBack = document.getElementById("subjectBulkBack");
+const subjectBulkNeis = document.getElementById("subjectBulkNeis");
 const CELL_EDIT_STORAGE_KEY = "tile-cell-edits";
 const SCHEDULE_EDIT_STORAGE_KEY = "tile-schedule-edits";
 const SUBJECT_MEMO_STORAGE_KEY = "tile-subject-memos";
@@ -137,6 +143,7 @@ const APP_SETTINGS_STORAGE_KEY = "tile-app-settings";
 let selectedSubjectCell = null;
 let selectedSubjectRow = null;
 let selectedSubjectIndex = null;
+let subjectBulkTargets = [];
 let modalCallback = null;
 let overlayDismissBlockUntil = 0;
 const defaultCellSubjectMap = new Map();
@@ -145,6 +152,7 @@ let previousTimeString = null;
 const rollingTimeTimers = [];
 const rollingTextPreviousMap = new Map();
 const rollingTextTimersMap = new Map();
+const textSwapTimersMap = new Map();
 let cursorGlowFrame = null;
 let topbarFrame = null;
 
@@ -175,6 +183,23 @@ function renderStaticRollingDigit(element, char) {
   element.dataset.value = char;
 }
 
+function triggerTextSwapAnimation(element, key) {
+  if (!element || !key) return;
+
+  const previousTimer = textSwapTimersMap.get(key);
+  if (previousTimer) clearTimeout(previousTimer);
+
+  element.classList.remove("text-roll-swap");
+  void element.offsetWidth;
+  element.classList.add("text-roll-swap");
+
+  const timer = setTimeout(() => {
+    element.classList.remove("text-roll-swap");
+    textSwapTimersMap.delete(key);
+  }, 360);
+  textSwapTimersMap.set(key, timer);
+}
+
 function renderStaticTimeStyleText(element, text) {
   if (!element) return;
 
@@ -182,11 +207,16 @@ function renderStaticTimeStyleText(element, text) {
   element.dataset.timeText = text;
   element.setAttribute("aria-label", text);
 
+  if (!/[0-9]/.test(text)) {
+    element.textContent = text;
+    return;
+  }
+
   [...text].forEach((char) => {
     const span = document.createElement("span");
     span.className = getRollingTimeCharClass(char);
     span.dataset.value = char;
-    if (span.classList.contains("time-char")) {
+    if (canRollCharacterElement(span)) {
       renderStaticRollingDigit(span, char);
     } else {
       span.textContent = char;
@@ -195,23 +225,73 @@ function renderStaticTimeStyleText(element, text) {
   });
 }
 
+function canRollCharacterElement(element) {
+  return element?.classList?.contains("time-char");
+}
+
+function renderRollingCharacter(element, oldChar, newChar) {
+  element.dataset.value = newChar;
+  element.textContent = "";
+
+  const inner = document.createElement("span");
+  inner.className = "time-char-inner";
+
+  const oldSpan = document.createElement("span");
+  oldSpan.className = "time-old";
+  oldSpan.textContent = oldChar;
+
+  const newSpan = document.createElement("span");
+  newSpan.className = "time-new";
+  newSpan.textContent = newChar;
+
+  inner.append(oldSpan, newSpan);
+  element.appendChild(inner);
+  element.classList.remove("animate", "rolling");
+  void element.offsetWidth;
+
+  requestAnimationFrame(() => {
+    element.classList.add("animate", "rolling");
+  });
+}
+
+function finishRollingCharacter(element, char) {
+  element.classList.remove("animate", "rolling");
+  renderStaticRollingDigit(element, char);
+}
+
 function renderRollingTimeText(timeString) {
   renderStaticTimeStyleText(currentTimeEl, timeString);
   previousTimeString = timeString;
 }
 
-function renderRollingStyleText(element, text, key) {
+function renderRollingStyleText(element, text, key, options = {}) {
   if (!element) return;
 
+  const shouldSwapText = !options.disableTextSwap;
   element.dataset.timeText = text;
   element.setAttribute("aria-label", text);
-  resetRollingTextTimers(key);
 
   const previousText = rollingTextPreviousMap.get(key);
   const chars = element.children;
 
-  if (!previousText || previousText.length !== text.length) {
+  if (!/[0-9]/.test(text)) {
     resetRollingTextTimers(key);
+    if (shouldSwapText && previousText && previousText !== text) triggerTextSwapAnimation(element, key);
+    element.textContent = text;
+    rollingTextPreviousMap.set(key, text);
+    return;
+  }
+
+  if (previousText === text && chars.length === text.length) return;
+
+  if (!previousText) {
+    renderStaticTimeStyleText(element, text);
+    rollingTextPreviousMap.set(key, text);
+    return;
+  }
+
+  if (!/[0-9]/.test(previousText)) {
+    if (shouldSwapText) triggerTextSwapAnimation(element, key);
     renderStaticTimeStyleText(element, text);
     rollingTextPreviousMap.set(key, text);
     return;
@@ -219,28 +299,21 @@ function renderRollingStyleText(element, text, key) {
 
   if (chars.length !== text.length) {
     resetRollingTextTimers(key);
+    if (shouldSwapText) triggerTextSwapAnimation(element, key);
     element.innerHTML = "";
     const changedSpans = [];
 
     [...text].forEach((char, index) => {
-      const oldChar = previousText[index];
+      const oldChar = previousText[index] || char;
       const span = document.createElement("span");
       span.className = getRollingTimeCharClass(char);
       span.dataset.value = char;
 
-      if (span.classList.contains("time-char") && char !== oldChar) {
-        span.innerHTML = `
-          <span class="time-char-inner">
-            <span class="time-old">${oldChar}</span>
-            <span class="time-new">${char}</span>
-          </span>
-        `;
-
-        requestAnimationFrame(() => {
-          span.classList.add("animate", "rolling");
-        });
-
+      if (canRollCharacterElement(span) && char !== oldChar) {
+        renderRollingCharacter(span, oldChar, char);
         changedSpans.push({ span, char });
+      } else if (canRollCharacterElement(span)) {
+        renderStaticRollingDigit(span, char);
       } else {
         span.textContent = char;
       }
@@ -251,8 +324,7 @@ function renderRollingStyleText(element, text, key) {
     if (changedSpans.length > 0) {
       const timer = setTimeout(() => {
         changedSpans.forEach(({ span, char }) => {
-          span.classList.remove("animate", "rolling");
-          renderStaticRollingDigit(span, char);
+          finishRollingCharacter(span, char);
         });
         rollingTextTimersMap.delete(key);
       }, 520);
@@ -264,44 +336,35 @@ function renderRollingStyleText(element, text, key) {
   }
 
   const changedWrappers = [];
+  let textChanged = false;
 
   [...text].forEach((char, index) => {
     const oldChar = previousText[index];
     if (char === oldChar) return;
 
     const wrapper = chars[index];
-    if (!wrapper || !wrapper.classList.contains("time-char")) {
-      wrapper.className = getRollingTimeCharClass(char);
-      if (wrapper.classList.contains("time-char")) {
-        renderStaticRollingDigit(wrapper, char);
-      } else {
-        wrapper.textContent = char;
-        wrapper.dataset.value = char;
-      }
+    if (!wrapper) return;
+
+    wrapper.className = getRollingTimeCharClass(char);
+    if (!canRollCharacterElement(wrapper)) {
+      wrapper.textContent = char;
+      wrapper.dataset.value = char;
+      textChanged = true;
       return;
     }
 
-    wrapper.classList.remove("animate", "rolling");
-    wrapper.dataset.value = char;
-    wrapper.innerHTML = `
-      <span class="time-char-inner">
-        <span class="time-old">${oldChar}</span>
-        <span class="time-new">${char}</span>
-      </span>
-    `;
-
-    requestAnimationFrame(() => {
-      wrapper.classList.add("animate", "rolling");
-    });
-
+    renderRollingCharacter(wrapper, oldChar, char);
     changedWrappers.push({ wrapper, char });
   });
+
+  if (textChanged) {
+    if (shouldSwapText) triggerTextSwapAnimation(element, key);
+  }
 
   if (changedWrappers.length > 0) {
     const timer = setTimeout(() => {
       changedWrappers.forEach(({ wrapper, char }) => {
-        wrapper.classList.remove("animate", "rolling");
-        renderStaticRollingDigit(wrapper, char);
+        finishRollingCharacter(wrapper, char);
       });
       rollingTextTimersMap.delete(key);
     }, 520);
@@ -334,33 +397,19 @@ function createRollingTime(timeString) {
     if (char === oldChar) return;
 
     const wrapper = chars[index];
-    if (!wrapper || !wrapper.classList.contains("time-char")) {
-      wrapper.className = getRollingTimeCharClass(char);
-      if (wrapper.classList.contains("time-char")) {
-        renderStaticRollingDigit(wrapper, char);
-      } else {
-        wrapper.textContent = char;
-        wrapper.dataset.value = char;
-      }
+    if (!wrapper) return;
+
+    wrapper.className = getRollingTimeCharClass(char);
+    if (!canRollCharacterElement(wrapper)) {
+      wrapper.textContent = char;
+      wrapper.dataset.value = char;
       return;
     }
 
-    wrapper.classList.remove("animate", "rolling");
-    wrapper.dataset.value = char;
-    wrapper.innerHTML = `
-      <span class="time-char-inner">
-        <span class="time-old">${oldChar}</span>
-        <span class="time-new">${char}</span>
-      </span>
-    `;
-
-    requestAnimationFrame(() => {
-      wrapper.classList.add("animate", "rolling");
-    });
+    renderRollingCharacter(wrapper, oldChar, char);
 
     const timer = setTimeout(() => {
-      wrapper.classList.remove("animate", "rolling");
-      renderStaticRollingDigit(wrapper, char);
+      finishRollingCharacter(wrapper, char);
       const timerIndex = rollingTimeTimers.indexOf(timer);
       if (timerIndex !== -1) rollingTimeTimers.splice(timerIndex, 1);
     }, 520);
@@ -375,6 +424,7 @@ function openSubjectModal(data = {}) {
   if (modalInfoMode) modalInfoMode.classList.remove("mode-hidden");
   if (modalInputMode) modalInputMode.classList.add("mode-hidden");
   if (subjectEditMode) subjectEditMode.classList.add("mode-hidden");
+  if (subjectBulkMode) subjectBulkMode.classList.add("mode-hidden");
   if (subjectName) subjectName.textContent = data.name || "과목 정보";
   if (subjectLocation) subjectLocation.textContent = data.room || "교실 정보 없음";
   if (subjectTeacher) subjectTeacher.textContent = data.teacher || "선생님 정보 없음";
@@ -386,6 +436,7 @@ function openInputModal(title, placeholder, callback) {
   modalInfoMode.classList.add("mode-hidden");
   modalInputMode.classList.remove("mode-hidden");
   if (subjectEditMode) subjectEditMode.classList.add("mode-hidden");
+  if (subjectBulkMode) subjectBulkMode.classList.add("mode-hidden");
   modalTitle.textContent = title;
   modalInput.placeholder = placeholder;
   modalInput.value = "";
@@ -410,6 +461,24 @@ function readJsonStorage(key, fallback = {}) {
 
 function writeJsonStorage(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
+}
+
+function clearSubjectLocalEditsForNeis() {
+  localStorage.removeItem(CELL_EDIT_STORAGE_KEY);
+  localStorage.removeItem(SUBJECT_INFO_EDIT_STORAGE_KEY);
+  localStorage.removeItem(CELL_INFO_EDIT_STORAGE_KEY);
+  localStorage.removeItem(SUBJECT_MEMO_STORAGE_KEY);
+  resetInfoMapsToDefault();
+  restoreDefaultCellSubjects();
+}
+
+async function syncNeisFromCleanLocalState() {
+  clearSubjectLocalEditsForNeis();
+  const synced = typeof window.syncNeis === "function" ? await window.syncNeis() : false;
+  applyRoomBadges();
+  updateMemoIndicators();
+  updateCurrentStatus();
+  return synced;
 }
 
 function migrateLegacyInfoStorage() {
@@ -437,6 +506,17 @@ function captureDefaultCellSubjects() {
       defaultCellSubjectMap.set(`${row.dataset.period}_${index}`, cell.dataset.subject || "");
     });
   });
+}
+
+function restoreDefaultCellSubjects() {
+  document.querySelectorAll("tbody tr[data-period]").forEach((row) => {
+    row.querySelectorAll("td").forEach((cell, index) => {
+      if (cell.hasAttribute("colspan")) return;
+      renderSubjectCell(cell, getDefaultCellSubject(row, index));
+    });
+  });
+  applyRoomBadges();
+  updateMemoIndicators();
 }
 
 function loadSubjectInfoEdits() {
@@ -506,6 +586,7 @@ function openSubjectEditor(cell, row, index) {
 
   if (modalInfoMode) modalInfoMode.classList.add("mode-hidden");
   if (modalInputMode) modalInputMode.classList.add("mode-hidden");
+  if (subjectBulkMode) subjectBulkMode.classList.add("mode-hidden");
   subjectEditMode.classList.remove("mode-hidden");
   if (subjectEditTitle) subjectEditTitle.textContent = subject ? "과목 수정" : "과목 추가";
   if (subjectEditName) subjectEditName.value = subject;
@@ -547,10 +628,14 @@ function closeSubjectModal() {
     subjectOverlay.setAttribute("aria-hidden", "true");
     document.body.classList.remove("modal-open");
     modal?.classList.remove("modal-animate-out");
+    if (subjectBulkRows) subjectBulkRows.textContent = "";
+    if (subjectEditMode) subjectEditMode.classList.add("mode-hidden");
+    if (subjectBulkMode) subjectBulkMode.classList.add("mode-hidden");
     modalCallback = null;
     selectedSubjectCell = null;
     selectedSubjectRow = null;
     selectedSubjectIndex = null;
+    subjectBulkTargets = [];
   }, hideDelay);
 }
 
@@ -594,6 +679,119 @@ function updateMemoIndicators() {
   });
 }
 
+function getSubjectDayLabel(index) {
+  return document.querySelector(`thead th[data-day="${index + 1}"]`)?.textContent.trim()
+    || dayNames[index + 1]
+    || `${index + 1}`;
+}
+
+function getSubjectBulkTargets(subject) {
+  if (!subject) return [];
+
+  return Array.from(document.querySelectorAll("tbody tr[data-period]")).flatMap((row) => (
+    Array.from(row.querySelectorAll("td"))
+      .map((cell, index) => ({ row, cell, index }))
+      .filter(({ cell }) => !cell.hasAttribute("colspan") && cell.dataset.subject === subject)
+  ));
+}
+
+function createBulkInput(labelText, field, value, tagName = "input") {
+  const label = document.createElement("label");
+  label.className = "subject-bulk-field";
+
+  const labelSpan = document.createElement("span");
+  labelSpan.textContent = labelText;
+  label.appendChild(labelSpan);
+
+  const input = document.createElement(tagName);
+  input.dataset.field = field;
+  input.value = value || "";
+  if (tagName === "textarea") {
+    input.rows = 2;
+    input.placeholder = "메모";
+  } else {
+    input.type = "text";
+    input.placeholder = labelText;
+  }
+  label.appendChild(input);
+
+  return label;
+}
+
+function openSubjectBulkEditor() {
+  if (!selectedSubjectCell || !subjectBulkMode || !subjectBulkRows) return;
+
+  const selectedSubject = selectedSubjectCell.dataset.subject || "";
+  subjectBulkTargets = getSubjectBulkTargets(selectedSubject);
+  if (!selectedSubject || !subjectBulkTargets.length) return;
+
+  if (modalInfoMode) modalInfoMode.classList.add("mode-hidden");
+  if (modalInputMode) modalInputMode.classList.add("mode-hidden");
+  if (subjectEditMode) subjectEditMode.classList.add("mode-hidden");
+  subjectBulkMode.classList.remove("mode-hidden");
+  if (subjectBulkTitle) subjectBulkTitle.textContent = `${selectedSubject} 일괄 수정`;
+
+  const memos = readJsonStorage(SUBJECT_MEMO_STORAGE_KEY);
+  subjectBulkRows.textContent = "";
+
+  subjectBulkTargets.forEach(({ row, cell, index }, targetIndex) => {
+    const subject = cell.dataset.subject || "";
+    const memoKey = getCellMemoKey(row, index);
+    const cellInfo = getCellInfo(row, index);
+    const rowEl = document.createElement("div");
+    rowEl.className = "subject-bulk-row";
+    rowEl.dataset.targetIndex = String(targetIndex);
+
+    const dayLabel = document.createElement("div");
+    dayLabel.className = "subject-bulk-day";
+    dayLabel.textContent = `${getSubjectDayLabel(index)} · ${row.dataset.period || "교시"}`;
+    rowEl.appendChild(dayLabel);
+
+    const fields = document.createElement("div");
+    fields.className = "subject-bulk-fields";
+    fields.appendChild(createBulkInput("과목", "subject", subject));
+    fields.appendChild(createBulkInput("교실", "room", cellInfo.room || classroomMap[subject] || ""));
+    fields.appendChild(createBulkInput("선생님", "teacher", cellInfo.teacher || teacherMap[subject] || ""));
+    fields.appendChild(createBulkInput("메모", "memo", memos[memoKey] || "", "textarea"));
+    rowEl.appendChild(fields);
+    subjectBulkRows.appendChild(rowEl);
+  });
+
+  subjectBulkRows.querySelector("[data-field='subject']")?.focus();
+}
+
+function saveBulkSubjectEdits() {
+  if (!subjectBulkTargets.length || !subjectBulkRows) return;
+
+  const memos = readJsonStorage(SUBJECT_MEMO_STORAGE_KEY);
+
+  subjectBulkRows.querySelectorAll(".subject-bulk-row").forEach((rowEl) => {
+    const targetIndex = Number(rowEl.dataset.targetIndex);
+    const target = subjectBulkTargets[targetIndex];
+    const { row, cell, index } = target || {};
+    if (!cell || cell.hasAttribute("colspan")) return;
+
+    const subject = rowEl.querySelector("[data-field='subject']")?.value.trim() || "";
+    const room = rowEl.querySelector("[data-field='room']")?.value.trim() || "";
+    const teacher = rowEl.querySelector("[data-field='teacher']")?.value.trim() || "";
+    const memo = rowEl.querySelector("[data-field='memo']")?.value.trim() || "";
+    const memoKey = getCellMemoKey(row, index);
+
+    renderSubjectCell(cell, subject);
+    saveCellEdit(row.dataset.period, index, subject);
+    saveCellInfo(row, index, subject ? { room, teacher } : {});
+
+    if (subject && memo) memos[memoKey] = memo;
+    else delete memos[memoKey];
+  });
+
+  writeJsonStorage(SUBJECT_MEMO_STORAGE_KEY, memos);
+  applyRoomBadges();
+  updateMemoIndicators();
+  updateCurrentStatus();
+  closeSubjectModal();
+}
+
 subjectEditSave?.addEventListener("click", () => {
   if (!selectedSubjectCell || !selectedSubjectRow) return;
   const subject = subjectEditName?.value.trim() || "";
@@ -620,34 +818,24 @@ subjectEditSave?.addEventListener("click", () => {
 });
 
 subjectEditReset?.addEventListener("click", () => {
-  if (!selectedSubjectCell || !selectedSubjectRow) return;
-
-  const defaultSubject = getDefaultCellSubject(selectedSubjectRow, selectedSubjectIndex);
-  const memoKey = getCellMemoKey(selectedSubjectRow, selectedSubjectIndex);
-
-  if (defaultSubject) {
-    renderSubjectCell(selectedSubjectCell, defaultSubject);
-    saveCellEdit(selectedSubjectRow.dataset.period, selectedSubjectIndex, defaultSubject);
-  } else {
-    selectedSubjectCell.removeAttribute("data-subject");
-    selectedSubjectCell.classList.add("empty-cell");
-    selectedSubjectCell.textContent = "";
-    saveCellEdit(selectedSubjectRow.dataset.period, selectedSubjectIndex, "");
-  }
-
-  const memos = readJsonStorage(SUBJECT_MEMO_STORAGE_KEY);
-  delete memos[memoKey];
-  writeJsonStorage(SUBJECT_MEMO_STORAGE_KEY, memos);
-  saveCellInfo(selectedSubjectRow, selectedSubjectIndex, {});
-
-  applyRoomBadges();
-  updateMemoIndicators();
-  updateCurrentStatus();
-  closeSubjectModal();
+  openSubjectBulkEditor();
 });
 
 subjectEditNeis?.addEventListener("click", async () => {
-  await syncNeis();
+  await syncNeisFromCleanLocalState();
+  closeSubjectModal();
+});
+
+subjectBulkSave?.addEventListener("click", saveBulkSubjectEdits);
+
+subjectBulkBack?.addEventListener("click", () => {
+  if (subjectBulkMode) subjectBulkMode.classList.add("mode-hidden");
+  if (subjectEditMode) subjectEditMode.classList.remove("mode-hidden");
+  setTimeout(() => subjectEditName?.focus(), 40);
+});
+
+subjectBulkNeis?.addEventListener("click", async () => {
+  await syncNeisFromCleanLocalState();
   closeSubjectModal();
 });
 
@@ -793,32 +981,84 @@ function format12Hour(timeText) {
   return `${period} ${displayHour}:${minute}`;
 }
 
-function formatRemainingTime(diffMinutes) {
-  if (diffMinutes <= 0) return "곧 종료";
-
-  const totalSeconds = Math.ceil(diffMinutes * 60);
-  const hours = Math.floor(totalSeconds / 3600);
+function formatRelativeDuration(diffMinutes, suffix) {
+  const totalSeconds = Math.max(0, Math.ceil(diffMinutes * 60));
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
-  const secondText = `${String(seconds).padStart(2, "0")}초`;
+  const parts = [];
 
-  if (hours > 0) return `${hours}시간 ${minutes}분 ${secondText} 남음`;
-  if (minutes > 0) return `${minutes}분 ${secondText} 남음`;
-  return `${secondText} 남음`;
+  if (days > 0) parts.push(`${days}일`);
+  if (hours > 0) parts.push(`${hours}시간`);
+  if (minutes > 0) parts.push(`${minutes}분`);
+  parts.push(`${String(seconds).padStart(2, "0")}초`);
+
+  return `${parts.join(" ")} ${suffix}`;
+}
+
+function formatScheduleDuration(scheduleItem) {
+  if (!scheduleItem?.start || !scheduleItem?.end) return "";
+
+  const durationMinutes = Math.max(0, Math.round(toMinutes(scheduleItem.end) - toMinutes(scheduleItem.start)));
+  const hours = Math.floor(durationMinutes / 60);
+  const minutes = durationMinutes % 60;
+
+  if (hours > 0 && minutes > 0) return `${hours}시간 ${minutes}분`;
+  if (hours > 0) return `${hours}시간`;
+  return `${minutes}분`;
+}
+
+function formatRemainingTime(diffMinutes) {
+  if (diffMinutes <= 0) return "곧 종료";
+  return formatRelativeDuration(diffMinutes, "후");
+}
+
+function formatPeriodRemainingTime(diffMinutes) {
+  if (diffMinutes <= 0) return "곧 종료";
+  return formatRelativeDuration(diffMinutes, "남음");
 }
 
 function formatBeforeSchoolTime(diffMinutes) {
   if (diffMinutes <= 0) return "곧 시작";
+  return formatRelativeDuration(diffMinutes, "전");
+}
 
-  const totalSeconds = Math.ceil(diffMinutes * 60);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  const secondText = `${String(seconds).padStart(2, "0")}초`;
+function getNextSchoolStartDiffMinutes(now, includeToday = false) {
+  const dayStartMinutes = toMinutes(scheduleRanges[0].start);
+  const startOffset = includeToday ? 0 : 1;
 
-  if (hours > 0) return `일과 ${hours}시간 ${minutes}분 ${secondText} 전`;
-  if (minutes > 0) return `일과 ${minutes}분 ${secondText} 전`;
-  return `일과 ${secondText} 전`;
+  for (let offset = startOffset; offset <= 7; offset += 1) {
+    const nextDate = new Date(now);
+    nextDate.setDate(now.getDate() + offset);
+
+    const day = nextDate.getDay();
+    if (!(day >= 1 && day <= 5)) continue;
+
+    const startDate = new Date(
+      nextDate.getFullYear(),
+      nextDate.getMonth(),
+      nextDate.getDate(),
+      Math.floor(dayStartMinutes / 60),
+      dayStartMinutes % 60,
+      0,
+      0
+    );
+    const diffMinutes = (startDate.getTime() - now.getTime()) / 60000;
+    if (diffMinutes > 0) return diffMinutes;
+  }
+
+  return null;
+}
+
+function formatNextSchoolStartFromNow(now, currentMinutes, dayOfWeek) {
+  const dayStartMinutes = toMinutes(scheduleRanges[0].start);
+  if (dayOfWeek >= 1 && dayOfWeek <= 5 && currentMinutes < dayStartMinutes) {
+    return formatBeforeSchoolTime(dayStartMinutes - currentMinutes);
+  }
+
+  const nextStartDiff = getNextSchoolStartDiffMinutes(now);
+  return nextStartDiff !== null ? formatRelativeDuration(nextStartDiff, "전") : "일과 시간 아님";
 }
 
 function getCurrentSchedule(minutesNow) {
@@ -1053,6 +1293,14 @@ function setSubjectInfo(subject, info = {}) {
   applyRoomBadges();
 }
 
+function setCellInfoByCell(cell, info = {}) {
+  const row = cell?.closest("tr[data-period]");
+  if (!row || !cell) return;
+  const index = Array.from(row.querySelectorAll("td")).indexOf(cell);
+  if (index < 0) return;
+  saveCellInfo(row, index, info);
+}
+
 function loadScheduleEdits() {
   const saved = localStorage.getItem(SCHEDULE_EDIT_STORAGE_KEY);
   if (!saved) return;
@@ -1201,12 +1449,12 @@ function syncFloatingTopbar() {
   };
 
   writeRollingText(topbarTime, readDisplayText(currentTimeEl, "불러오는 중..."), "topbar-current-time");
-  writeDisplayText(topbarPeriod, readDisplayText(currentPeriodEl, "확인 중..."));
+  writeRollingText(topbarPeriod, readDisplayText(currentPeriodEl, "확인 중..."), "topbar-current-period");
   if (topbarRemainingLabel) topbarRemainingLabel.textContent = remainingTimeLabelEl?.textContent?.trim() || "교시 남은 시간";
   writeRollingText(topbarRemaining, readDisplayText(remainingTimeEl, "계산 중..."), "topbar-period-remaining-time");
   writeRollingText(topbarDayRemaining, readDisplayText(dayRemainingTimeEl, "계산 중..."), "topbar-day-remaining-time");
-  writeDisplayText(topbarRoom, readDisplayText(currentRoomEl, "확인 중..."));
-  writeDisplayText(topbarNeis, readDisplayText(neisStatusEl, "대기 중"));
+  writeRollingText(topbarRoom, readDisplayText(currentRoomEl, "확인 중..."), "topbar-current-room");
+  writeRollingText(topbarNeis, readDisplayText(neisStatusEl, "대기 중"), "topbar-neis-status");
 }
 
 function updateFloatingTopbar() {
@@ -1358,7 +1606,9 @@ function renderFloatingTimeline(currentSchedule, highlightSchedule, dayOfWeek, p
 
   const label = document.createElement("span");
   label.className = "floating-time-label";
-  renderRollingStyleText(label, currentTimeEl.dataset.timeText || currentTimeEl.textContent, "floating-time-label");
+  renderRollingStyleText(label, currentTimeEl.dataset.timeText || currentTimeEl.textContent, "floating-time-label", {
+    disableTextSwap: true
+  });
   label.style.visibility = "hidden";
   table.appendChild(label);
 
@@ -1371,7 +1621,8 @@ function renderFloatingTimeline(currentSchedule, highlightSchedule, dayOfWeek, p
 
   const line = document.createElement("div");
   line.className = "floating-time-line";
-  const lineLeft = safeLeft + label.offsetWidth - 6;
+  const labelWidth = Number.parseFloat(getComputedStyle(label).width) || label.offsetWidth;
+  const lineLeft = safeLeft + labelWidth - 6;
   const tableRight = table.clientWidth - 12;
   const lastCellRight = lastCell.offsetLeft + lastCell.offsetWidth - 12;
   const lineRight = Math.max(tableRight, lastCellRight);
@@ -1383,7 +1634,7 @@ function renderFloatingTimeline(currentSchedule, highlightSchedule, dayOfWeek, p
 
 function getCurrentSubjectAndRoom(currentSchedule, dayOfWeek) {
   if (!currentSchedule) {
-    return { subject: "일과 시간 아님", room: "미지정" };
+    return { subject: "일과 시간 아님", room: "일과 시간 아님" };
   }
 
   if (currentSchedule.type === "break") {
@@ -1395,7 +1646,7 @@ function getCurrentSubjectAndRoom(currentSchedule, dayOfWeek) {
   }
 
   if (!(dayOfWeek >= 1 && dayOfWeek <= 5)) {
-    return { subject: currentSchedule.name, room: "주말" };
+    return { subject: "", room: "일과 시간 아님" };
   }
 
   const currentRow = document.querySelector(`tbody tr[data-period="${currentSchedule.name}"]`);
@@ -1430,8 +1681,9 @@ function updateCurrentStatus() {
   const seconds = String(now.getSeconds()).padStart(2, "0");
   const currentMinutes = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
   const dayOfWeek = now.getDay();
+  const isSchoolWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
 
-  const currentSchedule = getCurrentSchedule(currentMinutes);
+  const currentSchedule = isSchoolWeekday ? getCurrentSchedule(currentMinutes) : null;
   const highlightSchedule = currentSchedule && currentSchedule.type === "break"
     ? getNextScheduleAfter(currentMinutes)
     : currentSchedule;
@@ -1455,27 +1707,27 @@ if (currentTimeEl) {
   }
 
   if (remainingTimeLabelEl) {
-    remainingTimeLabelEl.textContent = currentSchedule && currentSchedule.type === "break" ? "남은 쉬는 시간" : "교시 남은 시간";
+    remainingTimeLabelEl.textContent = currentSchedule
+      ? (currentSchedule.type === "break" ? "남은 쉬는 시간" : "교시 남은 시간")
+      : "교시 남은 시간";
   }
 
-  const isSchoolWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
   const dayScheduleEnd = getDayScheduleEnd(dayOfWeek);
   const dayScheduleEndMinutes = dayScheduleEnd ? toMinutes(dayScheduleEnd) : null;
 
   if (dayRemainingTimeEl) {
     const dayStartMinutes = toMinutes(scheduleRanges[0].start);
-    const schoolPreviewStartMinutes = 6 * 60;
 
     if (isSchoolWeekday && dayScheduleEndMinutes !== null) {
-      if (currentMinutes >= schoolPreviewStartMinutes && currentMinutes < dayStartMinutes) {
+      if (currentMinutes < dayStartMinutes) {
         renderRollingStyleText(dayRemainingTimeEl, formatBeforeSchoolTime(dayStartMinutes - currentMinutes), "day-remaining-time");
       } else if (currentMinutes >= dayStartMinutes && currentMinutes < dayScheduleEndMinutes) {
         renderRollingStyleText(dayRemainingTimeEl, formatRemainingTime(dayScheduleEndMinutes - currentMinutes), "day-remaining-time");
       } else {
-        renderRollingStyleText(dayRemainingTimeEl, "일과 시간 아님", "day-remaining-time");
+        renderRollingStyleText(dayRemainingTimeEl, formatNextSchoolStartFromNow(now, currentMinutes, dayOfWeek), "day-remaining-time");
       }
     } else {
-      renderRollingStyleText(dayRemainingTimeEl, "일과 시간 아님", "day-remaining-time");
+      renderRollingStyleText(dayRemainingTimeEl, formatNextSchoolStartFromNow(now, currentMinutes, dayOfWeek), "day-remaining-time");
     }
   }
 
@@ -1485,20 +1737,20 @@ if (currentTimeEl) {
 
     if (currentPeriodEl) {
       if (currentSchedule.type === "break") {
-        currentPeriodEl.textContent = `${currentSchedule.name} (${format12Hour(currentSchedule.start)} ~ ${format12Hour(currentSchedule.end)})`;
+        renderRollingStyleText(currentPeriodEl, `${currentSchedule.name} (${formatScheduleDuration(currentSchedule)})`, "current-period");
       } else if (!subject) {
-        currentPeriodEl.textContent = "일과 시간 아님";
+        renderRollingStyleText(currentPeriodEl, "일과 시간 아님", "current-period");
       } else if (currentSchedule.merged) {
-        currentPeriodEl.textContent = `${currentSchedule.name} (${format12Hour(currentSchedule.start)} ~ ${format12Hour(currentSchedule.end)})`;
+        renderRollingStyleText(currentPeriodEl, `${currentSchedule.name} (${formatScheduleDuration(currentSchedule)})`, "current-period");
       } else {
-        currentPeriodEl.textContent = `${currentSchedule.name} · ${subject}`;
+        renderRollingStyleText(currentPeriodEl, `${currentSchedule.name} · ${subject}`, "current-period");
       }
     }
 
     if (remainingTimeEl) {
       renderRollingStyleText(remainingTimeEl, !subject && currentSchedule.type === "schedule"
         ? "일과 시간 아님"
-        : formatRemainingTime(remaining), "period-remaining-time");
+        : formatPeriodRemainingTime(remaining), "period-remaining-time");
     }
 
     if (currentRoomEl) {
@@ -1507,7 +1759,7 @@ if (currentTimeEl) {
         : room;
     }
   } else {
-    if (currentPeriodEl) currentPeriodEl.textContent = "일과 시간 아님";
+    if (currentPeriodEl) renderRollingStyleText(currentPeriodEl, "일과 시간 아님", "current-period");
     if (remainingTimeEl) renderRollingStyleText(remainingTimeEl, "일과 시간 아님", "period-remaining-time");
     if (currentRoomEl) currentRoomEl.textContent = "일과 시간 아님";
   }
@@ -1633,8 +1885,31 @@ window.addEventListener("scroll", updateFloatingTopbar, { passive: true });
 window.addEventListener("resize", updateFloatingTopbar, { passive: true });
 
 window.TileApp = {
+  renderRollingText(element, text, key) {
+    renderRollingStyleText(element, text, key);
+  },
+  replayRollingText(element, fromText, toText, key) {
+    if (!element || !fromText || !toText || fromText === toText) return;
+
+    resetRollingTextTimers(key);
+    renderStaticTimeStyleText(element, fromText);
+    rollingTextPreviousMap.set(key, fromText);
+    requestAnimationFrame(() => {
+      renderRollingStyleText(element, toText, key);
+    });
+  },
   renderSubjectCell,
   setSubjectInfo,
+  setCellInfoByCell,
+  setSchoolDetails(school = {}) {
+    const currentUser = getSavedTileUser();
+    updateSavedTileUser({
+      school: {
+        ...(currentUser?.school || {}),
+        ...school
+      }
+    });
+  },
   setSchoolDepartment(department = "") {
     updateSavedTileUser({ department });
   },
@@ -1673,7 +1948,7 @@ if (customSave && customInput) {
   customSave.addEventListener("click", () => {
     try {
       const parsed = JSON.parse(customInput.value);
-      
+
       // Validate basic structure
       if (typeof parsed !== "object" || parsed === null) {
         alert("유효한 JSON 객체여야 합니다.");
@@ -1681,12 +1956,12 @@ if (customSave && customInput) {
       }
 
       localStorage.setItem("tile-custom-json", JSON.stringify(parsed));
-      
+
       // Reload config without page refresh
       loadCustomConfig();
       applyRoomBadges();
       updateCurrentStatus();
-      
+
       alert("설정 저장 완료 ✨");
     } catch (err) {
       alert(`JSON 형식 오류: ${err.message}`);
@@ -1826,8 +2101,79 @@ function updateSchoolSubtitle(user = getSavedTileUser()) {
     const schoolName = user?.school?.name || "미림마이스터고등학교";
     const grade = user?.grade || "1";
     const classNum = user?.classNum || "2";
-    const department = user?.department || "";
-    schoolSubtitle.textContent = `${schoolName} | ${grade}학년 ${classNum}반${department ? ` · ${department}` : ""}`;
+    const schoolType = getDisplaySchoolType(user?.school);
+    const department = normalizeDepartment(user?.department);
+    schoolSubtitle.textContent = [schoolName, schoolType, `${grade}학년 ${classNum}반`, department]
+        .filter(Boolean)
+        .join(" | ");
+}
+
+function normalizeDepartment(department = "") {
+    const text = String(department || "").trim();
+    if (!text || text === "일반학과" || text === "일반과" || text === "공통과정") return "";
+    return text;
+}
+
+function normalizeHighSchoolType(type = "") {
+    const text = String(type || "").trim();
+    const compact = text.replace(/\s+/g, "");
+    if (!text) return "";
+    if (compact.includes("특수목적") || compact.includes("특목")) return "특수목적고";
+    if (compact.includes("자율형사립") || compact.includes("자율사립")) return "자율형사립고";
+    if (compact.includes("자율형공립") || compact.includes("자율공립")) return "자율형공립고";
+    if (compact.includes("자율")) return "자율고";
+    if (compact.includes("일반")) return "일반고";
+    if (compact.includes("특성화")) return "특성화고";
+    return text.replace(/등학교$/g, "고등학교");
+}
+
+function getDisplaySchoolType(school = {}) {
+    const name = String(school?.name || "");
+    const compactName = name.replace(/\s+/g, "");
+    const foundation = String(school?.foundation || "").trim();
+    const rawHighSchoolType = String(school?.highSchoolType || "").replace(/\s+/g, "");
+    const purpose = String(school?.specialPurpose || "").replace(/\s+/g, "");
+    const generalType = String(school?.generalType || "").replace(/\s+/g, "");
+
+    if (/영재학교/.test(compactName)) return "영재학교";
+
+    if (rawHighSchoolType.includes("특목") || rawHighSchoolType.includes("특수목적")) {
+        let detail = "";
+        if (purpose.includes("산업수요") || /마이스터/.test(compactName)) detail = "마이스터고";
+        else if (purpose.includes("과학") || /과학고/.test(compactName)) detail = "과학고";
+        else if (purpose.includes("외국어") || /외국어고|외고/.test(compactName)) detail = "외국어고";
+        else if (purpose.includes("국제") || /국제고/.test(compactName)) detail = "국제고";
+        else if (purpose.includes("예술") || /예술고/.test(compactName)) detail = "예술고";
+        else if (purpose.includes("체육") || /체육고/.test(compactName)) detail = "체육고";
+        return ["특수목적고", detail].filter(Boolean).join(" · ");
+    }
+
+    if (rawHighSchoolType.includes("자율")) {
+        let detail = "";
+        if (foundation === "사립") detail = "자율형사립고";
+        else if (foundation === "공립") detail = "자율형공립고";
+        return ["자율고", detail].filter(Boolean).join(" · ");
+    }
+
+    if (rawHighSchoolType.includes("특성화")) {
+        if (generalType.includes("대안") || /대안|한겨레/.test(compactName)) return "대안교육 특성화고";
+        return "특성화고";
+    }
+
+    const highSchoolType = normalizeHighSchoolType(school?.highSchoolType);
+    if (highSchoolType) return highSchoolType;
+
+    const kind = String(school?.kind || "").trim();
+    if (kind === "고등학교") return "";
+
+    if (kind.includes("중")) {
+        if (/국제중학교|국제중/.test(compactName)) return "특성화중 · 국제중";
+        if (/예술중학교|예술중|예원학교|선화예술중/.test(compactName)) return "특성화중 · 예술중";
+        if (/체육중학교|체육중/.test(compactName)) return "특성화중 · 체육중";
+        if (/특성화중학교|특성화중|대안중|헌산중|두레자연중|지평선중|성지송학중/.test(compactName)) return "특성화중";
+    }
+
+    return kind;
 }
 
 function renderSelectedSchoolInfo(school = selectedSchool) {
@@ -1839,8 +2185,7 @@ function renderSelectedSchoolInfo(school = selectedSchool) {
         return;
     }
 
-    const inferredKind = /국제중학교|국제중/.test(school.name || "") ? "국제중학교" : "";
-    const typeText = [school.kind, inferredKind, school.highSchoolType]
+    const typeText = [school.kind, getDisplaySchoolType(school)]
         .filter(Boolean)
         .filter((value, index, array) => array.indexOf(value) === index)
         .join(" · ") || "학교 정보";
@@ -1959,8 +2304,19 @@ setupModal?.addEventListener("click", (event) => {
 saveSchoolButton?.addEventListener("click", async () => {
     const user = saveSchoolSettings();
     if (!user) return;
+    const neisStatusEl = document.getElementById("neisStatus");
+    const previousNeisStatus = neisStatusEl?.dataset?.timeText || neisStatusEl?.textContent?.trim() || "";
     const didSync = await syncNeis({ user });
-    if (didSync) closeSchoolSettingsModal();
+    if (didSync) {
+        const nextNeisStatus = neisStatusEl?.dataset?.timeText || neisStatusEl?.textContent?.trim() || "";
+        closeSchoolSettingsModal();
+
+        requestAnimationFrame(() => {
+            window.TileApp?.replayRollingText?.(neisStatusEl, previousNeisStatus, nextNeisStatus, "neis-status");
+            window.TileApp?.replayRollingText?.(topbarNeis, previousNeisStatus, nextNeisStatus, "topbar-neis-status");
+            syncFloatingTopbar();
+        });
+    }
 });
 
 schoolInput?.addEventListener(
