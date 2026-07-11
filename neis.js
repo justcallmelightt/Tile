@@ -15,10 +15,18 @@
   const statusEl = document.getElementById("neisStatus");
   const isLocalHost = ["localhost", "127.0.0.1", "::1", ""].includes(window.location.hostname);
   const proxyBase = config.apiBase || (!config.apiKey && !isLocalHost ? "/api/neis" : "");
+  const SYNC_SCOPE_STORAGE_KEY = "tile-neis-sync-scope";
   let timetableResponseWasPartial = false;
 
   function setStatus(message) {
-    if (statusEl) statusEl.textContent = message;
+    if (!statusEl) return;
+
+    if (window.TileApp?.renderRollingText) {
+      window.TileApp.renderRollingText(statusEl, message, "neis-status");
+    } else {
+      statusEl.textContent = message;
+      statusEl.dataset.displayText = message;
+    }
   }
 
   function hasNeisTransport() {
@@ -88,6 +96,19 @@
       .map((item) => item.replace(/\([^)]*\)/g, "").replace(/\s+/g, " ").trim())
       .filter(Boolean)
       .join("\n");
+  }
+
+  function extractTeacher(value) {
+    const text = String(value || "");
+    const matches = [...text.matchAll(/[\(（]([^\)）]+)[\)）]/g)];
+    if (matches.length === 0) return "";
+
+    const teacherText = matches
+      .map((match) => cleanText(match[1]))
+      .filter((item) => /[가-힣]/.test(item))
+      .pop();
+
+    return teacherText || "";
   }
 
   function createUrl(endpoint, params = {}, options = {}) {
@@ -214,6 +235,9 @@
       foundation: school.FOND_SC_NM,
       kind: school.SCHUL_KND_SC_NM,
       highSchoolType: school.HS_SC_NM,
+      specialPurpose: school.SPCLY_PURPS_HS_ORD_NM,
+      generalType: school.HS_GNRL_BUSNS_SC_NM,
+      industrySpecialized: school.INDST_SPECL_CCCCL_EXST_YN,
       location: school.LCTN_SC_NM
     }));
   }
@@ -244,6 +268,16 @@
       grade: user?.grade || config.grade,
       classNum: user?.classNum || config.className
     };
+  }
+
+  function getSyncScope(user = {}) {
+    const school = user.school || {};
+    return [
+      school.office || "",
+      school.code || school.name || "",
+      user.grade || "",
+      user.classNum || ""
+    ].join("|");
   }
 
   async function getMeal(user) {
@@ -324,9 +358,10 @@
 
         targetCell.classList.remove("neis-empty-cell");
         window.TileApp?.renderSubjectCell(targetCell, subject);
-        if (row.CLRM_NM) {
-          window.TileApp?.setSubjectInfo(subject, { room: cleanText(row.CLRM_NM) });
-        }
+        window.TileApp?.setCellInfoByCell?.(targetCell, {
+          room: cleanText(row.CLRM_NM),
+          teacher: extractTeacher(row.ITRT_CNTNT)
+        });
         applied += 1;
       });
 
@@ -352,23 +387,29 @@
     }
 
     syncButton?.setAttribute("disabled", "true");
-    setStatus("불러오는 중...");
 
     try {
+      const currentUser = getUserConfig(user);
+      const school = await resolveSchool(currentUser);
+      const syncedUser = { ...currentUser, school };
+      const syncScope = getSyncScope(syncedUser);
+      const previousSyncScope = localStorage.getItem(SYNC_SCOPE_STORAGE_KEY) || "";
       const [timetableRows, meals] = await Promise.all([
-        getTimetable(user),
-        getMeal(user)
+        getTimetable(syncedUser),
+        getMeal(syncedUser)
       ]);
 
       const appliedCount = applyTimetable(timetableRows, {
-        preserveExisting: timetableResponseWasPartial
+        preserveExisting: timetableResponseWasPartial && previousSyncScope === syncScope
       });
       const department = timetableRows.find((row) => row.DDDEP_NM)?.DDDEP_NM || "";
+      window.TileApp?.setSchoolDetails?.(school);
       window.TileApp?.setSchoolDepartment?.(department);
       applyMeals(meals);
       setStatus(timetableResponseWasPartial
         ? `일부 연결됨 · ${appliedCount}개 반영됨`
         : `연결됨 · ${appliedCount}개 반영됨`);
+      localStorage.setItem(SYNC_SCOPE_STORAGE_KEY, syncScope);
       return true;
     } catch (error) {
       console.error(error);
