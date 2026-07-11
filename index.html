@@ -370,15 +370,26 @@
         <textarea id="subjectEditMemo" placeholder="이 과목에 대한 메모를 적어두세요"></textarea>
         <div class="subject-actions">
           <button id="subjectEditSave" type="button">저장</button>
-          <button id="subjectEditReset" type="button">초기화</button>
+          <button id="subjectEditReset" type="button">같은 과목 일괄 수정</button>
           <button id="subjectEditNeis" type="button">NEIS에서 연동</button>
+        </div>
+      </div>
+
+      <div id="subjectBulkMode" class="mode-hidden">
+        <h2 id="subjectBulkTitle">같은 과목 일괄 수정</h2>
+        <p class="subject-bulk-help">선택한 과목과 같은 이름의 칸만 모아서 과목, 교실, 선생님, 메모를 한 번에 정리합니다.</p>
+        <div id="subjectBulkRows" class="subject-bulk-list"></div>
+        <div class="subject-actions subject-bulk-actions">
+          <button id="subjectBulkSave" type="button">일괄 저장</button>
+          <button id="subjectBulkBack" type="button">돌아가기</button>
+          <button id="subjectBulkNeis" type="button">NEIS에서 다시 불러오기</button>
         </div>
       </div>
     </div>
   </div>
   <script src="./config.public.js?v=20260703-script-fix"></script>
   <script src="./config.js?v=20260703-script-fix" onerror="this.remove()"></script>
-  <script src="./neis.js?v=20260703-script-fix"></script> 
-  <script src="./script.js?v=20260703-script-fix"></script> 
+  <script src="./neis.js?v=20260703-script-fix"></script>
+  <script src="./script.js?v=20260703-script-fix"></script>
 </body>
 </html>
