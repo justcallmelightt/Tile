@@ -87,7 +87,7 @@ body::after {
   top: -10px;
   left: 0;
   right: 0;
-  height: max(158px, calc(env(safe-area-inset-top, 0px) + 142px));
+  height: max(184px, calc(env(safe-area-inset-top, 0px) + 168px));
   z-index: 880;
   pointer-events: none;
   opacity: 0;
@@ -96,7 +96,7 @@ body::after {
       180deg,
       rgba(0, 0, 0, 0.72) 0%,
       rgba(0, 0, 0, 0.54) 34%,
-      rgba(0, 0, 0, 0.22) 70%,
+      rgba(0, 0, 0, 0.22) 76%,
       rgba(0, 0, 0, 0) 100%
     );
   backdrop-filter: blur(28px) saturate(1.18);
@@ -106,8 +106,8 @@ body::after {
       180deg,
       #000 0%,
       rgba(0, 0, 0, 0.94) 42%,
-      rgba(0, 0, 0, 0.5) 78%,
-      rgba(0, 0, 0, 0.12) 92%,
+      rgba(0, 0, 0, 0.5) 82%,
+      rgba(0, 0, 0, 0.12) 94%,
       transparent 100%
     );
   -webkit-mask-image:
@@ -115,8 +115,8 @@ body::after {
       180deg,
       #000 0%,
       rgba(0, 0, 0, 0.94) 42%,
-      rgba(0, 0, 0, 0.5) 78%,
-      rgba(0, 0, 0, 0.12) 92%,
+      rgba(0, 0, 0, 0.5) 82%,
+      rgba(0, 0, 0, 0.12) 94%,
       transparent 100%
     );
   transform: translate3d(0, -8px, 0);
@@ -146,7 +146,7 @@ body.light-mode::after {
       180deg,
       rgba(255, 255, 255, 0.8) 0%,
       rgba(255, 255, 255, 0.6) 34%,
-      rgba(255, 255, 255, 0.26) 70%,
+      rgba(255, 255, 255, 0.26) 76%,
       rgba(255, 255, 255, 0) 100%
     );
 }
@@ -295,7 +295,7 @@ h1 {
 }
 
 .setup-card {
-  width: min(92vw, 440px);
+  width: min(92vw, 500px);
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -401,7 +401,7 @@ h1 {
 
 .selected-school-info {
   display: none;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 0.82fr 1.48fr 1.04fr;
   gap: 8px;
   padding: 10px;
   border: 1px solid var(--border);
@@ -415,6 +415,11 @@ h1 {
 
 .selected-school-info div {
   min-width: 0;
+  text-align: left;
+}
+
+.selected-school-info div:nth-child(2) {
+  padding-left: 10px;
 }
 
 .selected-school-info span {
@@ -433,6 +438,11 @@ h1 {
   font-weight: 720;
   line-height: 1.35;
   word-break: keep-all;
+}
+
+.selected-school-info div:nth-child(2) strong {
+  white-space: nowrap;
+  font-size: 0.8rem;
 }
 
 .setup-row {
@@ -834,7 +844,8 @@ body.light-mode .subject-modal {
 
 #modalInfoMode,
 #modalInputMode,
-#subjectEditMode {
+#subjectEditMode,
+#subjectBulkMode {
   min-height: 154px;
   display: flex;
   flex-direction: column;
@@ -909,6 +920,94 @@ body.light-mode .subject-modal p {
   box-shadow: 0 8px 18px rgba(17, 24, 39, 0.14);
 }
 
+.subject-bulk-help {
+  max-width: 420px;
+  margin: -2px auto 14px;
+  color: var(--text-soft);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.subject-bulk-list {
+  display: grid;
+  gap: 10px;
+  max-height: min(46vh, 440px);
+  padding-right: 2px;
+  overflow-y: auto;
+}
+
+.subject-bulk-row {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 10px;
+  align-items: stretch;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface-soft);
+}
+
+.subject-bulk-day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background: var(--toggle-bg);
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 900;
+}
+
+.subject-bulk-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.subject-bulk-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.subject-bulk-field:last-child {
+  grid-column: 1 / -1;
+}
+
+.subject-bulk-field span {
+  color: var(--text-soft);
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: left;
+}
+
+.subject-bulk-field input,
+.subject-bulk-field textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-strong);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 700;
+  line-height: 1.35;
+  outline: none;
+  resize: vertical;
+  transition: box-shadow 0.18s ease, border-color 0.18s ease, background-color 0.18s ease;
+}
+
+.subject-bulk-field input:focus,
+.subject-bulk-field textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+}
+
 #subjectEditSave {
   background: var(--accent);
   color: var(--bg);
@@ -917,6 +1016,7 @@ body.light-mode .subject-modal p {
 #saveSchool,
 #saveAppSettings,
 #subjectEditSave,
+#subjectBulkSave,
 #customSave {
   background: var(--accent);
   color: var(--bg);
@@ -926,6 +1026,7 @@ body.light-mode .subject-modal p {
 #saveSchool:hover,
 #saveAppSettings:hover,
 #subjectEditSave:hover,
+#subjectBulkSave:hover,
 #customSave:hover {
   transform: translateY(-2px) scale(1.03);
   filter: brightness(1.05) saturate(1.08);
@@ -935,6 +1036,7 @@ body.light-mode .subject-modal p {
 body.dark-mode #saveSchool:hover,
 body.dark-mode #saveAppSettings:hover,
 body.dark-mode #subjectEditSave:hover,
+body.dark-mode #subjectBulkSave:hover,
 body.dark-mode #customSave:hover {
   box-shadow: 0 12px 26px rgba(255, 255, 255, 0.28);
 }
@@ -1468,8 +1570,13 @@ thead th.current-day-column-header {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 48px;
-  padding: 2px 8px;
+  flex-shrink: 0;
+  contain: layout paint;
+  box-sizing: border-box;
+  width: 92px;
+  min-width: 92px;
+  max-width: 92px;
+  padding: 2px 10px;
   border-radius: 999px;
   background: var(--current-bar);
   color: #ffffff;
@@ -1480,6 +1587,7 @@ thead th.current-day-column-header {
   z-index: 7;
   pointer-events: none;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14);
+  will-change: transform;
 }
 
 .floating-time-line.next-time-line,
@@ -1538,6 +1646,14 @@ body.mobile-today-mode col.day-col {
     padding: 20px;
   }
 
+  .selected-school-info {
+    grid-template-columns: 1fr;
+  }
+
+  .selected-school-info div:nth-child(2) strong {
+    white-space: normal;
+  }
+
   .subject-modal {
     min-height: 220px;
     padding: 44px 24px 24px;
@@ -1550,6 +1666,15 @@ body.mobile-today-mode col.day-col {
   .meal-list,
   .subject-actions {
     grid-template-columns: 1fr;
+  }
+
+  .subject-bulk-row,
+  .subject-bulk-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .subject-bulk-day {
+    min-height: 38px;
   }
 
   .iphone-safe-zone {
@@ -1766,7 +1891,9 @@ body.mobile-today-mode col.day-col {
   }
 
   #modalInfoMode,
-  #modalInputMode {
+  #modalInputMode,
+  #subjectEditMode,
+  #subjectBulkMode {
     min-height: 160px;
   }
 
@@ -1823,9 +1950,17 @@ body.mobile-today-mode col.day-col {
 /* ===== Rolling Clock ===== */
 
 #currentTime,
+#currentPeriod,
+#remainingTime,
+#dayRemainingTime,
+#currentRoom,
+#neisStatus,
 #topbarTime,
+#topbarPeriod,
 #topbarRemaining,
-#topbarDayRemaining {
+#topbarDayRemaining,
+#topbarRoom,
+#topbarNeis {
   display: inline-flex;
   align-items: center;
   gap: 0;
@@ -1853,8 +1988,11 @@ body.mobile-today-mode col.day-col {
 }
 
 .time-separator {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font: inherit;
+  height: 1em;
   line-height: 1;
   min-width: 0.32em;
   text-align: center;
@@ -1862,16 +2000,21 @@ body.mobile-today-mode col.day-col {
 }
 
 .time-space {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font: inherit;
+  height: 1em;
   line-height: 1;
   width: 0.25em;
   vertical-align: middle;
 }
 
 .time-label-char {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
   font: inherit;
+  height: 1em;
   line-height: 1;
   vertical-align: middle;
 }
@@ -1891,6 +2034,10 @@ body.mobile-today-mode col.day-col {
 
 .time-char.animate .time-char-inner {
   animation: rollUp 0.48s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.text-roll-swap {
+  animation: textRollSwap 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .time-static,
@@ -1920,6 +2067,9 @@ body.mobile-today-mode col.day-col {
 .time-marker .time-separator,
 .time-marker .time-space,
 .time-marker .time-label-char {
+  display: inline-flex;
+  align-items: center;
+  height: 1em;
   line-height: 1;
   vertical-align: middle;
 }
@@ -1948,6 +2098,18 @@ body.mobile-today-mode col.day-col {
   100% {
     transform: translate3d(-50%, -1em, 0);
     opacity: 1;
+  }
+}
+
+@keyframes textRollSwap {
+  0% {
+    opacity: 0;
+    transform: translateY(0.42em);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
