@@ -1,5 +1,5 @@
 const NEIS_BASE_URL = "https://open.neis.go.kr/hub";
-const ALLOWED_ENDPOINTS = new Set([
+const ALLOWED_ENDPOINTS = new Set<NeisEndpoint>([
   "schoolInfo",
   "mealServiceDietInfo",
   "hisTimetable"
@@ -12,16 +12,46 @@ const ALLOWED_ORIGINS = new Set([
   "http://127.0.0.1:5506"
 ]);
 
-function setCorsHeaders(request, response) {
+type RequestQueryValue = string | string[] | undefined;
+
+interface ApiRequest {
+  method?: string;
+  headers: { origin?: string };
+  query: Record<string, RequestQueryValue>;
+}
+
+interface ApiResponse {
+  setHeader(name: string, value: string): void;
+  status(code: number): ApiResponse;
+  json(body: { error: string }): ApiResponse;
+  send(body: string): ApiResponse;
+  end(): ApiResponse;
+}
+
+declare const process: {
+  env: Record<string, string | undefined>;
+};
+
+function setCorsHeaders(request: ApiRequest, response: ApiResponse): void {
   const origin = request.headers.origin;
-  const allowedOrigin = ALLOWED_ORIGINS.has(origin) ? origin : "https://tile0.vercel.app";
+  const allowedOrigin = origin && ALLOWED_ORIGINS.has(origin)
+    ? origin
+    : "https://tile0.vercel.app";
+
   response.setHeader("Access-Control-Allow-Origin", allowedOrigin);
   response.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
   response.setHeader("Access-Control-Allow-Headers", "Content-Type");
   response.setHeader("Vary", "Origin");
 }
 
-export default async function handler(request, response) {
+function firstQueryValue(value: RequestQueryValue): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+export default async function handler(
+  request: ApiRequest,
+  response: ApiResponse
+): Promise<ApiResponse> {
   setCorsHeaders(request, response);
 
   if (request.method === "OPTIONS") {
@@ -38,21 +68,22 @@ export default async function handler(request, response) {
     return response.status(500).json({ error: "NEIS_KEY is not configured" });
   }
 
-  const { endpoint, ...query } = request.query;
-  if (!ALLOWED_ENDPOINTS.has(endpoint)) {
+  const { endpoint: endpointValue, ...query } = request.query;
+  const endpoint = firstQueryValue(endpointValue);
+  if (!endpoint || !ALLOWED_ENDPOINTS.has(endpoint as NeisEndpoint)) {
     return response.status(400).json({ error: "Unsupported NEIS endpoint" });
   }
 
   const url = new URL(`${NEIS_BASE_URL}/${endpoint}`);
   url.searchParams.set("KEY", apiKey);
   url.searchParams.set("Type", "json");
-  url.searchParams.set("pIndex", query.pIndex || "1");
-  url.searchParams.set("pSize", query.pSize || "100");
+  url.searchParams.set("pIndex", firstQueryValue(query.pIndex) || "1");
+  url.searchParams.set("pSize", firstQueryValue(query.pSize) || "100");
 
   Object.entries(query).forEach(([key, value]) => {
-    if (key === "rowKey" || key === "endpoint" || value == null || value === "") return;
-    const normalizedValue = Array.isArray(value) ? value[0] : value;
-    url.searchParams.set(key, normalizedValue);
+    if (key === "rowKey" || value == null) return;
+    const normalizedValue = firstQueryValue(value);
+    if (normalizedValue) url.searchParams.set(key, normalizedValue);
   });
 
   try {
@@ -63,7 +94,8 @@ export default async function handler(request, response) {
     response.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=600");
     response.setHeader("Content-Type", contentType);
     return response.status(neisResponse.status).send(body);
-  } catch (error) {
+  } catch (error: unknown) {
+    console.error("NEIS proxy request failed", error);
     return response.status(502).json({ error: "NEIS request failed" });
   }
 }
