@@ -1573,10 +1573,10 @@ thead th.current-day-column-header {
   flex-shrink: 0;
   contain: layout paint;
   box-sizing: border-box;
-  width: 92px;
-  min-width: 92px;
-  max-width: 92px;
-  padding: 2px 10px;
+  width: 84px;
+  min-width: 84px;
+  max-width: 84px;
+  padding: 2px 8px;
   border-radius: 999px;
   background: var(--current-bar);
   color: #ffffff;
@@ -2138,4 +2138,598 @@ body.mobile-today-mode col.day-col {
   0% { opacity: .7; }
   50% { opacity: 1; }
   100% { opacity: .7; }
+}
+
+/* ===== Secondary UI system: dialogs, tools and editors ===== */
+
+.setup-modal,
+.overlay {
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(14px) saturate(1.08);
+  -webkit-backdrop-filter: blur(14px) saturate(1.08);
+}
+
+body.light-mode .setup-modal,
+body.light-mode .overlay {
+  background: rgba(17, 24, 39, 0.18);
+}
+
+.setup-card,
+.subject-modal {
+  border: 1px solid var(--border);
+  background: var(--surface-strong);
+  box-shadow:
+    0 28px 72px rgba(0, 0, 0, 0.36),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+body.light-mode .setup-card,
+body.light-mode .subject-modal {
+  box-shadow:
+    0 28px 72px rgba(15, 23, 42, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.setup-modal:not(.hidden) .setup-card {
+  animation: tileDialogEnter 300ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
+}
+
+.setup-card {
+  width: min(92vw, 548px);
+  max-height: min(86vh, 760px);
+  gap: 16px;
+  padding: 24px;
+  overflow-y: auto;
+  border-radius: 22px;
+}
+
+.settings-card {
+  width: min(92vw, 500px);
+}
+
+.setup-header {
+  align-items: flex-start;
+  gap: 20px;
+  padding-bottom: 2px;
+}
+
+.setup-header > div {
+  min-width: 0;
+}
+
+.setup-header h2,
+.subject-modal h2,
+.custom-panel h2 {
+  margin: 0;
+  padding: 0;
+  color: var(--text);
+  font-size: 1.2rem;
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: 0;
+  text-align: left;
+}
+
+.setup-subtitle {
+  max-width: 470px;
+  margin: 7px 0 0;
+  color: var(--text-soft);
+  font-size: 0.84rem;
+  font-weight: 500;
+  line-height: 1.55;
+  letter-spacing: 0;
+  word-break: keep-all;
+}
+
+.dialog-close,
+#closeSchoolSettings,
+#closeAppSettings,
+#closeModal,
+.custom-close {
+  position: relative;
+  inset: auto;
+  flex: 0 0 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--toggle-bg);
+  color: var(--text-soft);
+  box-shadow: none;
+  font: inherit;
+  font-size: 1.28rem;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+
+.dialog-close:hover,
+#closeSchoolSettings:hover,
+#closeAppSettings:hover,
+#closeModal:hover,
+.custom-close:hover {
+  color: var(--text);
+  background: var(--accent-soft);
+  border-color: var(--focus-glow-soft);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.16);
+}
+
+.dialog-close:active,
+#closeSchoolSettings:active,
+#closeAppSettings:active,
+#closeModal:active,
+.custom-close:active {
+  transform: scale(0.94);
+}
+
+.setup-field,
+.subject-bulk-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+  margin: 0;
+}
+
+.setup-field > span,
+.field-label,
+.subject-bulk-field > span {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 0.76rem;
+  font-weight: 650;
+  line-height: 1.25;
+  letter-spacing: 0;
+  text-align: left;
+}
+
+#schoolInput,
+#gradeInput,
+#classInput,
+#allergyInput,
+#subjectEditName,
+#subjectEditRoom,
+#subjectEditTeacher,
+#subjectEditMemo,
+#modalInput,
+.subject-bulk-field input,
+.subject-bulk-field textarea {
+  width: 100%;
+  min-height: 46px;
+  padding: 11px 13px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-soft);
+  color: var(--text);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.45;
+  text-align: left;
+  outline: none;
+  transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+
+#schoolInput:hover,
+#gradeInput:hover,
+#classInput:hover,
+#allergyInput:hover,
+#subjectEditName:hover,
+#subjectEditRoom:hover,
+#subjectEditTeacher:hover,
+#subjectEditMemo:hover,
+#modalInput:hover,
+.subject-bulk-field input:hover,
+.subject-bulk-field textarea:hover {
+  border-color: var(--focus-glow-soft);
+}
+
+#schoolInput:focus,
+#gradeInput:focus,
+#classInput:focus,
+#allergyInput:focus,
+#subjectEditName:focus,
+#subjectEditRoom:focus,
+#subjectEditTeacher:focus,
+#subjectEditMemo:focus,
+#modalInput:focus,
+.subject-bulk-field input:focus,
+.subject-bulk-field textarea:focus {
+  border-color: var(--focus-glow);
+  background: var(--surface-strong);
+  box-shadow: 0 0 0 3px var(--focus-glow-soft);
+}
+
+#allergyInput,
+#subjectEditMemo,
+.subject-bulk-field textarea {
+  resize: vertical;
+}
+
+#allergyInput {
+  min-height: 110px;
+}
+
+#subjectEditMemo {
+  min-height: 96px;
+}
+
+.setup-row {
+  gap: 12px;
+}
+
+.setup-actions {
+  margin-top: 2px;
+}
+
+.setup-actions .theme-toggle,
+.subject-actions button,
+#modalConfirm {
+  min-height: 46px;
+  padding: 11px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.setup-actions .theme-toggle:hover,
+.subject-actions button:hover,
+#modalConfirm:hover {
+  transform: translateY(-1px);
+}
+
+#schoolResults {
+  gap: 6px;
+  margin-top: -6px;
+  padding: 0 2px;
+  border-radius: 14px;
+}
+
+#schoolResults > div {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--surface-soft);
+  font-size: 0.86rem;
+  font-weight: 650;
+  transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+#schoolResults > div:not(.school-result-empty):hover {
+  background: var(--accent-soft);
+  border-color: var(--focus-glow-soft);
+  transform: translateX(2px);
+}
+
+.selected-school-info {
+  grid-template-columns: 0.8fr 1.55fr 1.05fr;
+  gap: 0;
+  padding: 13px 14px;
+  border-radius: 14px;
+  background: var(--surface-soft);
+}
+
+.selected-school-info div {
+  padding: 0 12px;
+  border-left: 1px solid var(--border);
+}
+
+.selected-school-info div:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.selected-school-info div:last-child {
+  padding-right: 0;
+}
+
+.selected-school-info div:nth-child(2) {
+  padding-left: 12px;
+}
+
+.selected-school-info span {
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.selected-school-info strong,
+.selected-school-info div:nth-child(2) strong {
+  margin-top: 4px;
+  font-size: 0.8rem;
+  font-weight: 720;
+  white-space: nowrap;
+}
+
+.settings-help {
+  margin: -5px 0 0;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.subject-modal {
+  width: min(92vw, 560px);
+  min-height: 0;
+  max-height: min(86vh, 760px);
+  padding: 24px;
+  border-radius: 22px;
+}
+
+#subjectModal:has(#subjectBulkMode:not(.mode-hidden)) {
+  width: min(94vw, 780px);
+}
+
+#closeModal {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+}
+
+#modalInfoMode,
+#modalInputMode,
+#subjectEditMode,
+#subjectBulkMode {
+  min-height: 0;
+  padding-top: 2px;
+  text-align: left;
+}
+
+#modalInfoMode {
+  align-items: center;
+  justify-content: center;
+  min-height: 170px;
+  padding: 34px 42px 12px;
+  text-align: center;
+}
+
+#modalInfoMode h2 {
+  width: 100%;
+  margin-bottom: 16px;
+  padding: 0;
+  text-align: center;
+}
+
+#modalInfoMode p {
+  width: 100%;
+  margin: 0;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+  font-size: 0.9rem;
+  font-weight: 550;
+  text-align: center;
+}
+
+#modalInputMode,
+#subjectEditMode,
+#subjectBulkMode {
+  padding-top: 2px;
+}
+
+#modalInputMode h2,
+#subjectEditMode h2,
+#subjectBulkMode h2 {
+  margin: 0 42px 18px 0;
+}
+
+#modalInput {
+  margin-top: 0;
+}
+
+#modalConfirm {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.subject-actions {
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.subject-actions button {
+  background: var(--toggle-bg);
+  color: var(--text);
+  box-shadow: none;
+}
+
+.subject-actions button:hover {
+  background: var(--accent-soft);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.14);
+}
+
+#subjectEditSave,
+#subjectBulkSave,
+#saveSchool,
+#saveAppSettings,
+#customSave,
+#modalConfirm {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: transparent;
+}
+
+.subject-bulk-help {
+  max-width: none;
+  margin: -8px 0 16px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  text-align: left;
+}
+
+.subject-bulk-list {
+  gap: 8px;
+  max-height: min(52vh, 470px);
+  padding-right: 4px;
+}
+
+.subject-bulk-row {
+  grid-template-columns: 102px minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px;
+  border-radius: 18px;
+}
+
+.subject-bulk-day {
+  justify-content: flex-start;
+  padding: 0 12px;
+  border-radius: 14px;
+  color: var(--text-soft);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: left;
+}
+
+.subject-bulk-fields {
+  gap: 8px;
+}
+
+.custom-panel {
+  padding: 20px;
+  border-radius: 22px;
+  box-shadow: none;
+}
+
+.custom-panel-header {
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.custom-panel h2 {
+  margin-bottom: 6px;
+}
+
+.custom-panel p {
+  font-size: 0.84rem;
+  font-weight: 500;
+}
+
+.custom-close {
+  flex-basis: 34px;
+}
+
+#customTimetableInput,
+#memoInput,
+#subjectMemo {
+  border-radius: 14px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+.meal-list {
+  gap: 10px;
+}
+
+.meal-card {
+  padding: 16px;
+  border-radius: 18px;
+}
+
+.tool-menu-panel {
+  padding: 7px;
+  border-radius: 18px;
+}
+
+.tool-menu-panel button {
+  min-height: 40px;
+  border-radius: 12px;
+  font-size: 0.86rem;
+  font-weight: 650;
+}
+
+@keyframes tileDialogEnter {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 768px) {
+  .setup-modal,
+  .overlay {
+    padding: 12px;
+  }
+
+  .setup-card,
+  .subject-modal {
+    width: min(94vw, 520px);
+    max-height: 88vh;
+    padding: 20px;
+    border-radius: 22px;
+  }
+
+  .selected-school-info {
+    grid-template-columns: 1fr;
+  }
+
+  .selected-school-info div,
+  .selected-school-info div:nth-child(2) {
+    padding: 10px 0;
+    border-top: 1px solid var(--border);
+    border-left: 0;
+  }
+
+  .selected-school-info div:first-child {
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  .selected-school-info div:last-child {
+    padding-bottom: 0;
+  }
+
+  .selected-school-info strong,
+  .selected-school-info div:nth-child(2) strong {
+    white-space: normal;
+  }
+
+  .subject-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .subject-bulk-row,
+  .subject-bulk-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .subject-bulk-day {
+    min-height: 36px;
+  }
+
+  #modalInfoMode {
+    padding-inline: 24px;
+  }
+}
+
+@media (max-width: 430px) {
+  .setup-card,
+  .subject-modal {
+    width: calc(100vw - 24px);
+    padding: 18px;
+  }
+
+  .setup-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .setup-header h2,
+  .subject-modal h2,
+  .custom-panel h2 {
+    font-size: 1.08rem;
+  }
+
+  #closeModal {
+    top: 14px;
+    right: 14px;
+  }
 }
