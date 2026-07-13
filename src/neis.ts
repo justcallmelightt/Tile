@@ -1,0 +1,526 @@
+(function () {
+  const BASE_URL = "https://open.neis.go.kr/hub";
+  const DEFAULT_CONFIG: NeisConfig = {
+    apiKey: typeof NEIS_KEY !== "undefined" ? NEIS_KEY : "",
+    apiBase: "",
+    schoolName: "미림마이스터고등학교",
+    officeCode: "",
+    schoolCode: "",
+    grade: "1",
+    className: "2"
+  };
+
+  const config: NeisConfig = {
+    ...DEFAULT_CONFIG,
+    ...(window.TILE_NEIS_CONFIG ?? {})
+  };
+  const syncButton = document.getElementById("neisSync")
+    ?? document.getElementById("saveSchool");
+  const statusEl = document.getElementById("neisStatus");
+  const isLocalHost = ["localhost", "127.0.0.1", "::1", ""].includes(
+    window.location.hostname
+  );
+  const proxyBase = config.apiBase || (!config.apiKey && !isLocalHost ? "/api/neis" : "");
+  const SYNC_SCOPE_STORAGE_KEY = "tile-neis-sync-scope";
+  let timetableResponseWasPartial = false;
+
+  function asRecord(value: unknown): Record<string, unknown> {
+    return value !== null && typeof value === "object"
+      ? value as Record<string, unknown>
+      : {};
+  }
+
+  function asArray(value: unknown): unknown[] {
+    return Array.isArray(value) ? value : [];
+  }
+
+  function setStatus(message: string): void {
+    if (!statusEl) return;
+
+    if (window.TileApp?.renderRollingText) {
+      window.TileApp.renderRollingText(statusEl, message, "neis-status");
+    } else {
+      statusEl.textContent = message;
+      statusEl.dataset.displayText = message;
+    }
+  }
+
+  function hasNeisTransport(): boolean {
+    return true;
+  }
+
+  function formatYmd(date: Date = new Date()): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}${month}${day}`;
+  }
+
+  function parseYmd(value: unknown): Date | null {
+    const text = String(value || "");
+    if (!/^\d{8}$/.test(text)) return null;
+
+    const year = Number(text.slice(0, 4));
+    const month = Number(text.slice(4, 6)) - 1;
+    const day = Number(text.slice(6, 8));
+    return new Date(year, month, day);
+  }
+
+  function getWeekDates(date: Date = new Date()): Date[] {
+    const base = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const day = base.getDay();
+    const mondayOffset = day === 0 ? -6 : 1 - day;
+    const monday = new Date(base);
+    monday.setDate(base.getDate() + mondayOffset);
+
+    return Array.from({ length: 5 }, (_, index) => {
+      const nextDate = new Date(monday);
+      nextDate.setDate(monday.getDate() + index);
+      return nextDate;
+    });
+  }
+
+  function getRowDayIndex(row: NeisTimetableRow): number {
+    const rowDate = parseYmd(row.ALL_TI_YMD || row.TI_YMD);
+    return rowDate ? rowDate.getDay() : new Date().getDay();
+  }
+
+  function isPeriodName(value: unknown): boolean {
+    return /^\d+교시$/.test(String(value || ""));
+  }
+
+  function renderNoTimetableCell(cell: HTMLTableCellElement | null): void {
+    if (!cell) return;
+    cell.removeAttribute("data-subject");
+    cell.classList.add("empty-cell", "neis-empty-cell");
+    cell.innerHTML = '<div class="subject"><span class="subject-name">정보 없음</span></div>';
+  }
+
+  function cleanText(value: unknown): string {
+    return String(value || "")
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/\([^)]*\)/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function formatMealMenu(value: unknown): string {
+    return String(value || "")
+      .replace(/<br\s*\/?>/gi, "\n")
+      .split("\n")
+      .map((item) => item.replace(/\([^)]*\)/g, "").replace(/\s+/g, " ").trim())
+      .filter(Boolean)
+      .join("\n");
+  }
+
+  function extractTeacher(value: unknown): string {
+    const text = String(value || "");
+    const matches = [...text.matchAll(/[\(（]([^\)）]+)[\)）]/g)];
+    if (matches.length === 0) return "";
+
+    const teacherText = matches
+      .map((match) => cleanText(match[1]))
+      .filter((item) => /[가-힣]/.test(item))
+      .pop();
+
+    return teacherText || "";
+  }
+
+  function createUrl(
+    endpoint: NeisEndpoint,
+    params: QueryParams = {},
+    options: NeisRequestOptions = {}
+  ): URL {
+    const useProxy = Boolean(proxyBase) && !options.forceDirect;
+    const url = useProxy
+      ? new URL(proxyBase, window.location.origin)
+      : new URL(`${BASE_URL}/${endpoint}`);
+    const requestParams: QueryParams = {
+      ...(useProxy ? { endpoint } : {}),
+      Type: "json",
+      pIndex: "1",
+      pSize: "100",
+      ...params
+    };
+
+    if (config.apiKey) requestParams.KEY = config.apiKey;
+
+    Object.entries(requestParams).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") {
+        url.searchParams.set(key, String(value));
+      }
+    });
+
+    return url;
+  }
+
+  async function readErrorMessage(response: Response): Promise<string> {
+    try {
+      const text = await response.text();
+      if (!text) return "";
+      try {
+        const data = JSON.parse(text) as {
+          error?: string;
+          message?: string;
+          RESULT?: NeisResult;
+        };
+        return data.error || data.message || data.RESULT?.MESSAGE || text;
+      } catch (error: unknown) {
+        return text;
+      }
+    } catch (error: unknown) {
+      return "";
+    }
+  }
+
+  function readResultMessage(data: unknown, rowKey: string): NeisResult | null {
+    const root = asRecord(data);
+    const section = asArray(root[rowKey]);
+    const head = asArray(asRecord(section[0]).head);
+
+    for (const item of head) {
+      const result = asRecord(asRecord(item).RESULT);
+      if (result.CODE || result.MESSAGE) {
+        return {
+          CODE: typeof result.CODE === "string" ? result.CODE : undefined,
+          MESSAGE: typeof result.MESSAGE === "string" ? result.MESSAGE : undefined
+        };
+      }
+    }
+
+    const topResult = asRecord(root.RESULT);
+    if (topResult.CODE || topResult.MESSAGE) {
+      return {
+        CODE: typeof topResult.CODE === "string" ? topResult.CODE : undefined,
+        MESSAGE: typeof topResult.MESSAGE === "string" ? topResult.MESSAGE : undefined
+      };
+    }
+
+    return null;
+  }
+
+  function getRows<T>(data: unknown, rowKey: string): T[] {
+    const section = asArray(asRecord(data)[rowKey]);
+    const rows = asArray(asRecord(section[1]).row);
+    return rows as T[];
+  }
+
+  function getTotalCount(data: unknown, rowKey: string): number {
+    const section = asArray(asRecord(data)[rowKey]);
+    const head = asArray(asRecord(section[0]).head);
+
+    for (const item of head) {
+      const count = asRecord(item).list_total_count;
+      if (count !== undefined) return Number(count) || 0;
+    }
+
+    return 0;
+  }
+
+  function readRowsOrThrow<T>(
+    data: unknown,
+    rowKey: string,
+    options: ReadRowsOptions = {}
+  ): T[] {
+    const rows = getRows<T>(data, rowKey);
+    const totalCount = getTotalCount(data, rowKey);
+
+    if (
+      options.allowPartial
+      && totalCount > rows.length
+      && !config.apiKey
+      && (!proxyBase || options.forceDirect)
+    ) {
+      timetableResponseWasPartial = true;
+    }
+
+    if (rows.length > 0) return rows;
+
+    const result = readResultMessage(data, rowKey);
+    if (result?.CODE === "INFO-200") return [];
+    throw new Error(result?.MESSAGE || "NEIS 응답에 데이터가 없습니다.");
+  }
+
+  function shouldFallbackToDirect(response: Response, message: string): boolean {
+    if (!proxyBase || config.apiKey) return false;
+    return response.status === 404
+      || message.includes("NOT_FOUND")
+      || message.includes("The page could not be found");
+  }
+
+  async function fetchNeis(
+    endpoint: NeisEndpoint,
+    params: QueryParams,
+    options: NeisRequestOptions = {}
+  ): Promise<Response> {
+    return fetch(createUrl(endpoint, params, options));
+  }
+
+  async function request<T>(
+    endpoint: NeisEndpoint,
+    params: QueryParams,
+    rowKey: string
+  ): Promise<T[]> {
+    let response: Response;
+    try {
+      response = await fetchNeis(endpoint, params);
+    } catch (error: unknown) {
+      if (proxyBase && !config.apiKey) {
+        response = await fetchNeis(endpoint, params, { forceDirect: true });
+      } else {
+        throw new Error("NEIS 연결 실패");
+      }
+    }
+
+    if (!response.ok) {
+      const message = await readErrorMessage(response);
+      if (shouldFallbackToDirect(response, message)) {
+        response = await fetchNeis(endpoint, params, { forceDirect: true });
+        if (response.ok) {
+          const data: unknown = await response.json();
+          return readRowsOrThrow<T>(data, rowKey, {
+            allowPartial: rowKey === "hisTimetable",
+            forceDirect: true
+          });
+        }
+      }
+
+      const hint = message.includes("NEIS_KEY")
+        ? "NEIS 프록시 키 설정이 필요합니다."
+        : message.includes("NOT_FOUND")
+          ? "NEIS 프록시 배포가 필요합니다."
+          : message;
+      throw new Error(hint || `NEIS 요청 실패: ${response.status}`);
+    }
+
+    const data: unknown = await response.json();
+    return readRowsOrThrow<T>(data, rowKey, {
+      allowPartial: rowKey === "hisTimetable"
+    });
+  }
+
+  async function searchSchool(name: string): Promise<TileSchool[]> {
+    if (!hasNeisTransport()) throw new Error("NEIS 연동 설정이 없습니다.");
+    const rows = await request<NeisSchoolRow>(
+      "schoolInfo",
+      { SCHUL_NM: name },
+      "schoolInfo"
+    );
+
+    return rows.map((school) => ({
+      name: school.SCHUL_NM,
+      code: school.SD_SCHUL_CODE,
+      office: school.ATPT_OFCDC_SC_CODE,
+      officeName: school.ATPT_OFCDC_SC_NM,
+      foundation: school.FOND_SC_NM,
+      kind: school.SCHUL_KND_SC_NM,
+      highSchoolType: school.HS_SC_NM,
+      specialPurpose: school.SPCLY_PURPS_HS_ORD_NM,
+      generalType: school.HS_GNRL_BUSNS_SC_NM,
+      industrySpecialized: school.INDST_SPECL_CCCCL_EXST_YN,
+      location: school.LCTN_SC_NM
+    }));
+  }
+
+  async function resolveSchool(user: ResolvedTileUser): Promise<TileSchool> {
+    if (user.school?.office && user.school.code) return user.school;
+
+    if (config.officeCode && config.schoolCode) {
+      return {
+        name: config.schoolName,
+        office: config.officeCode,
+        code: config.schoolCode
+      };
+    }
+
+    const schoolName = user.school?.name || config.schoolName;
+    const schools = await searchSchool(schoolName);
+    const school = schools.find((item) => item.name === schoolName) || schools[0];
+    if (!school) throw new Error("학교 정보를 찾지 못했습니다.");
+    return school;
+  }
+
+  function getUserConfig(user?: TileUserConfig | null): ResolvedTileUser {
+    return {
+      school: user?.school || null,
+      grade: String(user?.grade || config.grade),
+      classNum: String(user?.classNum || config.className)
+    };
+  }
+
+  function getSyncScope(user: ResolvedTileUser): string {
+    const school = user.school || { name: "" };
+    return [
+      school.office || "",
+      school.code || school.name || "",
+      user.grade,
+      user.classNum
+    ].join("|");
+  }
+
+  async function getMeal(user?: TileUserConfig | null): Promise<TileMeal[]> {
+    const currentUser = getUserConfig(user);
+    const school = await resolveSchool(currentUser);
+    const rows = await request<NeisMealRow>(
+      "mealServiceDietInfo",
+      {
+        ATPT_OFCDC_SC_CODE: school.office,
+        SD_SCHUL_CODE: school.code,
+        MLSV_YMD: formatYmd()
+      },
+      "mealServiceDietInfo"
+    );
+
+    return rows.map((row) => ({
+      type: row.MMEAL_SC_NM || "",
+      menu: formatMealMenu(row.DDISH_NM),
+      rawMenu: String(row.DDISH_NM || "")
+    }));
+  }
+
+  async function getTimetable(
+    user?: TileUserConfig | null
+  ): Promise<NeisTimetableRow[]> {
+    const currentUser = getUserConfig(user);
+    const school = await resolveSchool(currentUser);
+    const weekDates = getWeekDates();
+    timetableResponseWasPartial = false;
+    const weekdayRows = await Promise.all(
+      weekDates.map((date) => request<NeisTimetableRow>(
+        "hisTimetable",
+        {
+          ATPT_OFCDC_SC_CODE: school.office,
+          SD_SCHUL_CODE: school.code,
+          GRADE: currentUser.grade,
+          CLASS_NM: currentUser.classNum,
+          ALL_TI_YMD: formatYmd(date)
+        },
+        "hisTimetable"
+      ))
+    );
+
+    return weekdayRows.flat();
+  }
+
+  function applyTimetable(
+    rows: NeisTimetableRow[],
+    options: ApplyTimetableOptions = {}
+  ): number {
+    let applied = 0;
+    if (!options.preserveExisting) {
+      document.querySelectorAll<HTMLTableRowElement>("tbody tr[data-period]")
+        .forEach((tableRow) => {
+          if (!isPeriodName(tableRow.dataset.period)) return;
+          tableRow.querySelectorAll<HTMLTableCellElement>("td").forEach((cell) => {
+            if (!cell.hasAttribute("colspan")) renderNoTimetableCell(cell);
+          });
+        });
+    }
+
+    rows
+      .slice()
+      .sort((a, b) => {
+        const dateCompare = String(a.ALL_TI_YMD || "")
+          .localeCompare(String(b.ALL_TI_YMD || ""));
+        return dateCompare || Number(a.PERIO || 0) - Number(b.PERIO || 0);
+      })
+      .forEach((row) => {
+        const day = getRowDayIndex(row);
+        if (!(day >= 1 && day <= 5)) return;
+
+        const period = `${Number(row.PERIO)}교시`;
+        if (!isPeriodName(period)) return;
+
+        const subject = cleanText(row.ITRT_CNTNT);
+        if (!subject) return;
+
+        const targetRow = document.querySelector<HTMLTableRowElement>(
+          `tbody tr[data-period="${period}"]`
+        );
+        const targetCell = targetRow
+          ?.querySelectorAll<HTMLTableCellElement>("td")[day - 1];
+        if (!targetCell || targetCell.hasAttribute("colspan")) return;
+
+        targetCell.classList.remove("neis-empty-cell");
+        window.TileApp?.renderSubjectCell?.(targetCell, subject);
+        window.TileApp?.setCellInfoByCell?.(targetCell, {
+          room: cleanText(row.CLRM_NM),
+          teacher: extractTeacher(row.ITRT_CNTNT)
+        });
+        applied += 1;
+      });
+
+    window.TileApp?.refresh?.();
+    return applied;
+  }
+
+  function applyMeals(meals: TileMeal[]): void {
+    meals.forEach((meal) => {
+      if (["조식", "중식", "석식"].includes(meal.type)) {
+        window.TileApp?.setMeal?.(meal.type, meal.menu, meal.rawMenu);
+      }
+    });
+  }
+
+  async function syncNeis(options: SyncOptions = {}): Promise<boolean | undefined> {
+    const storedUser = localStorage.getItem("tile_user");
+    const user = options.user ?? (
+      storedUser ? JSON.parse(storedUser) as TileUserConfig : null
+    );
+
+    if (!hasNeisTransport()) {
+      setStatus("NEIS 설정 필요");
+      if (!options.silent) {
+        alert("Vercel에는 NEIS_KEY 환경변수를 설정하고, 로컬 테스트는 config.js에 키를 넣어주세요.");
+      }
+      return undefined;
+    }
+
+    syncButton?.setAttribute("disabled", "true");
+
+    try {
+      const currentUser = getUserConfig(user);
+      const school = await resolveSchool(currentUser);
+      const syncedUser: ResolvedTileUser = { ...currentUser, school };
+      const syncScope = getSyncScope(syncedUser);
+      const previousSyncScope = localStorage.getItem(SYNC_SCOPE_STORAGE_KEY) || "";
+      const [timetableRows, meals] = await Promise.all([
+        getTimetable(syncedUser),
+        getMeal(syncedUser)
+      ]);
+
+      const appliedCount = applyTimetable(timetableRows, {
+        preserveExisting: timetableResponseWasPartial && previousSyncScope === syncScope
+      });
+      const department = timetableRows.find((row) => row.DDDEP_NM)?.DDDEP_NM || "";
+      window.TileApp?.setSchoolDetails?.(school);
+      window.TileApp?.setSchoolDepartment?.(department);
+      applyMeals(meals);
+      setStatus(timetableResponseWasPartial
+        ? `일부 연결됨 · ${appliedCount}개 반영됨`
+        : `연결됨 · ${appliedCount}개 반영됨`);
+      localStorage.setItem(SYNC_SCOPE_STORAGE_KEY, syncScope);
+      return true;
+    } catch (error: unknown) {
+      console.error(error);
+      setStatus("연동 실패");
+      if (!options.silent) {
+        alert(error instanceof Error ? error.message : "NEIS 연동 중 오류가 발생했습니다.");
+      }
+      return false;
+    } finally {
+      syncButton?.removeAttribute("disabled");
+    }
+  }
+
+  window.searchSchool = searchSchool;
+  window.getMeal = getMeal;
+  window.getTimetable = getTimetable;
+  window.syncNeis = syncNeis;
+  window.TileNeis = {
+    searchSchool,
+    getMeal,
+    getTimetable,
+    sync: syncNeis
+  };
+})();
