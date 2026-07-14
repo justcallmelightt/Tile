@@ -155,6 +155,8 @@ const rollingTextTimersMap = new Map();
 const textSwapTimersMap = new Map();
 let cursorGlowFrame = null;
 let topbarFrame = null;
+let floatingTopbarVisible = false;
+let statusTickTimer = null;
 
 function resetRollingTimeTimers() {
   while (rollingTimeTimers.length > 0) {
@@ -1466,13 +1468,26 @@ function updateFloatingTopbar() {
     const threshold = statusCard
       ? statusCard.getBoundingClientRect().bottom
       : 0;
-    const shouldShow = window.scrollY > 260 && threshold < 120;
+    const shouldShow = floatingTopbarVisible
+      ? window.scrollY > 210 && threshold < 152
+      : window.scrollY > 280 && threshold < 96;
 
     floatingTopbar.classList.toggle("is-visible", shouldShow);
     document.body.classList.toggle("floating-topbar-visible", shouldShow);
     floatingTopbar.setAttribute("aria-hidden", String(!shouldShow));
+    floatingTopbarVisible = shouldShow;
     topbarFrame = null;
   });
+}
+
+function scheduleStatusTick() {
+  if (statusTickTimer) clearTimeout(statusTickTimer);
+
+  const delay = Math.max(16, 1000 - (Date.now() % 1000) + 18);
+  statusTickTimer = setTimeout(() => {
+    if (!document.hidden) updateCurrentStatus();
+    scheduleStatusTick();
+  }, delay);
 }
 
 
@@ -1875,11 +1890,32 @@ loadScheduleEdits();
 enableTileEditing();
 updateMemoIndicators();
 updateCurrentStatus();
-setInterval(() => {
-  if (!document.hidden) {
-    updateCurrentStatus();
-  }
-}, 1000);
+scheduleStatusTick();
+
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) updateCurrentStatus();
+  scheduleStatusTick();
+});
+
+const startupSpotlight = document.querySelector(".startup-spotlight");
+const startupSpotlightReduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+function replayStartupSpotlight() {
+  if (!startupSpotlight) return;
+
+  startupSpotlight.classList.add("is-settled");
+  if (startupSpotlightReduceMotion.matches) return;
+
+  void startupSpotlight.offsetWidth;
+  requestAnimationFrame(() => {
+    startupSpotlight.classList.remove("is-settled");
+  });
+}
+
+startupSpotlight?.addEventListener("animationend", (event) => {
+  if (event.animationName !== "startupSpotlightIlluminate") return;
+  startupSpotlight.classList.add("is-settled");
+});
 
 window.addEventListener("scroll", updateFloatingTopbar, { passive: true });
 window.addEventListener("resize", updateFloatingTopbar, { passive: true });
@@ -2118,8 +2154,8 @@ function normalizeHighSchoolType(type = "") {
     const text = String(type || "").trim();
     const compact = text.replace(/\s+/g, "");
     if (!text) return "";
-    if (compact.includes("특수목적") || compact.includes("특목")) return "특수목적고";
-    if (compact.includes("자율형사립") || compact.includes("자율사립")) return "자율형사립고";
+    if (compact.includes("특수목적") || compact.includes("특목")) return "특목고";
+    if (compact.includes("자율형사립") || compact.includes("자율사립")) return "자율고 · 자사고";
     if (compact.includes("자율형공립") || compact.includes("자율공립")) return "자율형공립고";
     if (compact.includes("자율")) return "자율고";
     if (compact.includes("일반")) return "일반고";
@@ -2145,12 +2181,12 @@ function getDisplaySchoolType(school = {}) {
         else if (purpose.includes("국제") || /국제고/.test(compactName)) detail = "국제고";
         else if (purpose.includes("예술") || /예술고/.test(compactName)) detail = "예술고";
         else if (purpose.includes("체육") || /체육고/.test(compactName)) detail = "체육고";
-        return ["특수목적고", detail].filter(Boolean).join(" · ");
+        return ["특목고", detail].filter(Boolean).join(" · ");
     }
 
     if (rawHighSchoolType.includes("자율")) {
         let detail = "";
-        if (foundation === "사립") detail = "자율형사립고";
+        if (foundation === "사립") detail = "자사고";
         else if (foundation === "공립") detail = "자율형공립고";
         return ["자율고", detail].filter(Boolean).join(" · ");
     }
@@ -2312,6 +2348,7 @@ saveSchoolButton?.addEventListener("click", async () => {
         closeSchoolSettingsModal();
 
         requestAnimationFrame(() => {
+            replayStartupSpotlight();
             window.TileApp?.replayRollingText?.(neisStatusEl, previousNeisStatus, nextNeisStatus, "neis-status");
             window.TileApp?.replayRollingText?.(topbarNeis, previousNeisStatus, nextNeisStatus, "topbar-neis-status");
             syncFloatingTopbar();
