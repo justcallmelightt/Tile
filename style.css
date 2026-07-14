@@ -64,12 +64,37 @@ body.light-mode {
 body {
   margin: 0;
   font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
-  background:
-    radial-gradient(circle at top left, rgba(255, 255, 255, 0.88) 0%, transparent 34%),
-    linear-gradient(180deg, var(--bg-grad-top) 0%, var(--bg) 100%);
+  background: linear-gradient(180deg, var(--bg-grad-top) 0%, var(--bg) 100%);
+  background-attachment: fixed;
   color: var(--text);
   padding: 32px 16px;
   transition: background 0.28s ease, color 0.28s ease;
+}
+
+.startup-spotlight {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 84% 72% at 0% 0%,
+    rgba(255, 255, 255, 0.92) 0%,
+    rgba(255, 255, 255, 0.68) 18%,
+    rgba(255, 255, 255, 0.22) 42%,
+    transparent 70%
+  );
+  transform-origin: 0 0;
+  animation:
+    startupSpotlightDescend 2.4s cubic-bezier(0.22, 0.61, 0.36, 1) 250ms both,
+    startupSpotlightIlluminate 2.4s cubic-bezier(0.4, 0, 0.2, 1) 250ms both;
+  will-change: transform, opacity;
+}
+
+.startup-spotlight.is-settled {
+  animation: none;
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  will-change: auto;
 }
 
 body::before {
@@ -131,13 +156,26 @@ body.floating-topbar-visible::after {
 }
 
 body.light-mode {
-  background:
-    radial-gradient(circle at top left, rgba(255, 255, 255, 0.88) 0%, transparent 34%),
-    linear-gradient(180deg, var(--bg-grad-top) 0%, var(--bg) 100%);
+  background: linear-gradient(180deg, var(--bg-grad-top) 0%, var(--bg) 100%);
+}
+
+body.light-mode .startup-spotlight {
+  background: radial-gradient(
+    ellipse 84% 72% at 0% 0%,
+    rgba(255, 255, 255, 0.98) 0%,
+    rgba(255, 255, 255, 0.74) 20%,
+    rgba(255, 255, 255, 0.24) 44%,
+    transparent 70%
+  );
 }
 
 body.light-mode::before {
-  background: radial-gradient(circle at var(--cursor-x) var(--cursor-y), rgba(255, 255, 255, 0.62) 0%, rgba(255, 255, 255, 0.28) 8rem, transparent 19rem);
+  background: radial-gradient(
+    circle at var(--cursor-x) var(--cursor-y),
+    rgba(0, 0, 0, 0.18) 0%,
+    rgba(0, 0, 0, 0.08) 9rem,
+    transparent 20rem
+  );
 }
 
 body.light-mode::after {
@@ -170,6 +208,7 @@ body.has-iphone-safe-zone {
     opacity 0.72s cubic-bezier(0.19, 1, 0.22, 1),
     transform 0.86s cubic-bezier(0.19, 1, 0.22, 1),
     filter 0.72s cubic-bezier(0.19, 1, 0.22, 1);
+  will-change: opacity, transform, filter;
 }
 
 .floating-topbar.is-visible {
@@ -2113,6 +2152,40 @@ body.mobile-today-mode col.day-col {
   }
 }
 
+@keyframes startupSpotlightDescend {
+  0% {
+    transform: translate3d(0, -20vh, 0);
+  }
+
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes startupSpotlightIlluminate {
+  0% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .startup-spotlight,
+  .time-char.animate .time-char-inner,
+  .text-roll-swap,
+  .setup-modal:not(.hidden) .setup-card {
+    animation: none !important;
+  }
+
+  .floating-topbar,
+  body::after {
+    transition-duration: 0.01ms !important;
+  }
+}
+
 #setup-screen {
   transition: opacity 0.4s ease;
 }
@@ -2186,6 +2259,33 @@ body.light-mode .subject-modal {
 
 .settings-card {
   width: min(92vw, 500px);
+}
+
+.settings-section {
+  display: grid;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.settings-section-header h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.94rem;
+  font-weight: 750;
+  line-height: 1.3;
+}
+
+.settings-section-header p {
+  margin: 5px 0 0;
+  color: var(--text-soft);
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.settings-section .settings-help {
+  margin-top: -4px;
 }
 
 .setup-header {
