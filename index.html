@@ -9,9 +9,10 @@
   <link rel="icon" href="favicon-32x32.png" sizes="32x32" />
   <link rel="icon" href="favicon-96x96.png" sizes="96x96" />
   <link rel="apple-touch-icon" href="/favicon-96x96.png">
-  <link rel="stylesheet" href="./style.css?v=20260713-secondary-ui" />
+  <link rel="stylesheet" href="./style.css?v=20260714-light-cursor-glow" />
 </head>
 <body>
+  <div class="startup-spotlight" aria-hidden="true"></div>
   <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-G0FCVJ0M52"></script>
 <script>
@@ -70,19 +71,25 @@
     <div class="setup-card settings-card" role="dialog" aria-modal="true" aria-labelledby="appSettingsTitle">
       <div class="setup-header">
         <div>
-          <h2 id="appSettingsTitle">급식 알레르기 설정</h2>
-          <p class="setup-subtitle">피하고 싶은 재료나 알레르기 번호를 등록하면 급식 메뉴에서 바로 알려드립니다.</p>
+          <h2 id="appSettingsTitle">Tile 설정</h2>
+          <p class="setup-subtitle">Tile의 알림과 개인화 옵션을 한곳에서 관리합니다.</p>
         </div>
         <button id="closeAppSettings" class="dialog-close" type="button" aria-label="닫기">&times;</button>
       </div>
-      <label class="setup-field" for="allergyInput">
-        <span>알레르기 / 피하고 싶은 재료</span>
-        <textarea
-            id="allergyInput"
-            placeholder="예) 새우, 우유, 땅콩 또는 9, 2, 4"
-        ></textarea>
-      </label>
-      <p class="settings-help">쉼표로 구분해서 입력하면 급식 메뉴에서 해당 항목을 찾아 경고를 표시합니다.</p>
+      <section class="settings-section" aria-labelledby="allergySettingsTitle">
+        <div class="settings-section-header">
+          <h3 id="allergySettingsTitle">급식 알레르기</h3>
+          <p>피하고 싶은 재료나 알레르기 번호를 등록하면 급식 메뉴에서 바로 알려드립니다.</p>
+        </div>
+        <label class="setup-field" for="allergyInput">
+          <span>알레르기 / 피하고 싶은 재료</span>
+          <textarea
+              id="allergyInput"
+              placeholder="예) 새우, 우유, 땅콩 또는 9, 2, 4"
+          ></textarea>
+        </label>
+        <p class="settings-help">쉼표로 구분해서 입력하면 급식 메뉴에서 해당 항목을 찾아 경고를 표시합니다.</p>
+      </section>
       <div class="setup-actions">
         <button id="saveAppSettings" class="theme-toggle save-action" type="button">저장</button>
         <button id="resetAppSettings" class="theme-toggle" type="button">초기화</button>
@@ -132,7 +139,7 @@
           <button class="theme-toggle" id="toolMenuToggle" type="button" aria-expanded="false">도구</button>
           <div class="tool-menu-panel" id="toolMenuPanel" aria-hidden="true">
             <button id="schoolSettingsToggle" type="button">학교 설정</button>
-            <button id="appSettingsToggle" type="button">설정</button>
+            <button id="appSettingsToggle" type="button">Tile 설정</button>
             <button id="mealToggle" type="button">급식 보기</button>
             <button id="customToggle" class="custom-toggle" type="button">JSON으로 수정</button>
           </div>
@@ -405,6 +412,6 @@
   <script src="./config.public.js?v=20260703-script-fix"></script>
   <script src="./config.js?v=20260703-script-fix" onerror="this.remove()"></script>
   <script src="./neis.js?v=20260713-typescript"></script>
-  <script src="./script.js?v=20260703-script-fix"></script>
+  <script src="./script.js?v=20260714-welcome-replay"></script>
 </body>
 </html>
