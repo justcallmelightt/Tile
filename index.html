@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" />
+  <link rel="preload" href="./assets/fonts/PretendardVariable.woff2" as="font" type="font/woff2" crossorigin />
   <title>Tile</title>
   <link rel="icon" href="favicon-16x16.png" sizes="16x16" />
   <link rel="icon" href="favicon-32x32.png" sizes="32x32" />
   <link rel="icon" href="favicon-96x96.png" sizes="96x96" />
   <link rel="apple-touch-icon" href="/favicon-96x96.png">
-  <link rel="stylesheet" href="./style.css?v=20260714-light-cursor-glow" />
+  <link rel="stylesheet" href="./style.css?v=20260716-ease-out-rolling" />
 </head>
-<body>
+<body class="welcome-active">
   <div class="startup-spotlight" aria-hidden="true"></div>
   <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-G0FCVJ0M52"></script>
@@ -129,7 +129,12 @@
   <div class="container">
     <div class="hero">
       <div class="hero-copy">
-        <h1>Tile</h1>
+        <h1 id="tileTitle" class="welcome-title is-welcome-rolling" aria-label="Tile">
+          <span class="welcome-title-char" aria-hidden="true"><span class="welcome-title-char-inner"><span>&nbsp;</span><span>T</span></span></span>
+          <span class="welcome-title-char" aria-hidden="true"><span class="welcome-title-char-inner"><span>&nbsp;</span><span>i</span></span></span>
+          <span class="welcome-title-char" aria-hidden="true"><span class="welcome-title-char-inner"><span>&nbsp;</span><span>l</span></span></span>
+          <span class="welcome-title-char" aria-hidden="true"><span class="welcome-title-char-inner"><span>&nbsp;</span><span>e</span></span></span>
+        </h1>
         <p class="subtitle" id="schoolSubtitle">미림마이스터고등학교 | 1학년 2반</p>
       </div>
       <div class="controls">
@@ -411,7 +416,7 @@
   </div>
   <script src="./config.public.js?v=20260703-script-fix"></script>
   <script src="./config.js?v=20260703-script-fix" onerror="this.remove()"></script>
-  <script src="./neis.js?v=20260713-typescript"></script>
-  <script src="./script.js?v=20260714-welcome-replay"></script>
+  <script src="./neis.js?v=20260716-style-recovery"></script>
+  <script src="./script.js?v=20260716-ease-out-rolling"></script>
 </body>
 </html>
