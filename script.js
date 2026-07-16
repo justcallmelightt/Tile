@@ -198,7 +198,7 @@ function triggerTextSwapAnimation(element, key) {
   const timer = setTimeout(() => {
     element.classList.remove("text-roll-swap");
     textSwapTimersMap.delete(key);
-  }, 360);
+  }, 460);
   textSwapTimersMap.set(key, timer);
 }
 
@@ -270,6 +270,7 @@ function renderRollingStyleText(element, text, key, options = {}) {
   if (!element) return;
 
   const shouldSwapText = !options.disableTextSwap;
+  const finishDelay = Number.isFinite(options.finishDelay) ? options.finishDelay : 600;
   element.dataset.timeText = text;
   element.setAttribute("aria-label", text);
 
@@ -329,7 +330,7 @@ function renderRollingStyleText(element, text, key, options = {}) {
           finishRollingCharacter(span, char);
         });
         rollingTextTimersMap.delete(key);
-      }, 520);
+      }, finishDelay);
       rollingTextTimersMap.set(key, [timer]);
     }
 
@@ -369,7 +370,7 @@ function renderRollingStyleText(element, text, key, options = {}) {
         finishRollingCharacter(wrapper, char);
       });
       rollingTextTimersMap.delete(key);
-    }, 520);
+    }, finishDelay);
     rollingTextTimersMap.set(key, [timer]);
   }
 
@@ -414,7 +415,7 @@ function createRollingTime(timeString) {
       finishRollingCharacter(wrapper, char);
       const timerIndex = rollingTimeTimers.indexOf(timer);
       if (timerIndex !== -1) rollingTimeTimers.splice(timerIndex, 1);
-    }, 520);
+    }, 600);
     rollingTimeTimers.push(timer);
   });
 
@@ -1898,13 +1899,32 @@ document.addEventListener("visibilitychange", () => {
 });
 
 const startupSpotlight = document.querySelector(".startup-spotlight");
+const tileTitle = document.getElementById("tileTitle");
 const startupSpotlightReduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
+function replayWelcomeTitle() {
+  if (!tileTitle || startupSpotlightReduceMotion.matches) return;
+
+  tileTitle.classList.remove("is-welcome-rolling");
+  void tileTitle.offsetWidth;
+  requestAnimationFrame(() => {
+    tileTitle.classList.add("is-welcome-rolling");
+  });
+}
+
 function replayStartupSpotlight() {
-  if (!startupSpotlight) return;
+  document.body.classList.add("welcome-active");
+  replayWelcomeTitle();
+  if (!startupSpotlight) {
+    document.body.classList.remove("welcome-active");
+    return;
+  }
 
   startupSpotlight.classList.add("is-settled");
-  if (startupSpotlightReduceMotion.matches) return;
+  if (startupSpotlightReduceMotion.matches) {
+    document.body.classList.remove("welcome-active");
+    return;
+  }
 
   void startupSpotlight.offsetWidth;
   requestAnimationFrame(() => {
@@ -1915,7 +1935,12 @@ function replayStartupSpotlight() {
 startupSpotlight?.addEventListener("animationend", (event) => {
   if (event.animationName !== "startupSpotlightIlluminate") return;
   startupSpotlight.classList.add("is-settled");
+  document.body.classList.remove("welcome-active");
 });
+
+if (startupSpotlightReduceMotion.matches) {
+  document.body.classList.remove("welcome-active");
+}
 
 window.addEventListener("scroll", updateFloatingTopbar, { passive: true });
 window.addEventListener("resize", updateFloatingTopbar, { passive: true });
@@ -1924,14 +1949,14 @@ window.TileApp = {
   renderRollingText(element, text, key) {
     renderRollingStyleText(element, text, key);
   },
-  replayRollingText(element, fromText, toText, key) {
+  replayRollingText(element, fromText, toText, key, options = {}) {
     if (!element || !fromText || !toText || fromText === toText) return;
 
     resetRollingTextTimers(key);
     renderStaticTimeStyleText(element, fromText);
     rollingTextPreviousMap.set(key, fromText);
     requestAnimationFrame(() => {
-      renderRollingStyleText(element, toText, key);
+      renderRollingStyleText(element, toText, key, options);
     });
   },
   renderSubjectCell,
@@ -2349,8 +2374,9 @@ saveSchoolButton?.addEventListener("click", async () => {
 
         requestAnimationFrame(() => {
             replayStartupSpotlight();
-            window.TileApp?.replayRollingText?.(neisStatusEl, previousNeisStatus, nextNeisStatus, "neis-status");
-            window.TileApp?.replayRollingText?.(topbarNeis, previousNeisStatus, nextNeisStatus, "topbar-neis-status");
+            const neisRollOptions = { disableTextSwap: true, finishDelay: 980 };
+            window.TileApp?.replayRollingText?.(neisStatusEl, previousNeisStatus, nextNeisStatus, "neis-status", neisRollOptions);
+            window.TileApp?.replayRollingText?.(topbarNeis, previousNeisStatus, nextNeisStatus, "topbar-neis-status", neisRollOptions);
             syncFloatingTopbar();
         });
     }
