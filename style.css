@@ -1,3 +1,11 @@
+@font-face {
+  font-family: "Pretendard";
+  font-style: normal;
+  font-weight: 45 920;
+  font-display: swap;
+  src: url("./assets/fonts/PretendardVariable.woff2") format("woff2-variations");
+}
+
 :root {
   color-scheme: dark;
   --bg: #000000;
@@ -23,6 +31,7 @@
   --toggle-bg: rgba(255, 255, 255, 0.08);
   --cursor-x: 50vw;
   --cursor-y: 50vh;
+  --rolling-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --focus-glow: rgba(255, 255, 255, 0.58);
   --focus-glow-soft: rgba(255, 255, 255, 0.18);
 }
@@ -77,7 +86,7 @@ body {
   z-index: 0;
   pointer-events: none;
   background: radial-gradient(
-    ellipse 84% 72% at 0% 0%,
+    ellipse 84% 72% at 0px 0px,
     rgba(255, 255, 255, 0.92) 0%,
     rgba(255, 255, 255, 0.68) 18%,
     rgba(255, 255, 255, 0.22) 42%,
@@ -104,6 +113,12 @@ body::before {
   z-index: 0;
   pointer-events: none;
   background: radial-gradient(circle at var(--cursor-x) var(--cursor-y), rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0.08) 9rem, transparent 20rem);
+  opacity: 1;
+  transition: opacity 0.5s ease;
+}
+
+body.welcome-active::before {
+  opacity: 0;
 }
 
 body::after {
@@ -161,7 +176,7 @@ body.light-mode {
 
 body.light-mode .startup-spotlight {
   background: radial-gradient(
-    ellipse 84% 72% at 0% 0%,
+    ellipse 84% 72% at 0px 0px,
     rgba(255, 255, 255, 0.98) 0%,
     rgba(255, 255, 255, 0.74) 20%,
     rgba(255, 255, 255, 0.24) 44%,
@@ -219,6 +234,7 @@ body.has-iphone-safe-zone {
 }
 
 .container {
+  --container-radius: 28px;
   position: relative;
   z-index: 1;
   max-width: 1240px;
@@ -227,7 +243,7 @@ body.has-iphone-safe-zone {
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border: 1px solid var(--border);
-  border-radius: 28px;
+  border-radius: var(--container-radius);
   box-shadow: var(--shadow);
   padding: 28px;
   overflow: hidden;
@@ -254,6 +270,58 @@ h1 {
   letter-spacing: -0.03em;
   color: var(--accent);
   text-align: left;
+}
+
+.welcome-title {
+  display: inline-flex;
+  align-items: baseline;
+  overflow: hidden;
+  line-height: 1.08;
+}
+
+.welcome-title-char {
+  display: inline-flex;
+  height: 1.08em;
+  overflow: hidden;
+  font: inherit;
+  line-height: 1.08;
+}
+
+.welcome-title-char-inner {
+  display: flex;
+  flex-direction: column;
+  height: 2.16em;
+  transform: translate3d(0, 0, 0);
+  will-change: transform, opacity;
+}
+
+.welcome-title-char-inner > span {
+  display: flex;
+  align-items: center;
+  height: 1.08em;
+  flex: 0 0 1.08em;
+  font: inherit;
+  line-height: 1.08;
+}
+
+.welcome-title.is-welcome-rolling .welcome-title-char-inner {
+  animation: welcomeTitleRoll 0.82s var(--rolling-ease-out) both;
+}
+
+.welcome-title.is-welcome-rolling .welcome-title-char:nth-child(1) .welcome-title-char-inner {
+  animation-delay: 0.52s;
+}
+
+.welcome-title.is-welcome-rolling .welcome-title-char:nth-child(2) .welcome-title-char-inner {
+  animation-delay: 0.66s;
+}
+
+.welcome-title.is-welcome-rolling .welcome-title-char:nth-child(3) .welcome-title-char-inner {
+  animation-delay: 0.8s;
+}
+
+.welcome-title.is-welcome-rolling .welcome-title-char:nth-child(4) .welcome-title-char-inner {
+  animation-delay: 0.94s;
 }
 
 .subtitle {
@@ -1733,6 +1801,7 @@ body.mobile-today-mode col.day-col {
   }
 
   .container {
+    --container-radius: 20px;
     padding: 14px;
     border-radius: 20px;
   }
@@ -1942,6 +2011,7 @@ body.mobile-today-mode col.day-col {
   }
 
   .container {
+    --container-radius: 16px;
     padding: 10px;
     border-radius: 16px;
   }
@@ -2072,11 +2142,16 @@ body.mobile-today-mode col.day-col {
 }
 
 .time-char.animate .time-char-inner {
-  animation: rollUp 0.48s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: rollUp 0.56s var(--rolling-ease-out) both;
+}
+
+#neisStatus .time-char.animate .time-char-inner,
+#topbarNeis .time-char.animate .time-char-inner {
+  animation-duration: 0.9s;
 }
 
 .text-roll-swap {
-  animation: textRollSwap 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: textRollSwap 0.42s var(--rolling-ease-out) both;
 }
 
 .time-static,
@@ -2172,6 +2247,22 @@ body.mobile-today-mode col.day-col {
   }
 }
 
+@keyframes welcomeTitleRoll {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0);
+  }
+
+  18% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate3d(0, -1.08em, 0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .startup-spotlight,
   .time-char.animate .time-char-inner,
@@ -2183,6 +2274,12 @@ body.mobile-today-mode col.day-col {
   .floating-topbar,
   body::after {
     transition-duration: 0.01ms !important;
+  }
+
+  .welcome-title.is-welcome-rolling .welcome-title-char-inner {
+    animation: none !important;
+    opacity: 1;
+    transform: translate3d(0, -1.08em, 0);
   }
 }
 
