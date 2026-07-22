@@ -86,11 +86,9 @@ body {
   z-index: 0;
   pointer-events: none;
   background: radial-gradient(
-    ellipse 84% 72% at 0px 0px,
-    rgba(255, 255, 255, 0.92) 0%,
-    rgba(255, 255, 255, 0.68) 18%,
-    rgba(255, 255, 255, 0.22) 42%,
-    transparent 70%
+    circle at top left,
+    rgba(255, 255, 255, 0.88) 0%,
+    transparent 34%
   );
   transform-origin: 0 0;
   animation:
@@ -172,16 +170,6 @@ body.floating-topbar-visible::after {
 
 body.light-mode {
   background: linear-gradient(180deg, var(--bg-grad-top) 0%, var(--bg) 100%);
-}
-
-body.light-mode .startup-spotlight {
-  background: radial-gradient(
-    ellipse 84% 72% at 0px 0px,
-    rgba(255, 255, 255, 0.98) 0%,
-    rgba(255, 255, 255, 0.74) 20%,
-    rgba(255, 255, 255, 0.24) 44%,
-    transparent 70%
-  );
 }
 
 body.light-mode::before {
