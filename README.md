@@ -1,4 +1,4 @@
-![Tile Banner](TileBanner.png)
+![Tile Banner](./assets/TileBanner.png)
 
 # Tile
 > [!CAUTION]
