@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "none",
+    "noEmit": false,
+    "outFile": "./neis.js",
+    "declaration": false,
+    "sourceMap": false
+  },
+  "files": ["src/types.d.ts", "src/neis.ts"]
+}
