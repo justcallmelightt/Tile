@@ -92,6 +92,11 @@ const closeAppSettings = document.getElementById("closeAppSettings");
 const allergyInput = document.getElementById("allergyInput");
 const saveAppSettings = document.getElementById("saveAppSettings");
 const resetAppSettings = document.getElementById("resetAppSettings");
+const settingsNavButtons = document.querySelectorAll("[data-settings-target]");
+const lastSyncValue = document.getElementById("lastSyncValue");
+const exportTileData = document.getElementById("exportTileData");
+const undoTileChange = document.getElementById("undoTileChange");
+const toastRegion = document.getElementById("toastRegion");
 const mealToggle = document.getElementById("mealToggle");
 const mealPanel = document.getElementById("mealPanel");
 const mealClose = document.getElementById("mealClose");
@@ -125,12 +130,34 @@ const subjectEditMemo = document.getElementById("subjectEditMemo");
 const subjectEditSave = document.getElementById("subjectEditSave");
 const subjectEditReset = document.getElementById("subjectEditReset");
 const subjectEditNeis = document.getElementById("subjectEditNeis");
+const subjectEditSource = document.getElementById("subjectEditSource");
+const subjectEditContext = document.getElementById("subjectEditContext");
 const subjectBulkMode = document.getElementById("subjectBulkMode");
 const subjectBulkTitle = document.getElementById("subjectBulkTitle");
 const subjectBulkRows = document.getElementById("subjectBulkRows");
+const subjectBulkName = document.getElementById("subjectBulkName");
+const subjectBulkRoom = document.getElementById("subjectBulkRoom");
+const subjectBulkTeacher = document.getElementById("subjectBulkTeacher");
+const subjectBulkMemo = document.getElementById("subjectBulkMemo");
+const subjectBulkSummary = document.getElementById("subjectBulkSummary");
+const subjectBulkToggleAll = document.getElementById("subjectBulkToggleAll");
 const subjectBulkSave = document.getElementById("subjectBulkSave");
 const subjectBulkBack = document.getElementById("subjectBulkBack");
 const subjectBulkNeis = document.getElementById("subjectBulkNeis");
+const periodEditMode = document.getElementById("periodEditMode");
+const periodEditTitle = document.getElementById("periodEditTitle");
+const periodEditDescription = document.getElementById("periodEditDescription");
+const periodStartInput = document.getElementById("periodStartInput");
+const periodEndInput = document.getElementById("periodEndInput");
+const periodFormMessage = document.getElementById("periodFormMessage");
+const periodEditSave = document.getElementById("periodEditSave");
+const periodEditCancel = document.getElementById("periodEditCancel");
+const schoolSyncPreview = document.getElementById("schoolSyncPreview");
+const schoolSyncPreviewTitle = document.getElementById("schoolSyncPreviewTitle");
+const schoolSyncPreviewCount = document.getElementById("schoolSyncPreviewCount");
+const schoolSyncPreviewMeals = document.getElementById("schoolSyncPreviewMeals");
+const schoolSyncPreviewDepartment = document.getElementById("schoolSyncPreviewDepartment");
+const schoolFormMessage = document.getElementById("schoolFormMessage");
 const CELL_EDIT_STORAGE_KEY = "tile-cell-edits";
 const SCHEDULE_EDIT_STORAGE_KEY = "tile-schedule-edits";
 const SUBJECT_MEMO_STORAGE_KEY = "tile-subject-memos";
@@ -140,11 +167,32 @@ const PERIOD_INFO_EDIT_STORAGE_KEY = "tile-period-info-edits";
 const INFO_STORAGE_MIGRATION_KEY = "tile-info-storage-migrated-v2";
 const MEAL_STORAGE_KEY = "tile-meals";
 const APP_SETTINGS_STORAGE_KEY = "tile-app-settings";
+const UNDO_STORAGE_KEY = "tile-last-undo";
+const LAST_SYNC_STORAGE_KEY = "tile-neis-last-sync";
+const USER_DATA_STORAGE_KEYS = [
+  CELL_EDIT_STORAGE_KEY,
+  SCHEDULE_EDIT_STORAGE_KEY,
+  SUBJECT_MEMO_STORAGE_KEY,
+  SUBJECT_INFO_EDIT_STORAGE_KEY,
+  CELL_INFO_EDIT_STORAGE_KEY,
+  MEAL_STORAGE_KEY,
+  APP_SETTINGS_STORAGE_KEY,
+  "tile-custom-json",
+  "tile-memo-content",
+  "tile_user",
+  "tile-neis-sync-scope",
+  LAST_SYNC_STORAGE_KEY
+];
 let selectedSubjectCell = null;
 let selectedSubjectRow = null;
 let selectedSubjectIndex = null;
 let subjectBulkTargets = [];
 let modalCallback = null;
+let selectedPeriodRow = null;
+let selectedPeriodItem = null;
+let preparedSchoolSync = null;
+let preparedSchoolSignature = "";
+let modalRestoreTarget = null;
 let overlayDismissBlockUntil = 0;
 const defaultCellSubjectMap = new Map();
 
@@ -424,10 +472,8 @@ function createRollingTime(timeString) {
 
 function openSubjectModal(data = {}) {
   if (!subjectOverlay) return;
-  if (modalInfoMode) modalInfoMode.classList.remove("mode-hidden");
-  if (modalInputMode) modalInputMode.classList.add("mode-hidden");
-  if (subjectEditMode) subjectEditMode.classList.add("mode-hidden");
-  if (subjectBulkMode) subjectBulkMode.classList.add("mode-hidden");
+  hideSubjectModes();
+  modalInfoMode?.classList.remove("mode-hidden");
   if (subjectName) subjectName.textContent = data.name || "과목 정보";
   if (subjectLocation) subjectLocation.textContent = data.room || "교실 정보 없음";
   if (subjectTeacher) subjectTeacher.textContent = data.teacher || "선생님 정보 없음";
@@ -436,10 +482,8 @@ function openSubjectModal(data = {}) {
 
 function openInputModal(title, placeholder, callback) {
   if (!subjectOverlay || !modalInput || !modalTitle || !modalInfoMode || !modalInputMode) return;
-  modalInfoMode.classList.add("mode-hidden");
+  hideSubjectModes();
   modalInputMode.classList.remove("mode-hidden");
-  if (subjectEditMode) subjectEditMode.classList.add("mode-hidden");
-  if (subjectBulkMode) subjectBulkMode.classList.add("mode-hidden");
   modalTitle.textContent = title;
   modalInput.placeholder = placeholder;
   modalInput.value = "";
@@ -466,6 +510,197 @@ function writeJsonStorage(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
+function showToast(title, detail = "", options = {}) {
+  if (!toastRegion) return;
+
+  const toast = document.createElement("div");
+  toast.className = "tile-toast";
+  toast.setAttribute("role", options.tone === "error" ? "alert" : "status");
+
+  const copy = document.createElement("div");
+  const heading = document.createElement("strong");
+  heading.textContent = title;
+  copy.appendChild(heading);
+
+  if (detail) {
+    const description = document.createElement("span");
+    description.textContent = detail;
+    copy.appendChild(description);
+  }
+  toast.appendChild(copy);
+
+  if (options.actionLabel && typeof options.onAction === "function") {
+    const action = document.createElement("button");
+    action.type = "button";
+    action.textContent = options.actionLabel;
+    action.addEventListener("click", () => {
+      options.onAction();
+      toast.remove();
+    });
+    toast.appendChild(action);
+  }
+
+  toastRegion.appendChild(toast);
+  let timeout = null;
+  const dismiss = () => {
+    toast.classList.add("is-leaving");
+    window.setTimeout(() => toast.remove(), 240);
+  };
+  const scheduleDismiss = () => {
+    window.clearTimeout(timeout);
+    const duration = options.actionLabel
+      ? Math.max(options.duration || 0, 9000)
+      : options.duration || 4200;
+    timeout = window.setTimeout(dismiss, duration);
+  };
+  scheduleDismiss();
+  toast.addEventListener("pointerenter", () => window.clearTimeout(timeout));
+  toast.addEventListener("pointerleave", scheduleDismiss);
+  toast.addEventListener("focusin", () => window.clearTimeout(timeout));
+  toast.addEventListener("focusout", scheduleDismiss);
+}
+
+function captureUserDataSnapshot(label) {
+  const values = {};
+  USER_DATA_STORAGE_KEYS.forEach((key) => {
+    values[key] = localStorage.getItem(key);
+  });
+  return {
+    label,
+    createdAt: new Date().toISOString(),
+    values
+  };
+}
+
+function pushUndoSnapshot(label) {
+  const snapshot = captureUserDataSnapshot(label);
+  localStorage.setItem(UNDO_STORAGE_KEY, JSON.stringify(snapshot));
+  updateUndoAvailability();
+  return snapshot;
+}
+
+function restoreSnapshot(snapshot, { reload = true } = {}) {
+  if (!snapshot?.values) return false;
+
+  Object.entries(snapshot.values).forEach(([key, value]) => {
+    if (value === null || value === undefined) localStorage.removeItem(key);
+    else localStorage.setItem(key, value);
+  });
+
+  localStorage.removeItem(UNDO_STORAGE_KEY);
+  if (reload) window.location.reload();
+  return true;
+}
+
+function getUndoSnapshot() {
+  return readJsonStorage(UNDO_STORAGE_KEY, null);
+}
+
+function restoreLastChange() {
+  const snapshot = getUndoSnapshot();
+  if (!snapshot) {
+    showToast("되돌릴 변경이 없습니다", "새로운 수정이나 동기화 후 다시 시도해주세요.");
+    return false;
+  }
+  return restoreSnapshot(snapshot);
+}
+
+function updateUndoAvailability() {
+  if (!undoTileChange) return;
+  const snapshot = getUndoSnapshot();
+  undoTileChange.disabled = !snapshot;
+  undoTileChange.textContent = snapshot
+    ? `${snapshot.label || "마지막 변경"} 되돌리기`
+    : "마지막 변경 되돌리기";
+}
+
+function formatSavedDate(value) {
+  if (!value) return "기록 없음";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "기록 없음";
+  return new Intl.DateTimeFormat("ko-KR", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  }).format(date);
+}
+
+function updateLastSyncValue() {
+  if (lastSyncValue) {
+    lastSyncValue.textContent = formatSavedDate(localStorage.getItem(LAST_SYNC_STORAGE_KEY));
+  }
+}
+
+function setButtonLoading(button, isLoading) {
+  if (!button) return;
+  button.classList.toggle("is-loading", isLoading);
+  button.toggleAttribute("disabled", isLoading);
+  button.setAttribute("aria-busy", String(isLoading));
+}
+
+function rememberDialogTrigger() {
+  const active = document.activeElement;
+  if (active instanceof HTMLElement && active !== document.body) {
+    modalRestoreTarget = active.closest("#toolMenuPanel")
+      ? toolMenuToggle
+      : active;
+  }
+}
+
+function restoreDialogTrigger() {
+  const target = modalRestoreTarget;
+  modalRestoreTarget = null;
+  if (target instanceof HTMLElement && target.isConnected) {
+    window.setTimeout(() => {
+      const focusTarget = target.getClientRects().length > 0
+        ? target
+        : toolMenuToggle;
+      focusTarget?.focus();
+    }, 40);
+  }
+}
+
+function getVisibleDialog() {
+  return Array.from(document.querySelectorAll('[role="dialog"]')).find((dialog) => {
+    const parent = dialog.closest(".setup-modal, .overlay");
+    return parent && !parent.classList.contains("hidden") && parent.getAttribute("aria-hidden") !== "true";
+  });
+}
+
+function trapDialogFocus(event) {
+  if (event.key !== "Tab") return;
+  const dialog = getVisibleDialog();
+  if (!dialog) return;
+
+  const focusable = Array.from(dialog.querySelectorAll(
+    'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
+  )).filter((element) => !element.hidden && element.getClientRects().length > 0);
+
+  if (focusable.length === 0) return;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
+  }
+}
+
+function hideSubjectModes() {
+  [modalInfoMode, modalInputMode, subjectEditMode, subjectBulkMode, periodEditMode]
+    .forEach((mode) => mode?.classList.add("mode-hidden"));
+}
+
+function getCellSourceLabel(cell) {
+  if (cell?.dataset.source === "local") return { label: "직접 수정", className: "source-local" };
+  if (cell?.dataset.source === "neis") return { label: "NEIS", className: "source-neis" };
+  return { label: "기본값", className: "" };
+}
+
 function clearSubjectLocalEditsForNeis() {
   localStorage.removeItem(CELL_EDIT_STORAGE_KEY);
   localStorage.removeItem(SUBJECT_INFO_EDIT_STORAGE_KEY);
@@ -476,11 +711,29 @@ function clearSubjectLocalEditsForNeis() {
 }
 
 async function syncNeisFromCleanLocalState() {
-  clearSubjectLocalEditsForNeis();
-  const synced = typeof window.syncNeis === "function" ? await window.syncNeis() : false;
+  const previousUndo = localStorage.getItem(UNDO_STORAGE_KEY);
+  pushUndoSnapshot("NEIS 동기화");
+  const synced = typeof window.syncNeis === "function"
+    ? await window.syncNeis({ beforeApply: clearSubjectLocalEditsForNeis })
+    : false;
+
+  if (!synced) {
+    if (previousUndo === null) localStorage.removeItem(UNDO_STORAGE_KEY);
+    else localStorage.setItem(UNDO_STORAGE_KEY, previousUndo);
+    updateUndoAvailability();
+    return false;
+  }
+
+  localStorage.setItem(LAST_SYNC_STORAGE_KEY, new Date().toISOString());
   applyRoomBadges();
   updateMemoIndicators();
   updateCurrentStatus();
+  updateLastSyncValue();
+  showToast("NEIS 시간표를 적용했습니다", "직접 수정한 내용이 바뀌었다면 바로 되돌릴 수 있습니다.", {
+    actionLabel: "되돌리기",
+    onAction: restoreLastChange,
+    duration: 6200
+  });
   return synced;
 }
 
@@ -507,6 +760,7 @@ function captureDefaultCellSubjects() {
     row.querySelectorAll("td").forEach((cell, index) => {
       if (cell.hasAttribute("colspan")) return;
       defaultCellSubjectMap.set(`${row.dataset.period}_${index}`, cell.dataset.subject || "");
+      if (!cell.dataset.source) cell.dataset.source = "default";
     });
   });
 }
@@ -516,6 +770,9 @@ function restoreDefaultCellSubjects() {
     row.querySelectorAll("td").forEach((cell, index) => {
       if (cell.hasAttribute("colspan")) return;
       renderSubjectCell(cell, getDefaultCellSubject(row, index));
+      cell.dataset.source = "default";
+      delete cell.dataset.neisRoom;
+      delete cell.dataset.neisTeacher;
     });
   });
   applyRoomBadges();
@@ -587,15 +844,25 @@ function openSubjectEditor(cell, row, index) {
   const memoKey = getCellMemoKey(row, index);
   const cellInfo = getCellInfo(row, index);
 
-  if (modalInfoMode) modalInfoMode.classList.add("mode-hidden");
-  if (modalInputMode) modalInputMode.classList.add("mode-hidden");
-  if (subjectBulkMode) subjectBulkMode.classList.add("mode-hidden");
+  hideSubjectModes();
   subjectEditMode.classList.remove("mode-hidden");
   if (subjectEditTitle) subjectEditTitle.textContent = subject ? "과목 수정" : "과목 추가";
   if (subjectEditName) subjectEditName.value = subject;
-  if (subjectEditRoom) subjectEditRoom.value = cellInfo.room || classroomMap[subject] || "";
-  if (subjectEditTeacher) subjectEditTeacher.value = cellInfo.teacher || teacherMap[subject] || "";
+  if (subjectEditRoom) {
+    subjectEditRoom.value = cellInfo.room || cell.dataset.neisRoom || classroomMap[subject] || "";
+  }
+  if (subjectEditTeacher) {
+    subjectEditTeacher.value = cellInfo.teacher || cell.dataset.neisTeacher || teacherMap[subject] || "";
+  }
   if (subjectEditMemo) subjectEditMemo.value = memos[memoKey] || "";
+  if (subjectEditContext) {
+    subjectEditContext.textContent = `${getSubjectDayLabel(index)}요일 · ${row.dataset.period || "교시"}`;
+  }
+  if (subjectEditSource) {
+    const source = getCellSourceLabel(cell);
+    subjectEditSource.textContent = source.label;
+    subjectEditSource.className = `source-badge ${source.className}`.trim();
+  }
 
   showSubjectOverlay();
   setTimeout(() => subjectEditName?.focus(), 100);
@@ -603,16 +870,14 @@ function openSubjectEditor(cell, row, index) {
 
 function showSubjectOverlay() {
   if (!subjectOverlay) return;
-  // remove hidden immediately so CSS can animate in
+  if (subjectOverlay.classList.contains("hidden")) rememberDialogTrigger();
   subjectOverlay.classList.remove("hidden");
   subjectOverlay.setAttribute("aria-hidden", "false");
   document.body.classList.add("modal-open");
   overlayDismissBlockUntil = Date.now() + 360;
 
-  // ensure modal animation class is present (optional)
   const modal = document.getElementById("subjectModal");
   modal?.classList.remove("modal-animate-out");
-  // small forced reflow for consistent animation start
   void (modal && modal.offsetWidth);
   modal?.classList.add("modal-animate-in");
 }
@@ -620,25 +885,25 @@ function showSubjectOverlay() {
 function closeSubjectModal() {
   if (!subjectOverlay) return;
   const modal = document.getElementById("subjectModal");
-  // play "out" animation by removing "in" class (we rely on overlay hide after timeout)
   modal?.classList.remove("modal-animate-in");
   modal?.classList.add("modal-animate-out");
 
-  // wait for transition duration before hiding overlay to avoid abrupt background removal
-  const hideDelay = 360; // ms, matches CSS durations
+  const hideDelay = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 150 : 320;
   setTimeout(() => {
     subjectOverlay.classList.add("hidden");
     subjectOverlay.setAttribute("aria-hidden", "true");
     document.body.classList.remove("modal-open");
     modal?.classList.remove("modal-animate-out");
     if (subjectBulkRows) subjectBulkRows.textContent = "";
-    if (subjectEditMode) subjectEditMode.classList.add("mode-hidden");
-    if (subjectBulkMode) subjectBulkMode.classList.add("mode-hidden");
+    hideSubjectModes();
     modalCallback = null;
     selectedSubjectCell = null;
     selectedSubjectRow = null;
     selectedSubjectIndex = null;
+    selectedPeriodRow = null;
+    selectedPeriodItem = null;
     subjectBulkTargets = [];
+    restoreDialogTrigger();
   }, hideDelay);
 }
 
@@ -698,27 +963,21 @@ function getSubjectBulkTargets(subject) {
   ));
 }
 
-function createBulkInput(labelText, field, value, tagName = "input") {
-  const label = document.createElement("label");
-  label.className = "subject-bulk-field";
+function updateBulkSelectionSummary() {
+  if (!subjectBulkRows) return;
+  const checkboxes = Array.from(
+    subjectBulkRows.querySelectorAll('input[type="checkbox"]')
+  );
+  const selectedCount = checkboxes.filter((checkbox) => checkbox.checked).length;
 
-  const labelSpan = document.createElement("span");
-  labelSpan.textContent = labelText;
-  label.appendChild(labelSpan);
-
-  const input = document.createElement(tagName);
-  input.dataset.field = field;
-  input.value = value || "";
-  if (tagName === "textarea") {
-    input.rows = 2;
-    input.placeholder = "메모";
-  } else {
-    input.type = "text";
-    input.placeholder = labelText;
+  if (subjectBulkSummary) {
+    subjectBulkSummary.textContent = `${selectedCount}개 수업 선택됨`;
   }
-  label.appendChild(input);
-
-  return label;
+  if (subjectBulkToggleAll) {
+    const allSelected = checkboxes.length > 0 && selectedCount === checkboxes.length;
+    subjectBulkToggleAll.textContent = allSelected ? "전체 해제" : "전체 선택";
+    subjectBulkToggleAll.setAttribute("aria-pressed", String(allSelected));
+  }
 }
 
 function openSubjectBulkEditor() {
@@ -728,63 +987,113 @@ function openSubjectBulkEditor() {
   subjectBulkTargets = getSubjectBulkTargets(selectedSubject);
   if (!selectedSubject || !subjectBulkTargets.length) return;
 
-  if (modalInfoMode) modalInfoMode.classList.add("mode-hidden");
-  if (modalInputMode) modalInputMode.classList.add("mode-hidden");
-  if (subjectEditMode) subjectEditMode.classList.add("mode-hidden");
+  hideSubjectModes();
   subjectBulkMode.classList.remove("mode-hidden");
   if (subjectBulkTitle) subjectBulkTitle.textContent = `${selectedSubject} 일괄 수정`;
 
   const memos = readJsonStorage(SUBJECT_MEMO_STORAGE_KEY);
+  const selectedCellInfo = getCellInfo(selectedSubjectRow, selectedSubjectIndex);
+  const selectedMemoKey = getCellMemoKey(selectedSubjectRow, selectedSubjectIndex);
+  if (subjectBulkName) subjectBulkName.value = selectedSubject;
+  if (subjectBulkRoom) {
+    subjectBulkRoom.value = selectedCellInfo.room
+      || selectedSubjectCell.dataset.neisRoom
+      || classroomMap[selectedSubject]
+      || "";
+  }
+  if (subjectBulkTeacher) {
+    subjectBulkTeacher.value = selectedCellInfo.teacher
+      || selectedSubjectCell.dataset.neisTeacher
+      || teacherMap[selectedSubject]
+      || "";
+  }
+  if (subjectBulkMemo) subjectBulkMemo.value = memos[selectedMemoKey] || "";
   subjectBulkRows.textContent = "";
 
   subjectBulkTargets.forEach(({ row, cell, index }, targetIndex) => {
     const subject = cell.dataset.subject || "";
     const memoKey = getCellMemoKey(row, index);
     const cellInfo = getCellInfo(row, index);
-    const rowEl = document.createElement("div");
+    const rowEl = document.createElement("label");
     rowEl.className = "subject-bulk-row";
-    rowEl.dataset.targetIndex = String(targetIndex);
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = true;
+    checkbox.dataset.targetIndex = String(targetIndex);
+    checkbox.setAttribute(
+      "aria-label",
+      `${getSubjectDayLabel(index)}요일 ${row.dataset.period || "교시"} 선택`
+    );
+    rowEl.appendChild(checkbox);
 
     const dayLabel = document.createElement("div");
     dayLabel.className = "subject-bulk-day";
-    dayLabel.textContent = `${getSubjectDayLabel(index)} · ${row.dataset.period || "교시"}`;
+    const dayTitle = document.createElement("strong");
+    dayTitle.textContent = `${getSubjectDayLabel(index)}요일 · ${row.dataset.period || "교시"}`;
+    const daySubject = document.createElement("span");
+    daySubject.textContent = subject;
+    dayLabel.append(dayTitle, daySubject);
     rowEl.appendChild(dayLabel);
 
-    const fields = document.createElement("div");
-    fields.className = "subject-bulk-fields";
-    fields.appendChild(createBulkInput("과목", "subject", subject));
-    fields.appendChild(createBulkInput("교실", "room", cellInfo.room || classroomMap[subject] || ""));
-    fields.appendChild(createBulkInput("선생님", "teacher", cellInfo.teacher || teacherMap[subject] || ""));
-    fields.appendChild(createBulkInput("메모", "memo", memos[memoKey] || "", "textarea"));
-    rowEl.appendChild(fields);
+    const meta = document.createElement("span");
+    meta.className = "subject-bulk-meta";
+    const room = cellInfo.room
+      || (cell.dataset.source === "neis" ? cell.dataset.neisRoom : "")
+      || classroomMap[subject]
+      || "교실 미지정";
+    const hasMemo = Boolean((memos[memoKey] || "").trim());
+    meta.textContent = hasMemo ? `${room} · 메모 있음` : room;
+    rowEl.appendChild(meta);
     subjectBulkRows.appendChild(rowEl);
   });
 
-  subjectBulkRows.querySelector("[data-field='subject']")?.focus();
+  updateBulkSelectionSummary();
+  subjectBulkName?.focus();
 }
 
 function saveBulkSubjectEdits() {
   if (!subjectBulkTargets.length || !subjectBulkRows) return;
 
-  const memos = readJsonStorage(SUBJECT_MEMO_STORAGE_KEY);
+  const checkedTargets = Array.from(
+    subjectBulkRows.querySelectorAll('input[type="checkbox"]:checked')
+  );
+  if (checkedTargets.length === 0) {
+    showToast("적용할 수업을 선택해주세요", "목록에서 하나 이상의 수업을 선택하세요.", {
+      tone: "error"
+    });
+    return;
+  }
 
-  subjectBulkRows.querySelectorAll(".subject-bulk-row").forEach((rowEl) => {
-    const targetIndex = Number(rowEl.dataset.targetIndex);
+  const subject = subjectBulkName?.value.trim() || "";
+  if (!subject) {
+    showToast("과목명을 입력해주세요", "빈 과목명은 저장할 수 없습니다.", {
+      tone: "error"
+    });
+    subjectBulkName?.focus();
+    return;
+  }
+
+  const room = subjectBulkRoom?.value.trim() || "";
+  const teacher = subjectBulkTeacher?.value.trim() || "";
+  const memo = subjectBulkMemo?.value.trim() || "";
+  const memos = readJsonStorage(SUBJECT_MEMO_STORAGE_KEY);
+  pushUndoSnapshot("과목 일괄 수정");
+
+  checkedTargets.forEach((checkbox) => {
+    const targetIndex = Number(checkbox.dataset.targetIndex);
     const target = subjectBulkTargets[targetIndex];
     const { row, cell, index } = target || {};
     if (!cell || cell.hasAttribute("colspan")) return;
 
-    const subject = rowEl.querySelector("[data-field='subject']")?.value.trim() || "";
-    const room = rowEl.querySelector("[data-field='room']")?.value.trim() || "";
-    const teacher = rowEl.querySelector("[data-field='teacher']")?.value.trim() || "";
-    const memo = rowEl.querySelector("[data-field='memo']")?.value.trim() || "";
     const memoKey = getCellMemoKey(row, index);
 
     renderSubjectCell(cell, subject);
+    cell.dataset.source = "local";
     saveCellEdit(row.dataset.period, index, subject);
-    saveCellInfo(row, index, subject ? { room, teacher } : {});
+    saveCellInfo(row, index, { room, teacher });
 
-    if (subject && memo) memos[memoKey] = memo;
+    if (memo) memos[memoKey] = memo;
     else delete memos[memoKey];
   });
 
@@ -793,6 +1102,15 @@ function saveBulkSubjectEdits() {
   updateMemoIndicators();
   updateCurrentStatus();
   closeSubjectModal();
+  showToast(
+    `${checkedTargets.length}개 수업을 수정했습니다`,
+    "선택하지 않은 수업은 그대로 유지했습니다.",
+    {
+      actionLabel: "되돌리기",
+      onAction: restoreLastChange,
+      duration: 6200
+    }
+  );
 }
 
 subjectEditSave?.addEventListener("click", () => {
@@ -805,7 +1123,9 @@ subjectEditSave?.addEventListener("click", () => {
   const memo = subjectEditMemo?.value.trim() || "";
   const memoKey = getCellMemoKey(selectedSubjectRow, selectedSubjectIndex);
 
+  pushUndoSnapshot("과목 수정");
   renderSubjectCell(selectedSubjectCell, subject);
+  selectedSubjectCell.dataset.source = "local";
   saveCellEdit(selectedSubjectRow.dataset.period, selectedSubjectIndex, subject);
 
   const memos = readJsonStorage(SUBJECT_MEMO_STORAGE_KEY);
@@ -818,6 +1138,11 @@ subjectEditSave?.addEventListener("click", () => {
   updateMemoIndicators();
   updateCurrentStatus();
   closeSubjectModal();
+  showToast("수업을 저장했습니다", `${getSubjectDayLabel(selectedSubjectIndex)}요일 ${selectedSubjectRow.dataset.period}`, {
+    actionLabel: "되돌리기",
+    onAction: restoreLastChange,
+    duration: 6200
+  });
 });
 
 subjectEditReset?.addEventListener("click", () => {
@@ -825,21 +1150,33 @@ subjectEditReset?.addEventListener("click", () => {
 });
 
 subjectEditNeis?.addEventListener("click", async () => {
-  await syncNeisFromCleanLocalState();
-  closeSubjectModal();
+  if (await syncNeisFromCleanLocalState()) closeSubjectModal();
 });
 
 subjectBulkSave?.addEventListener("click", saveBulkSubjectEdits);
 
 subjectBulkBack?.addEventListener("click", () => {
-  if (subjectBulkMode) subjectBulkMode.classList.add("mode-hidden");
-  if (subjectEditMode) subjectEditMode.classList.remove("mode-hidden");
+  hideSubjectModes();
+  subjectEditMode?.classList.remove("mode-hidden");
   setTimeout(() => subjectEditName?.focus(), 40);
 });
 
 subjectBulkNeis?.addEventListener("click", async () => {
-  await syncNeisFromCleanLocalState();
-  closeSubjectModal();
+  if (await syncNeisFromCleanLocalState()) closeSubjectModal();
+});
+
+subjectBulkRows?.addEventListener("change", updateBulkSelectionSummary);
+
+subjectBulkToggleAll?.addEventListener("click", () => {
+  if (!subjectBulkRows) return;
+  const checkboxes = Array.from(
+    subjectBulkRows.querySelectorAll('input[type="checkbox"]')
+  );
+  const shouldSelect = checkboxes.some((checkbox) => !checkbox.checked);
+  checkboxes.forEach((checkbox) => {
+    checkbox.checked = shouldSelect;
+  });
+  updateBulkSelectionSummary();
 });
 
 function triggerButtonPop(buttonEl) {
@@ -1014,7 +1351,7 @@ function formatScheduleDuration(scheduleItem) {
 
 function formatRemainingTime(diffMinutes) {
   if (diffMinutes <= 0) return "곧 종료";
-  return formatRelativeDuration(diffMinutes, "후");
+  return formatRelativeDuration(diffMinutes, "남음");
 }
 
 function formatPeriodRemainingTime(diffMinutes) {
@@ -1175,7 +1512,9 @@ function applyRoomBadges() {
     const existingTeacher = subjectWrap.querySelector(".teacher-info");
     if (existingTeacher) existingTeacher.remove();
 
-    const room = cellInfo.room || classroomMap[subject];
+    const room = cellInfo.room
+      || (cell.dataset.source === "neis" ? cell.dataset.neisRoom : "")
+      || classroomMap[subject];
     if (room) {
       const roomTag = document.createElement("span");
       roomTag.className = "room-info";
@@ -1183,7 +1522,9 @@ function applyRoomBadges() {
       subjectWrap.appendChild(roomTag);
     }
 
-    const teacher = cellInfo.teacher || teacherMap[subject];
+    const teacher = cellInfo.teacher
+      || (cell.dataset.source === "neis" ? cell.dataset.neisTeacher : "")
+      || teacherMap[subject];
     if (teacher) {
       const teacherTag = document.createElement("span");
       teacherTag.className = "teacher-info";
@@ -1297,11 +1638,9 @@ function setSubjectInfo(subject, info = {}) {
 }
 
 function setCellInfoByCell(cell, info = {}) {
-  const row = cell?.closest("tr[data-period]");
-  if (!row || !cell) return;
-  const index = Array.from(row.querySelectorAll("td")).indexOf(cell);
-  if (index < 0) return;
-  saveCellInfo(row, index, info);
+  if (!cell) return;
+  cell.dataset.neisRoom = info.room || "";
+  cell.dataset.neisTeacher = info.teacher || "";
 }
 
 function loadScheduleEdits() {
@@ -1336,11 +1675,67 @@ function loadCellEdits() {
       const targetCell = cells[Number(day)];
       if (!targetCell) return;
       renderSubjectCell(targetCell, subject);
+      targetCell.dataset.source = "local";
     });
   } catch (error) {
     console.error(error);
   }
 }
+
+function openPeriodEditor(row, scheduleItem) {
+  if (!row || !periodEditMode || !subjectOverlay) return;
+
+  selectedPeriodRow = row;
+  selectedPeriodItem = scheduleItem || null;
+  const period = row.dataset.period || "교시";
+  hideSubjectModes();
+  periodEditMode.classList.remove("mode-hidden");
+  if (periodEditTitle) periodEditTitle.textContent = `${period} 시간`;
+  if (periodEditDescription) {
+    periodEditDescription.textContent = "시작과 종료 시간을 바꾸면 남은 시간과 현재 진행 계산에도 바로 반영됩니다.";
+  }
+  if (periodStartInput) periodStartInput.value = scheduleItem?.start || "";
+  if (periodEndInput) periodEndInput.value = scheduleItem?.end || "";
+  if (periodFormMessage) periodFormMessage.textContent = "";
+  showSubjectOverlay();
+  window.setTimeout(() => periodStartInput?.focus(), 80);
+}
+
+periodEditCancel?.addEventListener("click", closeSubjectModal);
+
+periodEditSave?.addEventListener("click", () => {
+  if (!selectedPeriodRow) return;
+  const start = periodStartInput?.value || "";
+  const end = periodEndInput?.value || "";
+
+  if (!start || !end || toMinutes(end) <= toMinutes(start)) {
+    if (periodFormMessage) {
+      periodFormMessage.textContent = "종료 시간은 시작 시간보다 늦어야 합니다.";
+    }
+    periodEndInput?.focus();
+    return;
+  }
+
+  const period = selectedPeriodRow.dataset.period || "교시";
+  pushUndoSnapshot("교시 시간 수정");
+  if (selectedPeriodItem) {
+    selectedPeriodItem.start = start;
+    selectedPeriodItem.end = end;
+  } else {
+    selectedPeriodItem = { name: period, start, end };
+    scheduleRanges.push(selectedPeriodItem);
+  }
+
+  updateRowTimeText(selectedPeriodRow, start, end);
+  saveScheduleEdit(period, start, end);
+  updateCurrentStatus();
+  closeSubjectModal();
+  showToast(`${period} 시간을 저장했습니다`, `${format12Hour(start)}부터 ${format12Hour(end)}까지`, {
+    actionLabel: "되돌리기",
+    onAction: restoreLastChange,
+    duration: 6200
+  });
+});
 
 function enableTileEditing() {
   document.querySelectorAll("tbody tr[data-period]").forEach((row) => {
@@ -1352,21 +1747,7 @@ function enableTileEditing() {
       header.addEventListener("click", () => {
         const period = row.dataset.period;
         const scheduleItem = scheduleRanges.find((item) => item.name === period);
-        const current = scheduleItem ? `${scheduleItem.start}-${scheduleItem.end}` : "";
-        openInputModal("교시 수정", "08:20-09:10", (value) => {
-          const parsed = parseTimeRange(value);
-          if (!parsed) return;
-          if (scheduleItem) {
-            scheduleItem.start = parsed.start;
-            scheduleItem.end = parsed.end;
-          } else {
-            scheduleRanges.push({ name: period, start: parsed.start, end: parsed.end });
-          }
-          updateRowTimeText(row, parsed.start, parsed.end);
-          saveScheduleEdit(period, parsed.start, parsed.end);
-          updateCurrentStatus();
-        });
-        if (modalInput) modalInput.value = current;
+        openPeriodEditor(row, scheduleItem);
       });
     }
 
@@ -1394,17 +1775,25 @@ function enableTileEditing() {
     if (event.target === subjectOverlay) closeSubjectModal();
   });
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && subjectOverlay && !subjectOverlay.classList.contains("hidden")) {
+    if (event.key !== "Escape") return;
+    if (subjectOverlay && !subjectOverlay.classList.contains("hidden")) {
       closeSubjectModal();
+    } else if (setupModal && !setupModal.classList.contains("hidden")) {
+      closeSchoolSettingsModal();
+    } else if (appSettingsModal && !appSettingsModal.classList.contains("hidden")) {
+      closeAppSettingsModal();
     }
   });
+  document.addEventListener("keydown", trapDialogFocus);
 }
 
 function updateThemeButton() {
+  if (!themeToggle) return;
   const isDark = !document.body.classList.contains("light-mode");
   themeToggle.textContent = isDark ? "라이트 모드" : "다크 모드";
   themeToggle.classList.toggle("theme-target-light", isDark);
   themeToggle.classList.toggle("theme-target-dark", !isDark);
+  themeToggle.setAttribute("aria-pressed", String(!isDark));
 }
 
 function initTheme() {
@@ -1531,15 +1920,17 @@ function updateTodayOnlyButton(todayDay, isActive) {
   todayOnlyToggle.disabled = !isEnabled;
   todayOnlyToggle.classList.toggle("active", isActive && isEnabled);
   todayOnlyToggle.textContent = isActive && isEnabled ? "전체 시간표 보기" : "오늘 일과만 보기";
+  todayOnlyToggle.setAttribute("aria-pressed", String(isActive && isEnabled));
 }
 
 function applyTodayOnlyMode() {
   const isMobile = isMobileTimetableView();
   const isTodayOnly = localStorage.getItem("mirim-today-only") === "on";
-  const activeDay = getActiveScheduleDay();
-  const shouldApply = isMobile || isTodayOnly;
+  const activeDay = getTodayScheduleDay();
+  const hasSchoolDay = Boolean(activeDay);
+  const shouldApply = hasSchoolDay && (isMobile || isTodayOnly);
   document.body.classList.toggle("today-only-mode", shouldApply);
-  document.body.classList.toggle("mobile-today-mode", isMobile);
+  document.body.classList.toggle("mobile-today-mode", isMobile && hasSchoolDay);
 
   document.querySelectorAll(".today-only-hidden").forEach((node) => {
     node.classList.remove("today-only-hidden");
@@ -1683,7 +2074,9 @@ function getCurrentSubjectAndRoom(currentSchedule, dayOfWeek) {
 
   const currentCellIndex = getCellStorageIndex(currentRow, currentCell);
   const cellInfo = getCellInfo(currentRow, currentCellIndex);
-  const room = cellInfo.room || classroomMap[subject];
+  const room = cellInfo.room
+    || (currentCell.dataset.source === "neis" ? currentCell.dataset.neisRoom : "")
+    || classroomMap[subject];
   return {
     subject,
     room: room ? `교실: ${room}` : "미지정"
@@ -1879,6 +2272,8 @@ applyRoomBadges();
 captureDefaultCellSubjects();
 loadMeals();
 loadAppSettings();
+updateLastSyncValue();
+updateUndoAvailability();
 updateIPhoneSafeZone();
 initTheme();
 initCursorGlow();
@@ -1946,6 +2341,9 @@ window.addEventListener("scroll", updateFloatingTopbar, { passive: true });
 window.addEventListener("resize", updateFloatingTopbar, { passive: true });
 
 window.TileApp = {
+  notify(title, detail = "", options = {}) {
+    showToast(title, detail, options);
+  },
   renderRollingText(element, text, key) {
     renderRollingStyleText(element, text, key);
   },
@@ -1990,12 +2388,14 @@ if (customToggle && customPanel) {
     triggerButtonPop(customToggle);
     setToolMenuOpen(false);
     customPanel.classList.toggle("is-open");
+    customPanel.setAttribute("aria-hidden", String(!customPanel.classList.contains("is-open")));
   });
 }
 
 if (customClose && customPanel) {
   customClose.addEventListener("click", () => {
     customPanel.classList.remove("is-open");
+    customPanel.setAttribute("aria-hidden", "true");
   });
 }
 
@@ -2012,10 +2412,13 @@ if (customSave && customInput) {
 
       // Validate basic structure
       if (typeof parsed !== "object" || parsed === null) {
-        alert("유효한 JSON 객체여야 합니다.");
+        showToast("JSON 객체가 필요합니다", "중괄호로 시작하는 올바른 설정을 입력해주세요.", {
+          tone: "error"
+        });
         return;
       }
 
+      pushUndoSnapshot("JSON 설정 수정");
       localStorage.setItem("tile-custom-json", JSON.stringify(parsed));
 
       // Reload config without page refresh
@@ -2023,15 +2426,20 @@ if (customSave && customInput) {
       applyRoomBadges();
       updateCurrentStatus();
 
-      alert("설정 저장 완료 ✨");
+      showToast("JSON 설정을 저장했습니다", "시간표에 새 설정을 반영했습니다.", {
+        actionLabel: "되돌리기",
+        onAction: restoreLastChange,
+        duration: 6200
+      });
     } catch (err) {
-      alert(`JSON 형식 오류: ${err.message}`);
+      showToast("JSON 형식을 확인해주세요", err.message, { tone: "error" });
     }
   });
 }
 
 if (customReset && customInput) {
   customReset.addEventListener("click", () => {
+    pushUndoSnapshot("시간표 초기화");
     localStorage.removeItem("tile-custom-json");
     localStorage.removeItem(CELL_EDIT_STORAGE_KEY);
     localStorage.removeItem(SCHEDULE_EDIT_STORAGE_KEY);
@@ -2051,7 +2459,11 @@ if (customReset && customInput) {
     updateMemoIndicators();
     updateCurrentStatus();
 
-    alert("시간표 및 설정 초기화 완료. 새로고침 해주세요.");
+    showToast("시간표 수정값을 초기화했습니다", "기본 시간표를 다시 표시했습니다.", {
+      actionLabel: "되돌리기",
+      onAction: restoreLastChange,
+      duration: 6200
+    });
   });
 }
 
@@ -2082,19 +2494,27 @@ if (memoSave && memoInput) {
   memoSave.addEventListener("click", () => {
     try {
       const memoText = memoInput.value;
+      pushUndoSnapshot("메모 수정");
       localStorage.setItem("tile-memo-content", memoText);
-      alert("메모 저장 완료 ✨");
+      showToast("메모를 저장했습니다", "이 브라우저에 안전하게 보관됩니다.", {
+        actionLabel: "되돌리기",
+        onAction: restoreLastChange
+      });
     } catch (err) {
-      alert(`저장 오류: ${err.message}`);
+      showToast("메모를 저장하지 못했습니다", err.message, { tone: "error" });
     }
   });
 }
 
 if (memoReset && memoInput) {
   memoReset.addEventListener("click", () => {
+    pushUndoSnapshot("메모 초기화");
     localStorage.removeItem("tile-memo-content");
     memoInput.value = "";
-    alert("메모 초기화 완료 ✨");
+    showToast("메모를 비웠습니다", "", {
+      actionLabel: "되돌리기",
+      onAction: restoreLastChange
+    });
   });
 }
 
@@ -2103,13 +2523,16 @@ const memoToggle = document.getElementById("memoToggle");
 if (memoToggle && memoPanel) {
   memoToggle.addEventListener("click", () => {
     triggerButtonPop(memoToggle);
+    setToolMenuOpen(false);
     memoPanel.classList.toggle("is-open");
+    memoPanel.setAttribute("aria-hidden", String(!memoPanel.classList.contains("is-open")));
   });
 }
 
 if (memoClose && memoPanel) {
   memoClose.addEventListener("click", () => {
     memoPanel.classList.remove("is-open");
+    memoPanel.setAttribute("aria-hidden", "true");
   });
 }
 
@@ -2132,11 +2555,15 @@ const selectedSchoolInfo = document.getElementById("selectedSchoolInfo");
 const gradeInput = document.getElementById("gradeInput");
 const classInput = document.getElementById("classInput");
 let selectedSchool = null;
+let schoolSearchRequestId = 0;
 
 function openSchoolSettings() {
     if (!setupModal) return;
+    rememberDialogTrigger();
+    resetSchoolSyncPreview();
     setupModal.classList.remove("hidden");
     setupModal.setAttribute("aria-hidden", "false");
+    document.body.classList.add("modal-open");
     setTimeout(() => schoolInput?.focus(), 80);
 }
 
@@ -2144,7 +2571,10 @@ function closeSchoolSettingsModal() {
     if (!setupModal) return;
     setupModal.classList.add("hidden");
     setupModal.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("modal-open");
     if (schoolResults) schoolResults.innerHTML = "";
+    resetSchoolSyncPreview();
+    restoreDialogTrigger();
 }
 
 function getSavedTileUser() {
@@ -2242,7 +2672,7 @@ function renderSelectedSchoolInfo(school = selectedSchool) {
 
     if (!school) {
         selectedSchoolInfo.classList.remove("is-visible");
-        selectedSchoolInfo.innerHTML = "";
+        selectedSchoolInfo.replaceChildren();
         return;
     }
 
@@ -2251,20 +2681,20 @@ function renderSelectedSchoolInfo(school = selectedSchool) {
         .filter((value, index, array) => array.indexOf(value) === index)
         .join(" · ") || "학교 정보";
     selectedSchoolInfo.classList.add("is-visible");
-    selectedSchoolInfo.innerHTML = `
-      <div>
-        <span>설립 구분</span>
-        <strong>${school.foundation || "확인 중"}</strong>
-      </div>
-      <div>
-        <span>학교 종류</span>
-        <strong>${typeText}</strong>
-      </div>
-      <div>
-        <span>교육청</span>
-        <strong>${school.officeName || school.office || "확인 중"}</strong>
-      </div>
-    `;
+    selectedSchoolInfo.replaceChildren();
+    [
+      ["설립 구분", school.foundation || "확인 중"],
+      ["학교 종류", typeText],
+      ["교육청", school.officeName || school.office || "확인 중"]
+    ].forEach(([labelText, valueText]) => {
+      const item = document.createElement("div");
+      const label = document.createElement("span");
+      const value = document.createElement("strong");
+      label.textContent = labelText;
+      value.textContent = valueText;
+      item.append(label, value);
+      selectedSchoolInfo.appendChild(item);
+    });
 }
 
 function updateSavedTileUser(updates = {}) {
@@ -2287,13 +2717,13 @@ function fillSchoolSettingsFromSavedUser() {
     renderSelectedSchoolInfo(selectedSchool);
 }
 
-function saveSchoolSettings({ showAlert = true } = {}) {
+function saveSchoolSettings({ persist = true } = {}) {
     const schoolName = schoolInput?.value.trim();
     const grade = gradeInput?.value.trim();
     const classNum = classInput?.value.trim();
 
     if (!schoolName || !grade || !classNum) {
-        if (showAlert) alert("학교, 학년, 반을 모두 선택해주세요.");
+        if (schoolFormMessage) schoolFormMessage.textContent = "학교, 학년, 반을 모두 입력해주세요.";
         return null;
     }
 
@@ -2307,9 +2737,67 @@ function saveSchoolSettings({ showAlert = true } = {}) {
         classNum
     };
 
-    localStorage.setItem("tile_user", JSON.stringify(user));
-    updateSchoolSubtitle(user);
+    if (persist) {
+      localStorage.setItem("tile_user", JSON.stringify(user));
+      updateSchoolSubtitle(user);
+    }
     return user;
+}
+
+function getSchoolFormSignature(user = saveSchoolSettings({ persist: false })) {
+  if (!user) return "";
+  return [
+    user.school?.office || "",
+    user.school?.code || user.school?.name || "",
+    user.grade,
+    user.classNum
+  ].join("|");
+}
+
+function setSchoolProgressStep(step = 1) {
+  document.querySelectorAll(".setup-progress > span").forEach((item, index) => {
+    const itemStep = index + 1;
+    item.classList.toggle("is-active", itemStep === step);
+    item.classList.toggle("is-complete", itemStep < step);
+  });
+}
+
+function resetSchoolSyncPreview() {
+  preparedSchoolSync = null;
+  preparedSchoolSignature = "";
+  if (schoolSyncPreview) schoolSyncPreview.hidden = true;
+  if (schoolFormMessage) schoolFormMessage.textContent = "";
+  if (saveSchoolButton) {
+    const label = saveSchoolButton.querySelector(".button-label");
+    if (label) label.textContent = "변경사항 확인";
+  }
+  setSchoolProgressStep(selectedSchool ? 2 : 1);
+}
+
+function renderSchoolSyncPreview(prepared) {
+  if (!prepared || !schoolSyncPreview) return;
+  const subjectRows = prepared.timetableRows.filter((row) => (
+    row?.ITRT_CNTNT && Number(row?.PERIO) > 0
+  ));
+  const dateCount = new Set(
+    subjectRows.map((row) => row.ALL_TI_YMD || row.TI_YMD).filter(Boolean)
+  ).size;
+  if (schoolSyncPreviewTitle) {
+    schoolSyncPreviewTitle.textContent = `${prepared.school.name} · ${prepared.user.grade}학년 ${prepared.user.classNum}반`;
+  }
+  if (schoolSyncPreviewCount) {
+    schoolSyncPreviewCount.textContent = `${subjectRows.length}개 · ${dateCount || 0}일`;
+  }
+  if (schoolSyncPreviewMeals) {
+    schoolSyncPreviewMeals.textContent = `${prepared.meals.length}개`;
+  }
+  if (schoolSyncPreviewDepartment) {
+    schoolSyncPreviewDepartment.textContent = normalizeDepartment(prepared.department) || "해당 없음";
+  }
+  schoolSyncPreview.hidden = false;
+  setSchoolProgressStep(3);
+  const label = saveSchoolButton?.querySelector(".button-label");
+  if (label) label.textContent = "이 설정 적용";
 }
 
 schoolSettingsToggle?.addEventListener("click", () => {
@@ -2319,11 +2807,33 @@ schoolSettingsToggle?.addEventListener("click", () => {
     openSchoolSettings();
 });
 
+function setSettingsSection(sectionId = "mealSettings") {
+  settingsNavButtons.forEach((button) => {
+    const isActive = button.dataset.settingsTarget === sectionId;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+  });
+
+  document.querySelectorAll(".settings-section").forEach((section) => {
+    const isActive = section.id === sectionId;
+    section.classList.toggle("is-active", isActive);
+    section.hidden = !isActive;
+  });
+
+  const settingsActions = saveAppSettings?.closest(".setup-actions");
+  if (settingsActions) settingsActions.hidden = sectionId === "dataSettings";
+}
+
 function openAppSettings() {
   if (!appSettingsModal) return;
+  rememberDialogTrigger();
   loadAppSettings();
+  setSettingsSection("mealSettings");
+  updateLastSyncValue();
+  updateUndoAvailability();
   appSettingsModal.classList.remove("hidden");
   appSettingsModal.setAttribute("aria-hidden", "false");
+  document.body.classList.add("modal-open");
   setTimeout(() => allergyInput?.focus(), 80);
 }
 
@@ -2331,6 +2841,8 @@ function closeAppSettingsModal() {
   if (!appSettingsModal) return;
   appSettingsModal.classList.add("hidden");
   appSettingsModal.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("modal-open");
+  restoreDialogTrigger();
 }
 
 appSettingsToggle?.addEventListener("click", () => {
@@ -2347,14 +2859,50 @@ appSettingsModal?.addEventListener("click", (event) => {
 
 saveAppSettings?.addEventListener("click", () => {
   triggerButtonPop(saveAppSettings);
+  pushUndoSnapshot("Tile 설정 수정");
   saveAppSettingsFromInput();
   closeAppSettingsModal();
+  showToast("Tile 설정을 저장했습니다", "급식 알림 설정을 바로 반영했습니다.", {
+    actionLabel: "되돌리기",
+    onAction: restoreLastChange
+  });
 });
 
 resetAppSettings?.addEventListener("click", () => {
+  pushUndoSnapshot("Tile 설정 초기화");
   localStorage.removeItem(APP_SETTINGS_STORAGE_KEY);
   loadAppSettings();
+  showToast("현재 설정을 초기화했습니다", "", {
+    actionLabel: "되돌리기",
+    onAction: restoreLastChange
+  });
 });
+
+settingsNavButtons.forEach((button) => {
+  button.addEventListener("click", () => setSettingsSection(button.dataset.settingsTarget));
+});
+
+exportTileData?.addEventListener("click", () => {
+  const exportData = {
+    exportedAt: new Date().toISOString(),
+    version: 1,
+    values: captureUserDataSnapshot("Tile 데이터 내보내기").values
+  };
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+    type: "application/json"
+  });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `tile-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+  showToast("Tile 데이터를 내보냈습니다", "다운로드한 파일은 개인 백업으로 보관할 수 있습니다.");
+});
+
+undoTileChange?.addEventListener("click", restoreLastChange);
 
 closeSchoolSettings?.addEventListener("click", closeSchoolSettingsModal);
 
@@ -2363,77 +2911,183 @@ setupModal?.addEventListener("click", (event) => {
 });
 
 saveSchoolButton?.addEventListener("click", async () => {
-    const user = saveSchoolSettings();
-    if (!user) return;
-    const neisStatusEl = document.getElementById("neisStatus");
-    const previousNeisStatus = neisStatusEl?.dataset?.timeText || neisStatusEl?.textContent?.trim() || "";
-    const didSync = await syncNeis({ user });
-    if (didSync) {
-        const nextNeisStatus = neisStatusEl?.dataset?.timeText || neisStatusEl?.textContent?.trim() || "";
-        closeSchoolSettingsModal();
+    const formUser = saveSchoolSettings({ persist: false });
+    if (!formUser) return;
+    const formSignature = getSchoolFormSignature(formUser);
+    const neisBridge = window.TileNeis;
 
-        requestAnimationFrame(() => {
-            replayStartupSpotlight();
-            const neisRollOptions = { disableTextSwap: true, finishDelay: 980 };
-            window.TileApp?.replayRollingText?.(neisStatusEl, previousNeisStatus, nextNeisStatus, "neis-status", neisRollOptions);
-            window.TileApp?.replayRollingText?.(topbarNeis, previousNeisStatus, nextNeisStatus, "topbar-neis-status", neisRollOptions);
-            syncFloatingTopbar();
-        });
+    if (!neisBridge?.prepare || !neisBridge?.sync) {
+      if (schoolFormMessage) schoolFormMessage.textContent = "NEIS 연결 모듈을 불러오지 못했습니다. 페이지를 새로고침해주세요.";
+      return;
     }
+
+    if (!preparedSchoolSync || preparedSchoolSignature !== formSignature) {
+      setButtonLoading(saveSchoolButton, true);
+      if (schoolFormMessage) schoolFormMessage.textContent = "학교와 학급의 시간표를 확인하고 있습니다.";
+      try {
+        const prepared = await neisBridge.prepare(formUser);
+        preparedSchoolSync = prepared;
+        selectedSchool = prepared.school;
+        renderSelectedSchoolInfo(prepared.school);
+        preparedSchoolSignature = [
+          prepared.school.office || "",
+          prepared.school.code || prepared.school.name || "",
+          prepared.user.grade,
+          prepared.user.classNum
+        ].join("|");
+        renderSchoolSyncPreview(prepared);
+        if (schoolFormMessage) schoolFormMessage.textContent = "내용을 확인한 뒤 적용해주세요.";
+      } catch (error) {
+        console.error(error);
+        if (schoolFormMessage) {
+          schoolFormMessage.textContent = error.message || "학교 정보를 확인하지 못했습니다.";
+        }
+        showToast("학교 정보를 불러오지 못했습니다", error.message || "잠시 후 다시 시도해주세요.", {
+          tone: "error"
+        });
+      } finally {
+        setButtonLoading(saveSchoolButton, false);
+      }
+      return;
+    }
+
+    const neisStatusEl = document.getElementById("neisStatus");
+    const previousNeisStatus = neisStatusEl?.dataset?.timeText
+      || neisStatusEl?.dataset?.displayText
+      || neisStatusEl?.textContent?.trim()
+      || "";
+    const previousUndo = localStorage.getItem(UNDO_STORAGE_KEY);
+    const rollbackSnapshot = pushUndoSnapshot("학교 변경");
+    const user = {
+      school: preparedSchoolSync.school,
+      grade: preparedSchoolSync.user.grade,
+      classNum: preparedSchoolSync.user.classNum
+    };
+    localStorage.setItem("tile_user", JSON.stringify(user));
+    updateSchoolSubtitle(user);
+    setButtonLoading(saveSchoolButton, true);
+    if (schoolFormMessage) schoolFormMessage.textContent = "확인한 시간표를 적용하고 있습니다.";
+
+    const didSync = await neisBridge.sync({
+      user,
+      prepared: preparedSchoolSync,
+      beforeApply: clearSubjectLocalEditsForNeis
+    });
+    setButtonLoading(saveSchoolButton, false);
+
+    if (!didSync) {
+      restoreSnapshot(rollbackSnapshot, { reload: false });
+      if (previousUndo === null) localStorage.removeItem(UNDO_STORAGE_KEY);
+      else localStorage.setItem(UNDO_STORAGE_KEY, previousUndo);
+      fillSchoolSettingsFromSavedUser();
+      updateUndoAvailability();
+      if (schoolFormMessage) schoolFormMessage.textContent = "적용하지 못했습니다. 기존 시간표는 그대로 유지됩니다.";
+      return;
+    }
+
+    localStorage.setItem(LAST_SYNC_STORAGE_KEY, new Date().toISOString());
+    updateLastSyncValue();
+    const nextNeisStatus = neisStatusEl?.dataset?.timeText
+      || neisStatusEl?.dataset?.displayText
+      || neisStatusEl?.textContent?.trim()
+      || "";
+    closeSchoolSettingsModal();
+
+    requestAnimationFrame(() => {
+      replayStartupSpotlight();
+      const neisRollOptions = { disableTextSwap: true, finishDelay: 1120 };
+      window.TileApp?.replayRollingText?.(
+        neisStatusEl,
+        previousNeisStatus,
+        nextNeisStatus,
+        "neis-status",
+        neisRollOptions
+      );
+      window.TileApp?.replayRollingText?.(
+        topbarNeis,
+        previousNeisStatus,
+        nextNeisStatus,
+        "topbar-neis-status",
+        neisRollOptions
+      );
+      syncFloatingTopbar();
+    });
+    showToast("학교와 시간표를 적용했습니다", `${user.school.name} · ${user.grade}학년 ${user.classNum}반`, {
+      actionLabel: "되돌리기",
+      onAction: restoreLastChange,
+      duration: 7000
+    });
 });
 
-schoolInput?.addEventListener(
-    "input",
-    async () => {
+let schoolSearchTimer = null;
+schoolInput?.addEventListener("input", () => {
+  window.clearTimeout(schoolSearchTimer);
+  selectedSchool = null;
+  renderSelectedSchoolInfo(null);
+  resetSchoolSyncPreview();
+  const query = schoolInput.value.trim();
+  if (!schoolResults) return;
+  schoolResults.replaceChildren();
 
-        const query = schoolInput.value.trim();
-        if (!schoolResults) return;
-        selectedSchool = null;
-        renderSelectedSchoolInfo(null);
-        if (query.length < 2) {
-            schoolResults.innerHTML = "";
-            return;
-        }
+  if (query.length < 2) return;
 
-        let schools = [];
-        try {
-            schools = await searchSchool(query);
-        } catch (error) {
-            console.error(error);
-            const message = error.message || "학교 검색 실패";
-            schoolResults.innerHTML = `<div class="school-result-empty">${message}</div>`;
-            return;
-        }
+  const loading = document.createElement("div");
+  loading.className = "school-result-empty";
+  loading.textContent = "학교를 검색하고 있습니다.";
+  schoolResults.appendChild(loading);
+  const requestId = ++schoolSearchRequestId;
 
-        schoolResults.innerHTML = "";
+  schoolSearchTimer = window.setTimeout(async () => {
+    try {
+      const schools = await searchSchool(query);
+      if (requestId !== schoolSearchRequestId || schoolInput.value.trim() !== query) return;
+      schoolResults.replaceChildren();
 
-        if (schools.length === 0) {
-            schoolResults.innerHTML = `<div class="school-result-empty">검색 결과 없음</div>`;
-            return;
-        }
+      if (schools.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "school-result-empty";
+        empty.textContent = "검색 결과가 없습니다.";
+        schoolResults.appendChild(empty);
+        return;
+      }
 
-        schools.forEach(school => {
-
-            const div =
-                document.createElement("div");
-
-            div.innerText = school.name;
-
-            div.onclick = () => {
-
-                selectedSchool = school;
-
-                schoolInput.value =
-                    school.name;
-
-                schoolResults.innerHTML = "";
-                renderSelectedSchoolInfo(school);
-            };
-
-            schoolResults.appendChild(div);
+      schools.forEach((school) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        const name = document.createElement("strong");
+        const office = document.createElement("span");
+        name.textContent = school.name;
+        office.textContent = school.officeName || school.location || "";
+        button.append(name, office);
+        button.addEventListener("click", () => {
+          selectedSchool = school;
+          schoolInput.value = school.name;
+          schoolResults.replaceChildren();
+          renderSelectedSchoolInfo(school);
+          resetSchoolSyncPreview();
+          setSchoolProgressStep(2);
+          gradeInput?.focus();
         });
+        schoolResults.appendChild(button);
+      });
+    } catch (error) {
+      if (requestId !== schoolSearchRequestId) return;
+      console.error(error);
+      schoolResults.replaceChildren();
+      const message = document.createElement("div");
+      message.className = "school-result-empty";
+      message.textContent = error.message || "학교 검색에 실패했습니다.";
+      schoolResults.appendChild(message);
     }
-);
+  }, 280);
+});
+
+[gradeInput, classInput].forEach((input) => {
+  input?.addEventListener("input", () => {
+    resetSchoolSyncPreview();
+    if (selectedSchool) setSchoolProgressStep(2);
+  });
+});
 
 async function init() {
 
@@ -2441,9 +3095,23 @@ async function init() {
 
     fillSchoolSettingsFromSavedUser();
 
-    if (!user) return;
+    if (!user) {
+      const status = document.getElementById("neisStatus");
+      if (status) status.textContent = "학교 설정 필요";
+      window.setTimeout(openSchoolSettings, 1450);
+      return;
+    }
 
-    await syncNeis({ user, silent: true });
+    const didSync = await syncNeis({ user, silent: true });
+    if (!didSync) return;
+
+    loadCellEdits();
+    loadSubjectInfoEdits();
+    applyRoomBadges();
+    updateMemoIndicators();
+    updateCurrentStatus();
+    localStorage.setItem(LAST_SYNC_STORAGE_KEY, new Date().toISOString());
+    updateLastSyncValue();
 }
 
 init();

@@ -92,6 +92,9 @@
   function renderNoTimetableCell(cell: HTMLTableCellElement | null): void {
     if (!cell) return;
     cell.removeAttribute("data-subject");
+    cell.dataset.source = "neis";
+    delete cell.dataset.neisRoom;
+    delete cell.dataset.neisTeacher;
     cell.classList.add("empty-cell", "neis-empty-cell");
     cell.innerHTML = '<div class="subject"><span class="subject-name">정보 없음</span></div>';
   }
@@ -442,6 +445,7 @@
         if (!targetCell || targetCell.hasAttribute("colspan")) return;
 
         targetCell.classList.remove("neis-empty-cell");
+        targetCell.dataset.source = "neis";
         window.TileApp?.renderSubjectCell?.(targetCell, subject);
         window.TileApp?.setCellInfoByCell?.(targetCell, {
           room: cleanText(row.CLRM_NM),
@@ -462,6 +466,57 @@
     });
   }
 
+  async function prepareNeis(
+    user?: TileUserConfig | null
+  ): Promise<PreparedNeisSync> {
+    const currentUser = getUserConfig(user);
+    const school = await resolveSchool(currentUser);
+    const syncedUser: ResolvedTileUser = { ...currentUser, school };
+    const syncScope = getSyncScope(syncedUser);
+    const previousSyncScope = localStorage.getItem(SYNC_SCOPE_STORAGE_KEY) || "";
+    const [timetableRows, meals] = await Promise.all([
+      getTimetable(syncedUser),
+      getMeal(syncedUser)
+    ]);
+    const department = timetableRows.find((row) => row.DDDEP_NM)?.DDDEP_NM || "";
+
+    return {
+      user: syncedUser,
+      school,
+      timetableRows,
+      meals,
+      department,
+      partial: timetableResponseWasPartial,
+      syncScope,
+      previousSyncScope
+    };
+  }
+
+  async function applyPreparedNeis(
+    prepared: PreparedNeisSync,
+    options: Pick<SyncOptions, "beforeApply"> = {}
+  ): Promise<AppliedNeisSync> {
+    await options.beforeApply?.(prepared);
+
+    const appliedCount = applyTimetable(prepared.timetableRows, {
+      preserveExisting: prepared.partial
+        && prepared.previousSyncScope === prepared.syncScope
+    });
+    window.TileApp?.setSchoolDetails?.(prepared.school);
+    window.TileApp?.setSchoolDepartment?.(prepared.department);
+    applyMeals(prepared.meals);
+    setStatus(prepared.partial
+      ? `일부 연결됨 · ${appliedCount}개 반영됨`
+      : `연결됨 · ${appliedCount}개 반영됨`);
+    localStorage.setItem(SYNC_SCOPE_STORAGE_KEY, prepared.syncScope);
+
+    return {
+      appliedCount,
+      department: prepared.department,
+      partial: prepared.partial
+    };
+  }
+
   async function syncNeis(options: SyncOptions = {}): Promise<boolean | undefined> {
     const storedUser = localStorage.getItem("tile_user");
     const user = options.user ?? (
@@ -471,7 +526,11 @@
     if (!hasNeisTransport()) {
       setStatus("NEIS 설정 필요");
       if (!options.silent) {
-        alert("Vercel에는 NEIS_KEY 환경변수를 설정하고, 로컬 테스트는 config.js에 키를 넣어주세요.");
+        window.TileApp?.notify?.(
+          "NEIS 설정이 필요합니다",
+          "배포 환경의 NEIS 연결 설정을 확인해주세요.",
+          { tone: "error" }
+        );
       }
       return undefined;
     }
@@ -479,33 +538,20 @@
     syncButton?.setAttribute("disabled", "true");
 
     try {
-      const currentUser = getUserConfig(user);
-      const school = await resolveSchool(currentUser);
-      const syncedUser: ResolvedTileUser = { ...currentUser, school };
-      const syncScope = getSyncScope(syncedUser);
-      const previousSyncScope = localStorage.getItem(SYNC_SCOPE_STORAGE_KEY) || "";
-      const [timetableRows, meals] = await Promise.all([
-        getTimetable(syncedUser),
-        getMeal(syncedUser)
-      ]);
-
-      const appliedCount = applyTimetable(timetableRows, {
-        preserveExisting: timetableResponseWasPartial && previousSyncScope === syncScope
+      const prepared = options.prepared ?? await prepareNeis(user);
+      await applyPreparedNeis(prepared, {
+        beforeApply: options.beforeApply
       });
-      const department = timetableRows.find((row) => row.DDDEP_NM)?.DDDEP_NM || "";
-      window.TileApp?.setSchoolDetails?.(school);
-      window.TileApp?.setSchoolDepartment?.(department);
-      applyMeals(meals);
-      setStatus(timetableResponseWasPartial
-        ? `일부 연결됨 · ${appliedCount}개 반영됨`
-        : `연결됨 · ${appliedCount}개 반영됨`);
-      localStorage.setItem(SYNC_SCOPE_STORAGE_KEY, syncScope);
       return true;
     } catch (error: unknown) {
       console.error(error);
       setStatus("연동 실패");
       if (!options.silent) {
-        alert(error instanceof Error ? error.message : "NEIS 연동 중 오류가 발생했습니다.");
+        window.TileApp?.notify?.(
+          "NEIS 연결에 실패했습니다",
+          error instanceof Error ? error.message : "잠시 후 다시 시도해주세요.",
+          { tone: "error" }
+        );
       }
       return false;
     } finally {
@@ -521,6 +567,8 @@
     searchSchool,
     getMeal,
     getTimetable,
+    prepare: prepareNeis,
+    apply: applyPreparedNeis,
     sync: syncNeis
   };
 })();
