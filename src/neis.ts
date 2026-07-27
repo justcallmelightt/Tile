@@ -517,6 +517,47 @@
     };
   }
 
+  function applyPreparedTargets(
+    prepared: PreparedNeisSync,
+    targets: NeisTimetableTarget[]
+  ): number {
+    let appliedCount = 0;
+
+    targets.forEach(({ period, dayIndex }) => {
+      if (!isPeriodName(period) || !(dayIndex >= 0 && dayIndex <= 4)) return;
+
+      const targetRow = document.querySelector<HTMLTableRowElement>(
+        `tbody tr[data-period="${period}"]`
+      );
+      const targetCell = targetRow
+        ?.querySelectorAll<HTMLTableCellElement>("td")[dayIndex];
+      if (!targetCell || targetCell.hasAttribute("colspan")) return;
+      appliedCount += 1;
+
+      const matchingRow = prepared.timetableRows.find((row) => (
+        `${Number(row.PERIO)}교시` === period
+        && getRowDayIndex(row) === dayIndex + 1
+      ));
+      const subject = cleanText(matchingRow?.ITRT_CNTNT);
+
+      if (!matchingRow || !subject) {
+        renderNoTimetableCell(targetCell);
+        return;
+      }
+
+      targetCell.classList.remove("empty-cell", "neis-empty-cell");
+      targetCell.dataset.source = "neis";
+      window.TileApp?.renderSubjectCell?.(targetCell, subject);
+      window.TileApp?.setCellInfoByCell?.(targetCell, {
+        room: cleanText(matchingRow.CLRM_NM),
+        teacher: extractTeacher(matchingRow.ITRT_CNTNT)
+      });
+    });
+
+    window.TileApp?.refresh?.();
+    return appliedCount;
+  }
+
   async function syncNeis(options: SyncOptions = {}): Promise<boolean | undefined> {
     const storedUser = localStorage.getItem("tile_user");
     const user = options.user ?? (
@@ -569,6 +610,7 @@
     getTimetable,
     prepare: prepareNeis,
     apply: applyPreparedNeis,
+    applyTargets: applyPreparedTargets,
     sync: syncNeis
   };
 })();

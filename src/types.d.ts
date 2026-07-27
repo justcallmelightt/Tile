@@ -95,6 +95,11 @@ interface AppliedNeisSync {
   partial: boolean;
 }
 
+interface NeisTimetableTarget {
+  period: string;
+  dayIndex: number;
+}
+
 interface SyncOptions {
   user?: TileUserConfig | null;
   silent?: boolean;
@@ -143,6 +148,10 @@ interface TileNeisBridge {
     prepared: PreparedNeisSync,
     options?: Pick<SyncOptions, "beforeApply">
   ) => Promise<AppliedNeisSync>;
+  applyTargets: (
+    prepared: PreparedNeisSync,
+    targets: NeisTimetableTarget[]
+  ) => number;
   sync: (options?: SyncOptions) => Promise<boolean | undefined>;
 }
 
