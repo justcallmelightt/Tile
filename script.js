@@ -95,6 +95,8 @@ const resetAppSettings = document.getElementById("resetAppSettings");
 const settingsNavButtons = document.querySelectorAll("[data-settings-target]");
 const lastSyncValue = document.getElementById("lastSyncValue");
 const exportTileData = document.getElementById("exportTileData");
+const importTileData = document.getElementById("importTileData");
+const importTileDataInput = document.getElementById("importTileDataInput");
 const undoTileChange = document.getElementById("undoTileChange");
 const toastRegion = document.getElementById("toastRegion");
 const mealToggle = document.getElementById("mealToggle");
@@ -181,7 +183,9 @@ const USER_DATA_STORAGE_KEYS = [
   "tile-memo-content",
   "tile_user",
   "tile-neis-sync-scope",
-  LAST_SYNC_STORAGE_KEY
+  LAST_SYNC_STORAGE_KEY,
+  "mirim-theme",
+  "mirim-today-only"
 ];
 let selectedSubjectCell = null;
 let selectedSubjectRow = null;
@@ -530,6 +534,7 @@ function showToast(title, detail = "", options = {}) {
   toast.appendChild(copy);
 
   if (options.actionLabel && typeof options.onAction === "function") {
+    toast.classList.add("has-action");
     const action = document.createElement("button");
     action.type = "button";
     action.textContent = options.actionLabel;
@@ -573,19 +578,30 @@ function captureUserDataSnapshot(label) {
 }
 
 function pushUndoSnapshot(label) {
+  toastRegion?.querySelectorAll(".tile-toast.has-action").forEach((toast) => toast.remove());
   const snapshot = captureUserDataSnapshot(label);
   localStorage.setItem(UNDO_STORAGE_KEY, JSON.stringify(snapshot));
   updateUndoAvailability();
   return snapshot;
 }
 
-function restoreSnapshot(snapshot, { reload = true } = {}) {
-  if (!snapshot?.values) return false;
+function applySnapshotValues(values) {
+  if (!values || typeof values !== "object" || Array.isArray(values)) return false;
+  const entries = Object.entries(values)
+    .filter(([key]) => USER_DATA_STORAGE_KEYS.includes(key));
+  if (entries.some(([, value]) => value !== null && value !== undefined && typeof value !== "string")) {
+    return false;
+  }
 
-  Object.entries(snapshot.values).forEach(([key, value]) => {
+  entries.forEach(([key, value]) => {
     if (value === null || value === undefined) localStorage.removeItem(key);
     else localStorage.setItem(key, value);
   });
+  return true;
+}
+
+function restoreSnapshot(snapshot, { reload = true } = {}) {
+  if (!applySnapshotValues(snapshot?.values)) return false;
 
   localStorage.removeItem(UNDO_STORAGE_KEY);
   if (reload) window.location.reload();
@@ -710,31 +726,96 @@ function clearSubjectLocalEditsForNeis() {
   restoreDefaultCellSubjects();
 }
 
-async function syncNeisFromCleanLocalState() {
-  const previousUndo = localStorage.getItem(UNDO_STORAGE_KEY);
-  pushUndoSnapshot("NEIS 동기화");
-  const synced = typeof window.syncNeis === "function"
-    ? await window.syncNeis({ beforeApply: clearSubjectLocalEditsForNeis })
-    : false;
+function clearLocalOverridesForTargets(targets = []) {
+  const cellEdits = readJsonStorage(CELL_EDIT_STORAGE_KEY);
+  const cellInfoEdits = readJsonStorage(CELL_INFO_EDIT_STORAGE_KEY);
+  const memos = readJsonStorage(SUBJECT_MEMO_STORAGE_KEY);
 
-  if (!synced) {
-    if (previousUndo === null) localStorage.removeItem(UNDO_STORAGE_KEY);
-    else localStorage.setItem(UNDO_STORAGE_KEY, previousUndo);
-    updateUndoAvailability();
+  targets.forEach(({ row, index }) => {
+    const key = getCellInfoKey(row, index);
+    if (!key) return;
+    delete cellEdits[key];
+    delete cellInfoEdits[key];
+    delete memos[key];
+  });
+
+  writeJsonStorage(CELL_EDIT_STORAGE_KEY, cellEdits);
+  writeJsonStorage(CELL_INFO_EDIT_STORAGE_KEY, cellInfoEdits);
+  writeJsonStorage(SUBJECT_MEMO_STORAGE_KEY, memos);
+}
+
+function rehydrateTimetableFromStorage() {
+  resetInfoMapsToDefault();
+  loadSubjectInfoEdits();
+  restoreDefaultCellSubjects();
+  loadCellEdits();
+  loadMeals();
+  applyRoomBadges();
+  updateMemoIndicators();
+  updateSchoolSubtitle();
+  updateCurrentStatus();
+  syncFloatingTopbar();
+}
+
+async function restoreSubjectTargetsFromNeis(targets, button) {
+  const validTargets = targets.filter(({ row, cell, index }) => (
+    row && cell && index != null && !cell.hasAttribute("colspan")
+  ));
+  const neisBridge = window.TileNeis;
+
+  if (!validTargets.length) {
+    showToast("복원할 수업을 선택해주세요", "목록에서 하나 이상의 수업을 선택하세요.", {
+      tone: "error"
+    });
+    return false;
+  }
+  if (!neisBridge?.prepare || !neisBridge?.applyTargets) {
+    showToast("NEIS 연결 모듈을 불러오지 못했습니다", "페이지를 새로고침한 뒤 다시 시도해주세요.", {
+      tone: "error"
+    });
     return false;
   }
 
-  localStorage.setItem(LAST_SYNC_STORAGE_KEY, new Date().toISOString());
-  applyRoomBadges();
-  updateMemoIndicators();
-  updateCurrentStatus();
-  updateLastSyncValue();
-  showToast("NEIS 시간표를 적용했습니다", "직접 수정한 내용이 바뀌었다면 바로 되돌릴 수 있습니다.", {
-    actionLabel: "되돌리기",
-    onAction: restoreLastChange,
-    duration: 6200
-  });
-  return synced;
+  setButtonLoading(button, true);
+  let snapshot = null;
+  try {
+    const prepared = await neisBridge.prepare(getSavedTileUser());
+    snapshot = pushUndoSnapshot("NEIS 과목 복원");
+    clearLocalOverridesForTargets(validTargets);
+    const appliedCount = neisBridge.applyTargets(
+      prepared,
+      validTargets.map(({ row, index }) => ({
+        period: row.dataset.period || "",
+        dayIndex: index
+      }))
+    );
+    applyRoomBadges();
+    updateMemoIndicators();
+    updateCurrentStatus();
+    closeSubjectModal();
+    showToast(
+      "선택한 수업을 NEIS 정보로 복원했습니다",
+      `${appliedCount}개 수업을 다시 불러왔습니다.`,
+      {
+        actionLabel: "되돌리기",
+        onAction: () => restoreSnapshot(snapshot),
+        duration: 7000
+      }
+    );
+    return true;
+  } catch (error) {
+    console.error(error);
+    if (snapshot) {
+      restoreSnapshot(snapshot, { reload: false });
+      rehydrateTimetableFromStorage();
+    }
+    showToast("선택한 수업을 복원하지 못했습니다", error.message || "잠시 후 다시 시도해주세요.", {
+      tone: "error"
+    });
+    return false;
+  } finally {
+    setButtonLoading(button, false);
+  }
 }
 
 function migrateLegacyInfoStorage() {
@@ -1078,7 +1159,7 @@ function saveBulkSubjectEdits() {
   const teacher = subjectBulkTeacher?.value.trim() || "";
   const memo = subjectBulkMemo?.value.trim() || "";
   const memos = readJsonStorage(SUBJECT_MEMO_STORAGE_KEY);
-  pushUndoSnapshot("과목 일괄 수정");
+  const undoSnapshot = pushUndoSnapshot("과목 일괄 수정");
 
   checkedTargets.forEach((checkbox) => {
     const targetIndex = Number(checkbox.dataset.targetIndex);
@@ -1107,7 +1188,7 @@ function saveBulkSubjectEdits() {
     "선택하지 않은 수업은 그대로 유지했습니다.",
     {
       actionLabel: "되돌리기",
-      onAction: restoreLastChange,
+      onAction: () => restoreSnapshot(undoSnapshot),
       duration: 6200
     }
   );
@@ -1123,7 +1204,7 @@ subjectEditSave?.addEventListener("click", () => {
   const memo = subjectEditMemo?.value.trim() || "";
   const memoKey = getCellMemoKey(selectedSubjectRow, selectedSubjectIndex);
 
-  pushUndoSnapshot("과목 수정");
+  const undoSnapshot = pushUndoSnapshot("과목 수정");
   renderSubjectCell(selectedSubjectCell, subject);
   selectedSubjectCell.dataset.source = "local";
   saveCellEdit(selectedSubjectRow.dataset.period, selectedSubjectIndex, subject);
@@ -1140,7 +1221,7 @@ subjectEditSave?.addEventListener("click", () => {
   closeSubjectModal();
   showToast("수업을 저장했습니다", `${getSubjectDayLabel(selectedSubjectIndex)}요일 ${selectedSubjectRow.dataset.period}`, {
     actionLabel: "되돌리기",
-    onAction: restoreLastChange,
+    onAction: () => restoreSnapshot(undoSnapshot),
     duration: 6200
   });
 });
@@ -1150,7 +1231,13 @@ subjectEditReset?.addEventListener("click", () => {
 });
 
 subjectEditNeis?.addEventListener("click", async () => {
-  if (await syncNeisFromCleanLocalState()) closeSubjectModal();
+  await restoreSubjectTargetsFromNeis([
+    {
+      row: selectedSubjectRow,
+      cell: selectedSubjectCell,
+      index: selectedSubjectIndex
+    }
+  ], subjectEditNeis);
 });
 
 subjectBulkSave?.addEventListener("click", saveBulkSubjectEdits);
@@ -1162,7 +1249,11 @@ subjectBulkBack?.addEventListener("click", () => {
 });
 
 subjectBulkNeis?.addEventListener("click", async () => {
-  if (await syncNeisFromCleanLocalState()) closeSubjectModal();
+  const checkedTargets = Array.from(
+    subjectBulkRows?.querySelectorAll('input[type="checkbox"]:checked') || []
+  ).map((checkbox) => subjectBulkTargets[Number(checkbox.dataset.targetIndex)])
+    .filter(Boolean);
+  await restoreSubjectTargetsFromNeis(checkedTargets, subjectBulkNeis);
 });
 
 subjectBulkRows?.addEventListener("change", updateBulkSelectionSummary);
@@ -1717,7 +1808,7 @@ periodEditSave?.addEventListener("click", () => {
   }
 
   const period = selectedPeriodRow.dataset.period || "교시";
-  pushUndoSnapshot("교시 시간 수정");
+  const undoSnapshot = pushUndoSnapshot("교시 시간 수정");
   if (selectedPeriodItem) {
     selectedPeriodItem.start = start;
     selectedPeriodItem.end = end;
@@ -1732,7 +1823,7 @@ periodEditSave?.addEventListener("click", () => {
   closeSubjectModal();
   showToast(`${period} 시간을 저장했습니다`, `${format12Hour(start)}부터 ${format12Hour(end)}까지`, {
     actionLabel: "되돌리기",
-    onAction: restoreLastChange,
+    onAction: () => restoreSnapshot(undoSnapshot),
     duration: 6200
   });
 });
@@ -2418,7 +2509,7 @@ if (customSave && customInput) {
         return;
       }
 
-      pushUndoSnapshot("JSON 설정 수정");
+      const undoSnapshot = pushUndoSnapshot("JSON 설정 수정");
       localStorage.setItem("tile-custom-json", JSON.stringify(parsed));
 
       // Reload config without page refresh
@@ -2428,7 +2519,7 @@ if (customSave && customInput) {
 
       showToast("JSON 설정을 저장했습니다", "시간표에 새 설정을 반영했습니다.", {
         actionLabel: "되돌리기",
-        onAction: restoreLastChange,
+        onAction: () => restoreSnapshot(undoSnapshot),
         duration: 6200
       });
     } catch (err) {
@@ -2439,7 +2530,7 @@ if (customSave && customInput) {
 
 if (customReset && customInput) {
   customReset.addEventListener("click", () => {
-    pushUndoSnapshot("시간표 초기화");
+    const undoSnapshot = pushUndoSnapshot("시간표 초기화");
     localStorage.removeItem("tile-custom-json");
     localStorage.removeItem(CELL_EDIT_STORAGE_KEY);
     localStorage.removeItem(SCHEDULE_EDIT_STORAGE_KEY);
@@ -2461,7 +2552,7 @@ if (customReset && customInput) {
 
     showToast("시간표 수정값을 초기화했습니다", "기본 시간표를 다시 표시했습니다.", {
       actionLabel: "되돌리기",
-      onAction: restoreLastChange,
+      onAction: () => restoreSnapshot(undoSnapshot),
       duration: 6200
     });
   });
@@ -2494,11 +2585,11 @@ if (memoSave && memoInput) {
   memoSave.addEventListener("click", () => {
     try {
       const memoText = memoInput.value;
-      pushUndoSnapshot("메모 수정");
+      const undoSnapshot = pushUndoSnapshot("메모 수정");
       localStorage.setItem("tile-memo-content", memoText);
       showToast("메모를 저장했습니다", "이 브라우저에 안전하게 보관됩니다.", {
         actionLabel: "되돌리기",
-        onAction: restoreLastChange
+        onAction: () => restoreSnapshot(undoSnapshot)
       });
     } catch (err) {
       showToast("메모를 저장하지 못했습니다", err.message, { tone: "error" });
@@ -2508,12 +2599,12 @@ if (memoSave && memoInput) {
 
 if (memoReset && memoInput) {
   memoReset.addEventListener("click", () => {
-    pushUndoSnapshot("메모 초기화");
+    const undoSnapshot = pushUndoSnapshot("메모 초기화");
     localStorage.removeItem("tile-memo-content");
     memoInput.value = "";
     showToast("메모를 비웠습니다", "", {
       actionLabel: "되돌리기",
-      onAction: restoreLastChange
+      onAction: () => restoreSnapshot(undoSnapshot)
     });
   });
 }
@@ -2859,22 +2950,22 @@ appSettingsModal?.addEventListener("click", (event) => {
 
 saveAppSettings?.addEventListener("click", () => {
   triggerButtonPop(saveAppSettings);
-  pushUndoSnapshot("Tile 설정 수정");
+  const undoSnapshot = pushUndoSnapshot("Tile 설정 수정");
   saveAppSettingsFromInput();
   closeAppSettingsModal();
   showToast("Tile 설정을 저장했습니다", "급식 알림 설정을 바로 반영했습니다.", {
     actionLabel: "되돌리기",
-    onAction: restoreLastChange
+    onAction: () => restoreSnapshot(undoSnapshot)
   });
 });
 
 resetAppSettings?.addEventListener("click", () => {
-  pushUndoSnapshot("Tile 설정 초기화");
+  const undoSnapshot = pushUndoSnapshot("Tile 설정 초기화");
   localStorage.removeItem(APP_SETTINGS_STORAGE_KEY);
   loadAppSettings();
   showToast("현재 설정을 초기화했습니다", "", {
     actionLabel: "되돌리기",
-    onAction: restoreLastChange
+    onAction: () => restoreSnapshot(undoSnapshot)
   });
 });
 
@@ -2900,6 +2991,50 @@ exportTileData?.addEventListener("click", () => {
   anchor.remove();
   URL.revokeObjectURL(url);
   showToast("Tile 데이터를 내보냈습니다", "다운로드한 파일은 개인 백업으로 보관할 수 있습니다.");
+});
+
+importTileData?.addEventListener("click", () => {
+  importTileDataInput?.click();
+});
+
+importTileDataInput?.addEventListener("change", async () => {
+  const [file] = Array.from(importTileDataInput.files || []);
+  importTileDataInput.value = "";
+  if (!file) return;
+
+  let undoSnapshot = null;
+  let previousUndo = null;
+  try {
+    const imported = JSON.parse(await file.text());
+    if (
+      imported?.version !== 1
+      || !imported.values
+      || typeof imported.values !== "object"
+      || Array.isArray(imported.values)
+    ) {
+      throw new Error("Tile에서 내보낸 올바른 백업 파일이 아닙니다.");
+    }
+
+    previousUndo = localStorage.getItem(UNDO_STORAGE_KEY);
+    undoSnapshot = pushUndoSnapshot("데이터 가져오기");
+    if (!applySnapshotValues(imported.values)) {
+      throw new Error("백업 데이터 형식을 읽지 못했습니다.");
+    }
+    localStorage.setItem(UNDO_STORAGE_KEY, JSON.stringify(undoSnapshot));
+    window.location.reload();
+  } catch (error) {
+    console.error(error);
+    if (undoSnapshot) {
+      restoreSnapshot(undoSnapshot, { reload: false });
+      if (previousUndo === null) localStorage.removeItem(UNDO_STORAGE_KEY);
+      else localStorage.setItem(UNDO_STORAGE_KEY, previousUndo);
+      rehydrateTimetableFromStorage();
+      updateUndoAvailability();
+    }
+    showToast("Tile 데이터를 가져오지 못했습니다", error.message || "백업 파일을 확인해주세요.", {
+      tone: "error"
+    });
+  }
 });
 
 undoTileChange?.addEventListener("click", restoreLastChange);
@@ -2928,6 +3063,7 @@ saveSchoolButton?.addEventListener("click", async () => {
         const prepared = await neisBridge.prepare(formUser);
         preparedSchoolSync = prepared;
         selectedSchool = prepared.school;
+        if (schoolInput) schoolInput.value = prepared.school.name;
         renderSelectedSchoolInfo(prepared.school);
         preparedSchoolSignature = [
           prepared.school.office || "",
@@ -2980,6 +3116,7 @@ saveSchoolButton?.addEventListener("click", async () => {
       if (previousUndo === null) localStorage.removeItem(UNDO_STORAGE_KEY);
       else localStorage.setItem(UNDO_STORAGE_KEY, previousUndo);
       fillSchoolSettingsFromSavedUser();
+      rehydrateTimetableFromStorage();
       updateUndoAvailability();
       if (schoolFormMessage) schoolFormMessage.textContent = "적용하지 못했습니다. 기존 시간표는 그대로 유지됩니다.";
       return;
@@ -3014,7 +3151,7 @@ saveSchoolButton?.addEventListener("click", async () => {
     });
     showToast("학교와 시간표를 적용했습니다", `${user.school.name} · ${user.grade}학년 ${user.classNum}반`, {
       actionLabel: "되돌리기",
-      onAction: restoreLastChange,
+      onAction: () => restoreSnapshot(rollbackSnapshot),
       duration: 7000
     });
 });

@@ -3203,6 +3203,10 @@ body.light-mode .subject-modal {
   display: none;
 }
 
+.settings-card > .setup-actions[hidden] {
+  display: none;
+}
+
 .settings-data-summary {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3211,7 +3215,7 @@ body.light-mode .subject-modal {
 
 .settings-secondary-actions {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 

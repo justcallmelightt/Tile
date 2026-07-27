@@ -9,7 +9,7 @@
   <link rel="icon" href="./assets/favicon/favicon-32x32.png" sizes="32x32" type="image/png" />
   <link rel="icon" href="./assets/favicon/favicon-96x96.png" sizes="96x96" type="image/png" />
   <link rel="apple-touch-icon" href="./assets/favicon/favicon-96x96.png" />
-  <link rel="stylesheet" href="./style.css?v=20260716-original-spotlight-ratio" />
+  <link rel="stylesheet" href="./style.css?v=20260727-review-fixes" />
 </head>
 <body class="welcome-active">
   <a class="skip-link" href="#timetable">시간표로 바로가기</a>
@@ -139,6 +139,8 @@
         </div>
         <div class="settings-secondary-actions">
           <button id="exportTileData" class="secondary-action" type="button">데이터 내보내기</button>
+          <button id="importTileData" class="secondary-action" type="button">데이터 가져오기</button>
+          <input id="importTileDataInput" type="file" accept="application/json,.json" hidden>
           <button id="undoTileChange" class="secondary-action" type="button">마지막 변경 되돌리기</button>
         </div>
       </section>
@@ -518,7 +520,7 @@
   </div>
   <script src="./config.public.js?v=20260703-script-fix"></script>
   <script src="./config.js?v=20260703-script-fix" onerror="this.remove()"></script>
-  <script src="./neis.js?v=20260716-style-recovery"></script>
-  <script src="./script.js?v=20260725-uiux-refresh"></script>
+  <script src="./neis.js?v=20260727-review-fixes"></script>
+  <script src="./script.js?v=20260727-review-fixes"></script>
 </body>
 </html>
