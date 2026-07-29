@@ -78,9 +78,35 @@ interface TileMeal {
   rawMenu: string;
 }
 
+interface PreparedNeisSync {
+  user: ResolvedTileUser;
+  school: TileSchool;
+  timetableRows: NeisTimetableRow[];
+  meals: TileMeal[];
+  department: string;
+  partial: boolean;
+  syncScope: string;
+  previousSyncScope: string;
+}
+
+interface AppliedNeisSync {
+  appliedCount: number;
+  department: string;
+  partial: boolean;
+}
+
+interface NeisTimetableTarget {
+  period: string;
+  dayIndex: number;
+}
+
 interface SyncOptions {
   user?: TileUserConfig | null;
   silent?: boolean;
+  prepared?: PreparedNeisSync;
+  beforeApply?: (
+    prepared: PreparedNeisSync
+  ) => void | Promise<void>;
 }
 
 interface ApplyTimetableOptions {
@@ -106,12 +132,26 @@ interface TileAppBridge {
   setMeal?: (type: string, menu: string, rawMenu: string) => void;
   setSchoolDetails?: (school: TileSchool) => void;
   setSchoolDepartment?: (department: string) => void;
+  notify?: (
+    title: string,
+    detail?: string,
+    options?: { tone?: "error" | "success" }
+  ) => void;
 }
 
 interface TileNeisBridge {
   searchSchool: (name: string) => Promise<TileSchool[]>;
   getMeal: (user?: TileUserConfig | null) => Promise<TileMeal[]>;
   getTimetable: (user?: TileUserConfig | null) => Promise<NeisTimetableRow[]>;
+  prepare: (user?: TileUserConfig | null) => Promise<PreparedNeisSync>;
+  apply: (
+    prepared: PreparedNeisSync,
+    options?: Pick<SyncOptions, "beforeApply">
+  ) => Promise<AppliedNeisSync>;
+  applyTargets: (
+    prepared: PreparedNeisSync,
+    targets: NeisTimetableTarget[]
+  ) => number;
   sync: (options?: SyncOptions) => Promise<boolean | undefined>;
 }
 

@@ -2,17 +2,19 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <link rel="preload" href="./assets/fonts/PretendardVariable.woff2" as="font" type="font/woff2" crossorigin />
   <title>Tile</title>
   <link rel="icon" href="./assets/favicon/favicon-16x16.png" sizes="16x16" type="image/png" />
   <link rel="icon" href="./assets/favicon/favicon-32x32.png" sizes="32x32" type="image/png" />
   <link rel="icon" href="./assets/favicon/favicon-96x96.png" sizes="96x96" type="image/png" />
   <link rel="apple-touch-icon" href="./assets/favicon/favicon-96x96.png" />
-    <link rel="stylesheet" href="./style.css?v=20260716-original-spotlight-ratio" />
+  <link rel="stylesheet" href="./style.css?v=20260727-review-fixes" />
 </head>
 <body class="welcome-active">
+  <a class="skip-link" href="#timetable">시간표로 바로가기</a>
   <div class="startup-spotlight" aria-hidden="true"></div>
+  <div id="toastRegion" class="toast-region" aria-live="polite" aria-atomic="true"></div>
   <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-G0FCVJ0M52"></script>
 <script>
@@ -24,13 +26,19 @@
 </script>
   <!-- Tile 2.0: large update preparation / future custom timetable platform -->
   <div id="setupModal" class="setup-modal hidden" aria-hidden="true">
-    <div class="setup-card" role="dialog" aria-modal="true" aria-labelledby="setupTitle">
+    <div class="setup-card" role="dialog" aria-modal="true" aria-labelledby="setupTitle" aria-describedby="setupDescription">
       <div class="setup-header">
         <div>
+          <span class="dialog-eyebrow">NEIS 연결</span>
           <h2 id="setupTitle">학교 설정</h2>
-          <p class="setup-subtitle">전국의 국립, 공립, 사립 초·중·고등학교와 특수학교를 검색하고, 학년과 반에 맞는 NEIS 시간표와 급식을 불러옵니다.</p>
+          <p class="setup-subtitle" id="setupDescription">학교와 학급을 확인한 뒤 변경될 시간표를 미리 살펴보고 적용합니다.</p>
         </div>
         <button id="closeSchoolSettings" class="dialog-close" type="button" aria-label="닫기">&times;</button>
+      </div>
+      <div class="setup-progress" aria-label="학교 연결 단계">
+        <span class="is-active"><b>1</b> 학교</span>
+        <span><b>2</b> 학급</span>
+        <span><b>3</b> 확인</span>
       </div>
       <label class="setup-field setup-field-wide" for="schoolInput">
         <span>학교</span>
@@ -62,8 +70,27 @@
           >
         </label>
       </div>
+      <div id="schoolSyncPreview" class="sync-preview" aria-live="polite" hidden>
+        <div class="sync-preview-heading">
+          <div>
+            <span class="dialog-eyebrow">적용 전 확인</span>
+            <strong id="schoolSyncPreviewTitle">시간표를 확인했습니다</strong>
+          </div>
+          <span id="schoolSyncPreviewBadge" class="source-badge source-neis">NEIS</span>
+        </div>
+        <div class="sync-preview-grid">
+          <div><span>시간표</span><strong id="schoolSyncPreviewCount">0개</strong></div>
+          <div><span>급식</span><strong id="schoolSyncPreviewMeals">0개</strong></div>
+          <div><span>학과</span><strong id="schoolSyncPreviewDepartment">없음</strong></div>
+        </div>
+        <p id="schoolSyncPreviewDescription">적용하면 현재 학교 설정과 시간표가 새 정보로 바뀝니다. 이전 상태는 되돌릴 수 있습니다.</p>
+      </div>
+      <p id="schoolFormMessage" class="form-message" aria-live="polite"></p>
       <div class="setup-actions">
-        <button id="saveSchool" class="theme-toggle" type="button">저장하고 NEIS 동기화</button>
+        <button id="saveSchool" class="theme-toggle primary-action" type="button">
+          <span class="button-label">변경사항 확인</span>
+          <span class="button-progress" aria-hidden="true"></span>
+        </button>
       </div>
     </div>
   </div>
@@ -71,12 +98,17 @@
     <div class="setup-card settings-card" role="dialog" aria-modal="true" aria-labelledby="appSettingsTitle">
       <div class="setup-header">
         <div>
+          <span class="dialog-eyebrow">개인화</span>
           <h2 id="appSettingsTitle">Tile 설정</h2>
-          <p class="setup-subtitle">Tile의 알림과 개인화 옵션을 한곳에서 관리합니다.</p>
+          <p class="setup-subtitle">급식 알림과 이 기기에 저장된 Tile 데이터를 한곳에서 관리합니다.</p>
         </div>
         <button id="closeAppSettings" class="dialog-close" type="button" aria-label="닫기">&times;</button>
       </div>
-      <section class="settings-section" aria-labelledby="allergySettingsTitle">
+      <nav class="settings-nav" aria-label="Tile 설정 항목">
+        <button class="is-active" type="button" data-settings-target="mealSettings">급식</button>
+        <button type="button" data-settings-target="dataSettings">데이터</button>
+      </nav>
+      <section class="settings-section is-active" id="mealSettings" aria-labelledby="allergySettingsTitle">
         <div class="settings-section-header">
           <h3 id="allergySettingsTitle">급식 알레르기</h3>
           <p>피하고 싶은 재료나 알레르기 번호를 등록하면 급식 메뉴에서 바로 알려드립니다.</p>
@@ -90,9 +122,31 @@
         </label>
         <p class="settings-help">쉼표로 구분해서 입력하면 급식 메뉴에서 해당 항목을 찾아 경고를 표시합니다.</p>
       </section>
+      <section class="settings-section" id="dataSettings" aria-labelledby="dataSettingsTitle" hidden>
+        <div class="settings-section-header">
+          <h3 id="dataSettingsTitle">내 데이터</h3>
+          <p>이 브라우저에 저장된 학교, 시간표 수정, 메모와 개인화 설정을 관리합니다.</p>
+        </div>
+        <div class="settings-data-summary">
+          <div>
+            <span>저장 위치</span>
+            <strong>이 기기의 브라우저</strong>
+          </div>
+          <div>
+            <span>마지막 NEIS 연결</span>
+            <strong id="lastSyncValue">기록 없음</strong>
+          </div>
+        </div>
+        <div class="settings-secondary-actions">
+          <button id="exportTileData" class="secondary-action" type="button">데이터 내보내기</button>
+          <button id="importTileData" class="secondary-action" type="button">데이터 가져오기</button>
+          <input id="importTileDataInput" type="file" accept="application/json,.json" hidden>
+          <button id="undoTileChange" class="secondary-action" type="button">마지막 변경 되돌리기</button>
+        </div>
+      </section>
       <div class="setup-actions">
-        <button id="saveAppSettings" class="theme-toggle save-action" type="button">저장</button>
-        <button id="resetAppSettings" class="theme-toggle" type="button">초기화</button>
+        <button id="resetAppSettings" class="theme-toggle secondary-action" type="button">현재 항목 초기화</button>
+        <button id="saveAppSettings" class="theme-toggle save-action primary-action" type="button">설정 저장</button>
       </div>
     </div>
   </div>
@@ -126,7 +180,7 @@
     </div>
   </div>
 
-  <div class="container">
+  <main class="container" id="mainContent">
     <div class="hero">
       <div class="hero-copy">
         <h1 id="tileTitle" class="welcome-title is-welcome-rolling" aria-label="Tile">
@@ -138,15 +192,18 @@
         <p class="subtitle" id="schoolSubtitle">미림마이스터고등학교 | 1학년 2반</p>
       </div>
       <div class="controls">
-        <button class="theme-toggle" id="themeToggle" type="button">다크 모드</button>
-        <button class="theme-toggle today-toggle" id="todayOnlyToggle" type="button">오늘 일과만 보기</button>
+        <button class="theme-toggle" id="themeToggle" type="button" aria-pressed="false">다크 모드</button>
+        <button class="theme-toggle today-toggle" id="todayOnlyToggle" type="button" aria-pressed="false">오늘 일과만 보기</button>
         <div class="tool-menu" id="toolMenu">
-          <button class="theme-toggle" id="toolMenuToggle" type="button" aria-expanded="false">도구</button>
+          <button class="theme-toggle" id="toolMenuToggle" type="button" aria-expanded="false" aria-controls="toolMenuPanel">도구</button>
           <div class="tool-menu-panel" id="toolMenuPanel" aria-hidden="true">
-            <button id="schoolSettingsToggle" type="button">학교 설정</button>
-            <button id="appSettingsToggle" type="button">Tile 설정</button>
-            <button id="mealToggle" type="button">급식 보기</button>
-            <button id="customToggle" class="custom-toggle" type="button">JSON으로 수정</button>
+            <span class="tool-menu-label">연결</span>
+            <button id="schoolSettingsToggle" type="button"><span>학교 설정</span><small>학교와 학급 변경</small></button>
+            <button id="mealToggle" type="button"><span>오늘 급식</span><small>조식·중식·석식</small></button>
+            <span class="tool-menu-label">관리</span>
+            <button id="appSettingsToggle" type="button"><span>Tile 설정</span><small>개인화와 데이터</small></button>
+            <button id="memoToggle" type="button"><span>메모</span><small>과제와 준비물 기록</small></button>
+            <button id="customToggle" class="custom-toggle" type="button"><span>JSON 편집기</span><small>고급 시간표 설정</small></button>
           </div>
         </div>
       </div>
@@ -249,8 +306,9 @@
       </div>
     </section>
 
-    <div class="table-shell">
+    <div class="table-shell" id="timetable" tabindex="0" aria-label="주간 시간표">
       <table>
+        <caption class="sr-only">월요일부터 금요일까지의 주간 시간표</caption>
         <colgroup>
           <col class="time-col" />
           <col class="day-col" />
@@ -364,59 +422,105 @@
     </div>
 
     <div class="site-footer">
-      <div><strong>Tile 2.0</strong> · HTML, CSS, JavaScript, JSON</div>
+      <div><strong>Tile 2.0 Alpha</strong> · HTML, CSS, JavaScript, TypeScript, JSON</div>
       <div><strong>개발자</strong> · 미림마이스터고등학교 1203 권율 | Instagram @justcallmelight_ | Github @justcallmelightt </div>
     </div>
-  </div>
+  </main>
 
   <div id="subjectOverlay" class="overlay hidden" aria-hidden="true">
     <div id="subjectModal" class="subject-modal" role="dialog" aria-modal="true" aria-labelledby="subjectName">
+      <div class="modal-grabber" aria-hidden="true"></div>
       <button id="closeModal" class="dialog-close" type="button" aria-label="닫기">&times;</button>
 
       <div id="modalInfoMode">
+        <span class="dialog-eyebrow">시간표 정보</span>
         <h2 id="subjectName">과목 정보</h2>
         <p id="subjectLocation">교실 정보 없음</p>
         <p id="subjectTeacher">선생님 정보 없음</p>
       </div>
 
       <div id="modalInputMode" class="mode-hidden">
+        <span class="dialog-eyebrow">교시 시간</span>
         <h2 id="modalTitle">입력</h2>
         <input id="modalInput" type="text" placeholder="입력하세요" />
         <button id="modalConfirm" type="button">확인</button>
       </div>
 
       <div id="subjectEditMode" class="mode-hidden">
-        <h2 id="subjectEditTitle">과목 수정</h2>
-        <label class="field-label" for="subjectEditName">과목</label>
-        <input id="subjectEditName" type="text" placeholder="과목명" />
-        <label class="field-label" for="subjectEditRoom">교실</label>
-        <input id="subjectEditRoom" type="text" placeholder="교실" />
-        <label class="field-label" for="subjectEditTeacher">선생님</label>
-        <input id="subjectEditTeacher" type="text" placeholder="선생님" />
-        <label class="field-label" for="subjectEditMemo">메모</label>
-        <textarea id="subjectEditMemo" placeholder="이 과목에 대한 메모를 적어두세요"></textarea>
+        <div class="subject-editor-heading">
+          <div>
+            <span class="dialog-eyebrow">시간표 편집</span>
+            <h2 id="subjectEditTitle">과목 수정</h2>
+          </div>
+          <span id="subjectEditSource" class="source-badge">기본값</span>
+        </div>
+        <p id="subjectEditContext" class="subject-edit-context">선택한 시간표 칸을 수정합니다.</p>
+        <div class="subject-form-grid">
+          <label class="subject-form-field subject-form-wide" for="subjectEditName">
+            <span>과목</span>
+            <input id="subjectEditName" type="text" placeholder="과목명" />
+          </label>
+          <label class="subject-form-field" for="subjectEditRoom">
+            <span>교실</span>
+            <input id="subjectEditRoom" type="text" placeholder="예: 1-2" />
+          </label>
+          <label class="subject-form-field" for="subjectEditTeacher">
+            <span>선생님</span>
+            <input id="subjectEditTeacher" type="text" placeholder="이름 입력" />
+          </label>
+          <label class="subject-form-field subject-form-wide" for="subjectEditMemo">
+            <span>메모</span>
+            <textarea id="subjectEditMemo" placeholder="과제나 준비물을 적어두세요"></textarea>
+          </label>
+        </div>
         <div class="subject-actions">
-          <button id="subjectEditSave" type="button">저장</button>
-          <button id="subjectEditReset" type="button">같은 과목 일괄 수정</button>
-          <button id="subjectEditNeis" type="button">NEIS에서 연동</button>
+          <button id="subjectEditNeis" class="secondary-action" type="button">NEIS로 복원</button>
+          <button id="subjectEditReset" class="secondary-action" type="button">같은 과목 일괄 수정</button>
+          <button id="subjectEditSave" class="primary-action" type="button">이 칸 저장</button>
         </div>
       </div>
 
       <div id="subjectBulkMode" class="mode-hidden">
+        <span class="dialog-eyebrow">여러 칸 편집</span>
         <h2 id="subjectBulkTitle">같은 과목 일괄 수정</h2>
-        <p class="subject-bulk-help">선택한 과목과 같은 이름의 칸만 모아서 과목, 교실, 선생님, 메모를 한 번에 정리합니다.</p>
+        <p class="subject-bulk-help">공통 변경값을 정하고 적용할 수업만 선택하세요. 선택하지 않은 칸은 그대로 유지됩니다.</p>
+        <div class="subject-bulk-common">
+          <label class="subject-form-field" for="subjectBulkName"><span>과목</span><input id="subjectBulkName" type="text" /></label>
+          <label class="subject-form-field" for="subjectBulkRoom"><span>교실</span><input id="subjectBulkRoom" type="text" /></label>
+          <label class="subject-form-field" for="subjectBulkTeacher"><span>선생님</span><input id="subjectBulkTeacher" type="text" /></label>
+          <label class="subject-form-field subject-form-wide" for="subjectBulkMemo"><span>메모</span><textarea id="subjectBulkMemo" placeholder="선택한 수업에 같은 메모 적용"></textarea></label>
+        </div>
+        <div class="subject-bulk-toolbar">
+          <strong id="subjectBulkSummary">0개 수업 선택됨</strong>
+          <button id="subjectBulkToggleAll" type="button">전체 해제</button>
+        </div>
         <div id="subjectBulkRows" class="subject-bulk-list"></div>
         <div class="subject-actions subject-bulk-actions">
-          <button id="subjectBulkSave" type="button">일괄 저장</button>
-          <button id="subjectBulkBack" type="button">돌아가기</button>
-          <button id="subjectBulkNeis" type="button">NEIS에서 다시 불러오기</button>
+          <button id="subjectBulkBack" class="secondary-action" type="button">돌아가기</button>
+          <button id="subjectBulkNeis" class="secondary-action" type="button">NEIS로 복원</button>
+          <button id="subjectBulkSave" class="primary-action" type="button">선택한 수업 저장</button>
+        </div>
+      </div>
+
+      <div id="periodEditMode" class="mode-hidden">
+        <span class="dialog-eyebrow">일과 시간 편집</span>
+        <h2 id="periodEditTitle">교시 수정</h2>
+        <p id="periodEditDescription" class="subject-edit-context">선택한 교시의 시작과 종료 시간을 수정합니다.</p>
+        <div class="period-time-grid">
+          <label class="subject-form-field" for="periodStartInput"><span>시작</span><input id="periodStartInput" type="time" /></label>
+          <label class="subject-form-field" for="periodEndInput"><span>종료</span><input id="periodEndInput" type="time" /></label>
+        </div>
+        <p id="periodFormMessage" class="form-message" aria-live="polite"></p>
+        <div class="subject-actions">
+          <button id="periodEditCancel" class="secondary-action" type="button">취소</button>
+          <button id="periodEditSave" class="primary-action" type="button">시간 저장</button>
         </div>
       </div>
     </div>
   </div>
   <script src="./config.public.js?v=20260703-script-fix"></script>
   <script src="./config.js?v=20260703-script-fix" onerror="this.remove()"></script>
-  <script src="./neis.js?v=20260716-style-recovery"></script>
-  <script src="./script.js?v=20260716-ease-out-rolling"></script>
+  <script src="./neis.js?v=20260727-review-fixes"></script>
+  <script src="./script.js?v=20260727-review-fixes"></script>
 </body>
 </html>
