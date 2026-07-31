@@ -93,6 +93,8 @@ const allergyInput = document.getElementById("allergyInput");
 const saveAppSettings = document.getElementById("saveAppSettings");
 const resetAppSettings = document.getElementById("resetAppSettings");
 const settingsNavButtons = document.querySelectorAll("[data-settings-target]");
+const supportButtons = document.querySelectorAll("[data-support-tier]");
+const supportStatus = document.getElementById("supportStatus");
 const lastSyncValue = document.getElementById("lastSyncValue");
 const exportTileData = document.getElementById("exportTileData");
 const importTileData = document.getElementById("importTileData");
@@ -2915,6 +2917,26 @@ function setSettingsSection(sectionId = "mealSettings") {
   if (settingsActions) settingsActions.hidden = sectionId === "dataSettings";
 }
 
+function initializeSupportLinks() {
+  const supportConfig = window.TILE_SUPPORT_CONFIG || {};
+  let availableCount = 0;
+
+  supportButtons.forEach((button) => {
+    const url = String(supportConfig[button.dataset.supportTier] || "").trim();
+    const isAvailable = /^https:\/\//i.test(url);
+    button.disabled = !isAvailable;
+    button.classList.toggle("is-unavailable", !isAvailable);
+    button.dataset.supportUrl = isAvailable ? url : "";
+    if (isAvailable) availableCount += 1;
+  });
+
+  if (!supportStatus) return;
+  supportStatus.textContent = availableCount
+    ? "원하는 금액을 선택하면 안전한 결제 페이지가 새 창에서 열립니다."
+    : "응원 결제를 준비하고 있습니다. 조금만 기다려 주세요.";
+  supportStatus.classList.toggle("is-ready", availableCount > 0);
+}
+
 function openAppSettings() {
   if (!appSettingsModal) return;
   rememberDialogTrigger();
@@ -2972,6 +2994,24 @@ resetAppSettings?.addEventListener("click", () => {
 settingsNavButtons.forEach((button) => {
   button.addEventListener("click", () => setSettingsSection(button.dataset.settingsTarget));
 });
+
+supportButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const url = button.dataset.supportUrl;
+    if (!url) return;
+    triggerButtonPop(button);
+    if (typeof window.gtag === "function") {
+      window.gtag("event", "support_checkout_open", {
+        currency: "KRW",
+        value: Number(button.dataset.supportAmount || 0),
+        support_tier: button.dataset.supportTier
+      });
+    }
+    window.open(url, "_blank", "noopener,noreferrer");
+  });
+});
+
+initializeSupportLinks();
 
 exportTileData?.addEventListener("click", () => {
   const exportData = {

@@ -6,3 +6,10 @@ window.TILE_NEIS_CONFIG = {
   grade: "1",
   className: "2"
 };
+
+// Toss Payments LinkPay URLs. Leave a value empty until its payment link is ready.
+window.TILE_SUPPORT_CONFIG = {
+  small: "",
+  standard: "",
+  large: ""
+};
