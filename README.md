@@ -1,19 +1,19 @@
+# Tile
 ![Tile Banner](./assets/TileBanner.png)
 
-# Tile
 > [!CAUTION]
 > `© 2026 Lightframe. All Rights Reserved.` <br>
 > **이 Repository의 모든 파일은 소중한 개인 저작권의 보호를 받습니다. 무단 복제 및 도용을 금지합니다.** <br>
 > **This repository is NOT open source.**
 
-> 학교 일과 관리를 위한 Realtime System 기반 자동화 TimeTable <br>
+> 학교 일과 관리를 위한 리얼타임 시스템 기반 통합형 크로스플랫폼 TimeTable<br>
 > <img src="https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white"> <img src="https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white"> <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black"> <img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white"> <img src="https://img.shields.io/badge/JSON-5E5C5C?style=for-the-badge&logo=json&logoColor=white"> <img src="https://img.shields.io/badge/Swift-F05138?style=for-the-badge&logo=swift&logoColor=white"> <br>
 > <img src="https://img.shields.io/badge/iOS-Pre_Alpha-orange?style=for-the-badge&logo=apple&logoColor=white&labelColor=000000"> <img src="https://img.shields.io/badge/Android-Planned-3178C6?style=for-the-badge&logo=android&logoColor=white&labelColor=3DDC84"> <img src="https://img.shields.io/badge/Web-Alpha-red?style=for-the-badge&logo=googlechrome&logoColor=white&labelColor=4285F4"> <br>
 > **Web: [Tile](https://tile0.vercel.app/) | [GitHub Pages Mirror](https://justcallmelightt.github.io/Tile/) | App: Coming Soon**
 
-## Contributors
+## 기여자
 
-| 프로필 | Github | 역할 (Role) | 담당 업무 (Contributions) |
+| 프로필 | GitHub | 역할 | 담당 업무 |
 | :---: | :---: | :---: | :--- |
 | <img src="https://github.com/justcallmelightt.png" width="80"> | **권율**<br>([@justcallmelightt](https://github.com/justcallmelightt)) | **Creator** [99.50%] | Tile 서비스 기획 및 전반적인 End-to-End 개발 주도<br><details><summary><b>상세 업무 보기 (클릭)</b></summary><blockquote><small><sub>- Tile 서비스 전체 아이디어 기획 및 초기 Product Concept 설계<br>- 서비스 방향성 정의 및 전체 Product Vision 수립<br>- 프로젝트 전체 Frontend Architecture 및 Core System Structure 직접 설계<br>- 핵심 기능 로직 설계 및 주요 Features 대부분 직접 Development<br>- Dynamic Rendering 기반 실시간 UI 업데이트 로직 구현<br>- State Management 및 LocalStorage 기반 사용자 데이터 Persistence 시스템 구현<br>- Modal System, Overlay Logic, Custom Panel 등 Interactive Component Architecture 설계<br>- UI/UX 전체 구조 설계 및 실제 사용 환경 기준 User Flow 지속 개선<br>- Animation, Transition, Motion Interaction 등 세부 Interaction Design 직접 구현 및 최적화<br>- Responsive Layout 설계 및 다양한 Screen Size 환경 대응 구조 설계<br>- Mobile Environment 중심 UX 최적화 및 Device-specific Behavior 직접 구현<br>- Apple Ecosystem (iPhone · iPad · Apple Watch) 기반 Cross-device Experience 설계 및 대응<br>- Apple-like Design Philosophy 기반 Interface Design 및 디테일 조정<br>- 실시간 Timeline, Schedule Tracking, Rolling Clock Animation 등 Live UI System 구현<br>- Performance Optimization 및 불필요한 Re-render 최소화를 위한 구조 개선<br>- 전체 Code Structure 설계 및 Maintainability 고려한 프로젝트 구조 관리<br>- 프로젝트 전반 Development Lifecycle 관리 및 전체 Development Process Lead<br>- 전체 서비스 Architecture 설계부터 Deployment 직전 단계까지 End-to-End Development 주도<br>- 프로젝트 주요 Technical Decision Making 및 전체 기술 스택 방향 결정</sub></small></blockquote></details> |
 | <img src="https://github.com/eonpisa.png" width="80"> | **eonpisa**<br>([@eonpisa](https://github.com/eonpisa)) | **Alpha Tester** [0.50%] | - Tile 서비스 Alpha Tester<br>- Custom TimeTable 기능 Tester<br>- 바이브 코딩<br>- Issues 보고 |
@@ -37,7 +37,7 @@
 
 ---
 
-## Why This Project Matters
+## 이 프로젝트가 중요한 이유
 
 Tile은 단순한 시간표 페이지를 만드는 데서 끝난 프로젝트가 아닙니다.  
 처음에는 학교 HTML 방과후 수업에서 시작한 작은 작업이었지만, 만들면서 실제 사용성을 고려하게 되었고, 그 과정에서 단순한 정적 페이지를 넘어 **실시간성과 직관성, 사용자 경험을 함께 고민한 프로젝트**로 발전했습니다.
@@ -58,7 +58,7 @@ Tile은 단순한 시간표 페이지를 만드는 데서 끝난 프로젝트가
 
 ---
 
-## What Makes It Different
+## Tile만의 차별점
 
 Tile의 가장 큰 차별점은 단순한 시간표가 아니라,  
 현재 시간과 상황에 맞춰 실시간으로 상태가 바뀌는 **자동화 일과표**에 가깝다는 점입니다.
@@ -74,7 +74,7 @@ Tile의 가장 큰 차별점은 단순한 시간표가 아니라,
 
 ---
 
-## Key Points
+## 핵심 기능
 
 - 실시간 현재 교시 / 쉬는시간 판별
 - 남은 시간 및 일과 남은 시간 계산
@@ -84,7 +84,7 @@ Tile의 가장 큰 차별점은 단순한 시간표가 아니라,
 - 다크 모드 지원
 - 모바일 대응
 
-## Features
+## 주요 기능
 
 ### 1. 실시간 시간표 표시
 현재 시각을 기준으로 지금이 몇 교시인지, 쉬는시간인지, 일과 시간 외인지 자동으로 판별합니다.
@@ -112,7 +112,38 @@ Tile의 가장 큰 차별점은 단순한 시간표가 아니라,
 
 ---
 
-## Roadmap
+## 개인정보 보호 및 보안
+
+Tile은 현재 회원가입이나 로그인을 요구하지 않는 로컬 우선 시간표 서비스입니다.
+
+- 학교명, 학년·반, 직접 입력한 시간표, 과목 정보, 메모, 테마와 화면 설정은 사용 중인 브라우저의 `localStorage`에 저장됩니다.
+- 이 데이터는 Tile 서버의 사용자 계정 데이터베이스에 저장되지 않으며, 브라우저의 사이트 데이터를 삭제하면 함께 삭제됩니다.
+- NEIS 동기화를 선택한 경우에만 학교 검색 및 시간표·급식 조회에 필요한 학교·학년·반 정보가 Vercel의 `/api/neis` 프록시를 거쳐 NEIS Open API로 전송됩니다.
+- 시간표와 메모에는 다른 사람의 개인정보나 민감한 정보를 입력하지 않는 것을 권장합니다.
+- 향후 계정, 동기화, 분석 기능을 도입하는 경우에는 수집 항목과 목적, 보관·삭제 방식을 이 문서에 명확히 업데이트합니다.
+
+## 보안 및 배포
+
+Tile은 GitHub Pages와 Vercel 배포를 함께 고려합니다.
+
+- GitHub Pages는 정적 호스팅이므로 브라우저에서 사용하는 API 키를 완전히 숨길 수 없습니다.
+- Vercel 배포판은 `/api/neis` 서버리스 프록시를 통해 NEIS 요청을 보내며, 실제 키는 Vercel Environment Variables의 `NEIS_KEY`에만 저장합니다.
+- `config.js`, `.env`, `.env.*`는 `.gitignore`에 포함되어 있으므로 실제 키를 커밋하지 않습니다.
+- 공개 저장소에는 `config.public.js`, `config.example.js`, `.env.example`만 포함합니다.
+
+Vercel 환경변수:
+
+```bash
+NEIS_KEY=your_neis_open_api_key
+```
+
+로컬에서 키를 테스트해야 한다면 `config.example.js`를 참고해 `config.js`를 만들되, 실제 키는 절대 커밋하지 마세요.
+
+GitHub Pages 배포 체크가 `deployment_queued`에서 오래 멈추면 저장소의 **Settings → Pages → Build and deployment**에서 Source를 `GitHub Actions`로 맞춘 뒤, 포함된 `.github/workflows/pages.yml` 워크플로로 배포하세요. Vercel만 정식 배포판으로 쓸 경우 GitHub Pages를 비활성화하면 Pages deploy 체크 자체가 생성되지 않습니다.
+
+---
+
+## 로드맵
 
 - [x] 웹 시간표 구현
 - [x] 실시간 현재 교시 감지
@@ -124,29 +155,28 @@ Tile의 가장 큰 차별점은 단순한 시간표가 아니라,
 - [ ] 사용자 별 맞춤형 학교 시간표 편집기
 - [ ] 사용자 별 맞춤형 수업 설정
 - [x] 웹 호스팅
-- [x] 웹 Alpha 서비스 버전
+- [ ] 웹 서비스 버전
 - [x] 앱 제작 (iOS)
 - [ ] 앱 서비스 버전
 - [ ] 통합 시간표 플랫폼
 
-## File Structure
+## 파일 구조
 
 ```bash
-index.html                       # Web entry point
-style.css                       # Main visual system and interaction styles
-script.js                       # Timetable UI and browser behavior
-neis.js                         # Browser-ready TypeScript build output
-src/neis.ts                     # Typed NEIS browser client
-src/types.d.ts                  # Shared Tile and NEIS types
-api/neis.ts                     # Vercel NEIS serverless proxy
-data/default-timetable.json     # Default timetable data
-assets/                         # Banner, logo, favicon, and local font assets
-ContentView.swift               # iOS application view
-package.json                    # Development scripts and dependencies
-tsconfig.json                   # TypeScript type-check configuration
+index.html
+style.css
+script.js
+neis.js                 # TypeScript build output used by the browser
+src/neis.ts             # Typed NEIS browser client
+src/types.d.ts          # Shared Tile and NEIS types
+api/neis.ts             # Vercel NEIS proxy
+data/default-timetable.json
+package.json
+tsconfig.json
+README.md
 ```
 
-## Development
+## 개발 환경
 
 ```bash
 npm install
@@ -154,17 +184,4 @@ npm run typecheck
 npm run build
 ```
 
-`npm run build` compiles `src/neis.ts` into the browser-compatible `neis.js` file and then runs the complete TypeScript type check.
-
-## Security / Deployment
-
-- GitHub Pages is static hosting, so a browser-side API key cannot be kept secret.
-- The Vercel deployment sends NEIS requests through the `/api/neis` serverless proxy.
-- Store the real key only as the `NEIS_KEY` environment variable in Vercel.
-- `config.js`, `.env`, and `.env.*` are ignored by Git. Only example and public configuration files belong in the repository.
-
-```bash
-NEIS_KEY=your_neis_open_api_key
-```
-
-For local testing, create `config.js` from `config.example.js` and never commit the real key.
+`npm run build` compiles `src/neis.ts` to the browser-compatible `neis.js` file and then runs the full TypeScript type check.
