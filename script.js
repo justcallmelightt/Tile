@@ -52,14 +52,6 @@ const scheduleRanges = [
   { name: "방과후 B", start: "18:20", end: "20:00" }
 ];
 
-const breakRanges = [
-  { name: "쉬는시간", start: "09:10", end: "09:20" },
-  { name: "쉬는시간", start: "10:10", end: "10:20" },
-  { name: "쉬는시간", start: "11:10", end: "11:20" },
-  { name: "쉬는시간", start: "13:50", end: "14:00" },
-  { name: "쉬는시간", start: "14:50", end: "15:00" }
-];
-
 const dayNames = ["일", "월", "화", "수", "목", "금", "토"];
 const themeToggle = document.getElementById("themeToggle");
 const todayOnlyToggle = document.getElementById("todayOnlyToggle");
@@ -1501,11 +1493,17 @@ function getCurrentSchedule(minutesNow) {
     }
   }
 
-  for (const item of breakRanges) {
-    const start = toMinutes(item.start);
-    const end = toMinutes(item.end);
-    if (minutesNow >= start && minutesNow < end) {
-      return { ...item, type: "break" };
+  // 교시 사이 빈틈을 쉬는시간으로 자동 인식 (커스텀 시간 수정에도 항상 정확하게 대응)
+  for (let i = 0; i < scheduleRanges.length - 1; i++) {
+    const prevEnd = toMinutes(scheduleRanges[i].end);
+    const nextStart = toMinutes(scheduleRanges[i + 1].start);
+    if (minutesNow >= prevEnd && minutesNow < nextStart) {
+      return {
+        name: "쉬는시간",
+        start: scheduleRanges[i].end,
+        end: scheduleRanges[i + 1].start,
+        type: "break"
+      };
     }
   }
 
