@@ -3173,7 +3173,7 @@ body.light-mode .subject-modal {
 
 .settings-nav {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
   padding: 5px;
   border-radius: 14px;
@@ -3203,6 +3203,12 @@ body.light-mode .subject-modal {
   display: none;
 }
 
+.account-notice[hidden],
+.account-state[hidden],
+.account-confirm-panel[hidden] {
+  display: none;
+}
+
 .settings-card > .setup-actions[hidden] {
   display: none;
 }
@@ -3223,6 +3229,140 @@ body.light-mode .subject-modal {
   border-color: var(--border);
   background: var(--toggle-bg);
   color: var(--text);
+}
+
+.account-state {
+  display: grid;
+  gap: 12px;
+}
+
+.account-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface-soft);
+}
+
+.account-identity > div { display: grid; gap: 3px; min-width: 0; }
+.account-identity strong,
+.account-identity span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.account-identity strong { color: var(--text); font-size: 0.9rem; font-weight: 760; }
+.account-identity div span { color: var(--text-soft); font-size: 0.74rem; }
+
+.account-avatar {
+  display: inline-flex;
+  flex: 0 0 40px;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 13px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 1rem;
+  font-weight: 820;
+}
+
+.account-primary-action,
+.account-text-action,
+.account-confirm-panel button { border: 0; font: inherit; cursor: pointer; }
+
+.account-primary-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 46px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 0.84rem;
+  font-weight: 760;
+}
+
+.google-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  color: #4285f4;
+  font-weight: 850;
+}
+
+.account-primary-action:active,
+.account-text-action:active,
+.account-confirm-panel button:active { transform: scale(0.975); }
+
+.account-primary-action:disabled,
+.account-actions button:disabled,
+.account-confirm-panel button:disabled { cursor: wait; opacity: 0.55; }
+
+.account-notice {
+  display: grid;
+  gap: 5px;
+  padding: 13px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-soft);
+}
+
+.account-notice strong { color: var(--text); font-size: 0.84rem; }
+.account-notice span { color: var(--text-soft); font-size: 0.74rem; line-height: 1.5; }
+.account-summary { padding: 0; }
+.account-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.account-message { min-height: 0; margin: 0; }
+.account-message[data-tone="error"] { color: #ff5a5f; }
+.account-message[data-tone="success"] { color: #34c759; }
+
+.account-text-action {
+  justify-self: start;
+  padding: 4px 2px;
+  background: transparent;
+  color: var(--text-soft);
+  font-size: 0.76rem;
+  font-weight: 650;
+}
+
+.account-danger-action,
+.account-danger-panel strong { color: #ff5a5f; }
+
+.account-confirm-panel {
+  display: grid;
+  gap: 8px;
+  padding: 13px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-soft);
+}
+
+.account-confirm-panel strong { color: var(--text); font-size: 0.82rem; }
+.account-confirm-panel p { margin: 0; color: var(--text-soft); font-size: 0.74rem; line-height: 1.5; }
+.account-confirm-panel > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.account-confirm-panel button { min-height: 38px; border-radius: 10px; font-size: 0.78rem; font-weight: 720; }
+.account-confirm-panel .primary-action { background: var(--accent); color: #fff; }
+.account-confirm-panel .danger-action { background: #ff453a; color: #fff; }
+
+@media (max-width: 560px) {
+  .account-actions,
+  .account-confirm-panel > div { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .account-primary-action,
+  .account-text-action,
+  .account-confirm-panel button { transition: opacity 150ms ease; }
+
+  .account-primary-action:active,
+  .account-text-action:active,
+  .account-confirm-panel button:active { transform: none; opacity: 0.72; }
 }
 
 .tool-menu-panel .tool-menu-label {

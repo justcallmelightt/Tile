@@ -3,6 +3,9 @@
   "functions": {
     "api/neis.ts": {
       "maxDuration": 10
+    },
+    "api/account.ts": {
+      "maxDuration": 10
     }
   },
   "headers": [

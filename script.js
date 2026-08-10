@@ -621,6 +621,37 @@ function restoreLastChange() {
   return restoreSnapshot(snapshot);
 }
 
+function createAccountBackup() {
+  const user = getSavedTileUser();
+  return {
+    version: 1,
+    createdAt: new Date().toISOString(),
+    summary: {
+      schoolName: user?.school?.name || "학교 미설정",
+      grade: user?.grade || "",
+      classNum: user?.classNum || ""
+    },
+    values: captureUserDataSnapshot("Tile 계정 백업").values
+  };
+}
+
+function restoreAccountBackup(backup) {
+  if (!backup || backup.version !== 1 || !backup.values || typeof backup.values !== "object") {
+    throw new Error("지원하지 않는 Tile 백업 형식입니다.");
+  }
+
+  const allowedKeys = new Set(USER_DATA_STORAGE_KEYS);
+  const entries = Object.entries(backup.values).filter(([key]) => allowedKeys.has(key));
+  if (entries.length === 0) throw new Error("복원할 Tile 데이터가 없습니다.");
+
+  pushUndoSnapshot("계정 백업 복원 전");
+  entries.forEach(([key, value]) => {
+    if (value === null || value === undefined) localStorage.removeItem(key);
+    else if (typeof value === "string") localStorage.setItem(key, value);
+  });
+  window.location.reload();
+}
+
 function updateUndoAvailability() {
   if (!undoTileChange) return;
   const snapshot = getUndoSnapshot();
@@ -2463,6 +2494,8 @@ window.TileApp = {
   setSchoolDepartment(department = "") {
     updateSavedTileUser({ department });
   },
+  createAccountBackup,
+  restoreAccountBackup,
   setMeal(period, text, rawText = "") {
     if (period === "조식" || period === "중식" || period === "석식") saveMeal(period, text, rawText);
   },
@@ -2912,7 +2945,7 @@ function setSettingsSection(sectionId = "mealSettings") {
   });
 
   const settingsActions = saveAppSettings?.closest(".setup-actions");
-  if (settingsActions) settingsActions.hidden = sectionId === "dataSettings";
+  if (settingsActions) settingsActions.hidden = sectionId !== "mealSettings";
 }
 
 function openAppSettings() {
