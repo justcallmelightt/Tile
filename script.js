@@ -76,6 +76,7 @@ const floatingTopbar = document.getElementById("floatingTopbar");
 const topbarTime = document.getElementById("topbarTime");
 const topbarPeriod = document.getElementById("topbarPeriod");
 const topbarRemainingLabel = document.getElementById("topbarRemainingLabel");
+const topbarDayRemainingLabel = document.getElementById("topbarDayRemainingLabel");
 const topbarRemaining = document.getElementById("topbarRemaining");
 const topbarDayRemaining = document.getElementById("topbarDayRemaining");
 const topbarRoom = document.getElementById("topbarRoom");
@@ -1452,7 +1453,7 @@ function formatPeriodRemainingTime(diffMinutes) {
 
 function formatBeforeSchoolTime(diffMinutes) {
   if (diffMinutes <= 0) return "곧 시작";
-  return formatRelativeDuration(diffMinutes, "전");
+  return formatRelativeDuration(diffMinutes, "남음");
 }
 
 function getNextSchoolStartDiffMinutes(now, includeToday = false) {
@@ -1489,7 +1490,34 @@ function formatNextSchoolStartFromNow(now, currentMinutes, dayOfWeek) {
   }
 
   const nextStartDiff = getNextSchoolStartDiffMinutes(now);
-  return nextStartDiff !== null ? formatRelativeDuration(nextStartDiff, "전") : "일과 시간 아님";
+  return nextStartDiff !== null ? formatBeforeSchoolTime(nextStartDiff) : "일과 시간 아님";
+}
+
+function getDayRemainingStatus(now, currentMinutes, dayOfWeek, dayScheduleEndMinutes) {
+  const dayStartMinutes = toMinutes(scheduleRanges[0].start);
+  const isSchoolWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
+
+  if (isSchoolWeekday && dayScheduleEndMinutes !== null) {
+    if (currentMinutes < dayStartMinutes) {
+      return {
+        label: "일과 시작까지 남은 시간",
+        value: formatBeforeSchoolTime(dayStartMinutes - currentMinutes)
+      };
+    }
+
+    if (currentMinutes < dayScheduleEndMinutes) {
+      return {
+        label: "오늘 일과 종료까지 남은 시간",
+        value: formatRemainingTime(dayScheduleEndMinutes - currentMinutes)
+      };
+    }
+  }
+
+  const nextStartDiff = getNextSchoolStartDiffMinutes(now);
+  return {
+    label: "다음 일과 시작까지 남은 시간",
+    value: nextStartDiff !== null ? formatBeforeSchoolTime(nextStartDiff) : "일과 시간 아님"
+  };
 }
 
 function getCurrentSchedule(minutesNow) {
@@ -1910,6 +1938,7 @@ function syncFloatingTopbar() {
   if (!floatingTopbar) return;
   const currentPeriodEl = document.getElementById("currentPeriod");
   const remainingTimeLabelEl = document.getElementById("remainingTimeLabel");
+  const dayRemainingTimeLabelEl = document.getElementById("dayRemainingTimeLabel");
   const remainingTimeEl = document.getElementById("remainingTime");
   const dayRemainingTimeEl = document.getElementById("dayRemainingTime");
   const currentRoomEl = document.getElementById("currentRoom");
@@ -1934,6 +1963,7 @@ function syncFloatingTopbar() {
   writeRollingText(topbarTime, readDisplayText(currentTimeEl, "불러오는 중..."), "topbar-current-time");
   writeRollingText(topbarPeriod, readDisplayText(currentPeriodEl, "확인 중..."), "topbar-current-period");
   if (topbarRemainingLabel) topbarRemainingLabel.textContent = remainingTimeLabelEl?.textContent?.trim() || "교시 남은 시간";
+  if (topbarDayRemainingLabel) topbarDayRemainingLabel.textContent = dayRemainingTimeLabelEl?.textContent?.trim() || "오늘 일과 종료까지 남은 시간";
   writeRollingText(topbarRemaining, readDisplayText(remainingTimeEl, "계산 중..."), "topbar-period-remaining-time");
   writeRollingText(topbarDayRemaining, readDisplayText(dayRemainingTimeEl, "계산 중..."), "topbar-day-remaining-time");
   writeRollingText(topbarRoom, readDisplayText(currentRoomEl, "확인 중..."), "topbar-current-room");
@@ -2192,6 +2222,7 @@ function updateCurrentStatus() {
     : 0;
   const currentPeriodEl = document.getElementById("currentPeriod");
   const remainingTimeLabelEl = document.getElementById("remainingTimeLabel");
+  const dayRemainingTimeLabelEl = document.getElementById("dayRemainingTimeLabel");
   const remainingTimeEl = document.getElementById("remainingTime");
   const dayRemainingTimeEl = document.getElementById("dayRemainingTime");
   const currentRoomEl = document.getElementById("currentRoom");
@@ -2216,19 +2247,9 @@ if (currentTimeEl) {
   const dayScheduleEndMinutes = dayScheduleEnd ? toMinutes(dayScheduleEnd) : null;
 
   if (dayRemainingTimeEl) {
-    const dayStartMinutes = toMinutes(scheduleRanges[0].start);
-
-    if (isSchoolWeekday && dayScheduleEndMinutes !== null) {
-      if (currentMinutes < dayStartMinutes) {
-        renderRollingStyleText(dayRemainingTimeEl, formatBeforeSchoolTime(dayStartMinutes - currentMinutes), "day-remaining-time");
-      } else if (currentMinutes >= dayStartMinutes && currentMinutes < dayScheduleEndMinutes) {
-        renderRollingStyleText(dayRemainingTimeEl, formatRemainingTime(dayScheduleEndMinutes - currentMinutes), "day-remaining-time");
-      } else {
-        renderRollingStyleText(dayRemainingTimeEl, formatNextSchoolStartFromNow(now, currentMinutes, dayOfWeek), "day-remaining-time");
-      }
-    } else {
-      renderRollingStyleText(dayRemainingTimeEl, formatNextSchoolStartFromNow(now, currentMinutes, dayOfWeek), "day-remaining-time");
-    }
+    const dayRemainingStatus = getDayRemainingStatus(now, currentMinutes, dayOfWeek, dayScheduleEndMinutes);
+    if (dayRemainingTimeLabelEl) dayRemainingTimeLabelEl.textContent = dayRemainingStatus.label;
+    renderRollingStyleText(dayRemainingTimeEl, dayRemainingStatus.value, "day-remaining-time");
   }
 
   if (currentSchedule) {
@@ -2685,7 +2706,8 @@ function updateSchoolSubtitle(user = getSavedTileUser()) {
     const classNum = user?.classNum || "2";
     const schoolType = getDisplaySchoolType(user?.school);
     const department = normalizeDepartment(user?.department);
-    schoolSubtitle.textContent = [schoolName, schoolType, `${grade}학년 ${classNum}반`, department]
+    const schoolContext = department || schoolType;
+    schoolSubtitle.textContent = [schoolName, `${grade}학년 ${classNum}반`, schoolContext]
         .filter(Boolean)
         .join(" | ");
 }
