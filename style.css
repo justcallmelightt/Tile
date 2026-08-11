@@ -3280,6 +3280,24 @@ body.light-mode .subject-modal {
   color: #79aefb;
 }
 
+.sync-preview .source-neis[data-state="success"] {
+  color: #67d899;
+}
+
+.sync-preview .source-neis[data-state="empty"] {
+  color: #f4c95d;
+}
+
+.sync-preview .source-neis[data-state="error"] {
+  color: #ff6b6b;
+}
+
+.sync-preview .source-neis[data-state]::before {
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 14%, transparent),
+    0 0 10px color-mix(in srgb, currentColor 48%, transparent);
+  opacity: 1;
+}
+
 .source-local {
   color: #6fd9aa;
 }
