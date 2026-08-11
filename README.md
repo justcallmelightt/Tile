@@ -11,6 +11,8 @@
 > <img src="https://img.shields.io/badge/iOS-Pre_Alpha-orange?style=for-the-badge&logo=apple&logoColor=white&labelColor=000000"> <img src="https://img.shields.io/badge/Android-Planned-3178C6?style=for-the-badge&logo=android&logoColor=white&labelColor=3DDC84"> <img src="https://img.shields.io/badge/Web-Alpha-red?style=for-the-badge&logo=googlechrome&logoColor=white&labelColor=4285F4"> <br>
 > **Web: [Tile](https://tile0.vercel.app/) | [GitHub Pages Mirror](https://justcallmelightt.github.io/Tile/) | App: Coming Soon**
 
+> Tile 서비스는 개인정보 보호와 보안을 기본 원칙으로 다룹니다. 자세한 내용은 [개인정보 보호 및 보안 선언](./PRIVACY_SECURITY.md)을 참고하세요.
+
 ## 기여자
 
 | 프로필 | GitHub | 역할 | 담당 업무 |
@@ -112,17 +114,7 @@ Tile의 가장 큰 차별점은 단순한 시간표가 아니라,
 
 ---
 
-## 개인정보 보호 및 보안
-
-Tile은 현재 회원가입이나 로그인을 요구하지 않는 로컬 우선 시간표 서비스입니다.
-
-- 학교명, 학년·반, 직접 입력한 시간표, 과목 정보, 메모, 테마와 화면 설정은 사용 중인 브라우저의 `localStorage`에 저장됩니다.
-- 이 데이터는 Tile 서버의 사용자 계정 데이터베이스에 저장되지 않으며, 브라우저의 사이트 데이터를 삭제하면 함께 삭제됩니다.
-- NEIS 동기화를 선택한 경우에만 학교 검색 및 시간표·급식 조회에 필요한 학교·학년·반 정보가 Vercel의 `/api/neis` 프록시를 거쳐 NEIS Open API로 전송됩니다.
-- 시간표와 메모에는 다른 사람의 개인정보나 민감한 정보를 입력하지 않는 것을 권장합니다.
-- 향후 계정, 동기화, 분석 기능을 도입하는 경우에는 수집 항목과 목적, 보관·삭제 방식을 이 문서에 명확히 업데이트합니다.
-
-## 보안 및 배포
+## 배포와 환경 변수
 
 Tile은 GitHub Pages와 Vercel 배포를 함께 고려합니다.
 
