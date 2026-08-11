@@ -1507,7 +1507,7 @@ function getDayRemainingStatus(now, currentMinutes, dayOfWeek, dayScheduleEndMin
 
     if (currentMinutes < dayScheduleEndMinutes) {
       return {
-        label: "오늘 일과 종료까지 남은 시간",
+        label: "일과 종료 까지",
         value: formatRemainingTime(dayScheduleEndMinutes - currentMinutes)
       };
     }
@@ -1963,7 +1963,7 @@ function syncFloatingTopbar() {
   writeRollingText(topbarTime, readDisplayText(currentTimeEl, "불러오는 중..."), "topbar-current-time");
   writeRollingText(topbarPeriod, readDisplayText(currentPeriodEl, "확인 중..."), "topbar-current-period");
   if (topbarRemainingLabel) topbarRemainingLabel.textContent = remainingTimeLabelEl?.textContent?.trim() || "교시 남은 시간";
-  if (topbarDayRemainingLabel) topbarDayRemainingLabel.textContent = dayRemainingTimeLabelEl?.textContent?.trim() || "오늘 일과 종료까지 남은 시간";
+  if (topbarDayRemainingLabel) topbarDayRemainingLabel.textContent = dayRemainingTimeLabelEl?.textContent?.trim() || "일과 종료 까지";
   writeRollingText(topbarRemaining, readDisplayText(remainingTimeEl, "계산 중..."), "topbar-period-remaining-time");
   writeRollingText(topbarDayRemaining, readDisplayText(dayRemainingTimeEl, "계산 중..."), "topbar-day-remaining-time");
   writeRollingText(topbarRoom, readDisplayText(currentRoomEl, "확인 중..."), "topbar-current-room");
