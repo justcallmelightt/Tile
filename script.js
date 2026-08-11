@@ -156,9 +156,11 @@ const periodEditSave = document.getElementById("periodEditSave");
 const periodEditCancel = document.getElementById("periodEditCancel");
 const schoolSyncPreview = document.getElementById("schoolSyncPreview");
 const schoolSyncPreviewTitle = document.getElementById("schoolSyncPreviewTitle");
+const schoolSyncPreviewBadge = document.getElementById("schoolSyncPreviewBadge");
 const schoolSyncPreviewCount = document.getElementById("schoolSyncPreviewCount");
 const schoolSyncPreviewMeals = document.getElementById("schoolSyncPreviewMeals");
 const schoolSyncPreviewDepartment = document.getElementById("schoolSyncPreviewDepartment");
+const schoolSyncPreviewDescription = document.getElementById("schoolSyncPreviewDescription");
 const schoolFormMessage = document.getElementById("schoolFormMessage");
 const CELL_EDIT_STORAGE_KEY = "tile-cell-edits";
 const SCHEDULE_EDIT_STORAGE_KEY = "tile-schedule-edits";
@@ -2865,6 +2867,17 @@ function resetSchoolSyncPreview() {
   setSchoolProgressStep(selectedSchool ? 2 : 1);
 }
 
+function setSchoolSyncPreviewState(state) {
+  if (!schoolSyncPreviewBadge) return;
+  const labels = {
+    success: "NEIS 연결 정상",
+    empty: "NEIS 연결됨, 시간표 정보 없음",
+    error: "NEIS 연결 또는 입력 확인 필요"
+  };
+  schoolSyncPreviewBadge.dataset.state = state;
+  schoolSyncPreviewBadge.setAttribute("aria-label", labels[state] || labels.error);
+}
+
 function renderSchoolSyncPreview(prepared) {
   if (!prepared || !schoolSyncPreview) return;
   const subjectRows = prepared.timetableRows.filter((row) => (
@@ -2885,10 +2898,31 @@ function renderSchoolSyncPreview(prepared) {
   if (schoolSyncPreviewDepartment) {
     schoolSyncPreviewDepartment.textContent = normalizeDepartment(prepared.department) || "해당 없음";
   }
+  const hasTimetable = subjectRows.length > 0;
+  setSchoolSyncPreviewState(hasTimetable ? "success" : "empty");
+  if (schoolSyncPreviewDescription) {
+    schoolSyncPreviewDescription.textContent = hasTimetable
+      ? "적용하면 현재 학교 설정과 시간표가 새 정보로 바뀝니다. 이전 상태는 되돌릴 수 있습니다."
+      : "NEIS 연결은 정상이지만 선택한 학년·반의 이번 주 시간표가 0개입니다. 입력값이나 조회 기간을 확인해주세요.";
+  }
   schoolSyncPreview.hidden = false;
   setSchoolProgressStep(3);
   const label = saveSchoolButton?.querySelector(".button-label");
   if (label) label.textContent = "이 설정 적용";
+}
+
+function renderSchoolSyncError(message) {
+  if (!schoolSyncPreview) return;
+  if (schoolSyncPreviewTitle) schoolSyncPreviewTitle.textContent = "학교 정보를 확인하지 못했습니다";
+  if (schoolSyncPreviewCount) schoolSyncPreviewCount.textContent = "확인 필요";
+  if (schoolSyncPreviewMeals) schoolSyncPreviewMeals.textContent = "확인 필요";
+  if (schoolSyncPreviewDepartment) schoolSyncPreviewDepartment.textContent = "확인 필요";
+  if (schoolSyncPreviewDescription) {
+    schoolSyncPreviewDescription.textContent = message || "연결 상태와 학교·학년·반 입력을 확인해주세요.";
+  }
+  setSchoolSyncPreviewState("error");
+  schoolSyncPreview.hidden = false;
+  setSchoolProgressStep(2);
 }
 
 schoolSettingsToggle?.addEventListener("click", () => {
@@ -3053,6 +3087,7 @@ saveSchoolButton?.addEventListener("click", async () => {
 
     if (!neisBridge?.prepare || !neisBridge?.sync) {
       if (schoolFormMessage) schoolFormMessage.textContent = "NEIS 연결 모듈을 불러오지 못했습니다. 페이지를 새로고침해주세요.";
+      renderSchoolSyncError("NEIS 연결 모듈을 불러오지 못했습니다. 페이지를 새로고침해주세요.");
       return;
     }
 
@@ -3075,6 +3110,9 @@ saveSchoolButton?.addEventListener("click", async () => {
         if (schoolFormMessage) schoolFormMessage.textContent = "내용을 확인한 뒤 적용해주세요.";
       } catch (error) {
         console.error(error);
+        preparedSchoolSync = null;
+        preparedSchoolSignature = "";
+        renderSchoolSyncError(error.message || "학교 정보를 확인하지 못했습니다.");
         if (schoolFormMessage) {
           schoolFormMessage.textContent = error.message || "학교 정보를 확인하지 못했습니다.";
         }

@@ -9,7 +9,7 @@
   <link rel="icon" href="./assets/favicon/favicon-32x32.png" sizes="32x32" type="image/png" />
   <link rel="icon" href="./assets/favicon/favicon-96x96.png" sizes="96x96" type="image/png" />
   <link rel="apple-touch-icon" href="./assets/favicon/favicon-96x96.png" />
-  <link rel="stylesheet" href="./style.css?v=20260727-review-fixes" />
+  <link rel="stylesheet" href="./style.css?v=20260811-neis-status" />
 </head>
 <body class="welcome-active">
   <a class="skip-link" href="#timetable">시간표로 바로가기</a>
@@ -76,7 +76,7 @@
             <span class="dialog-eyebrow">적용 전 확인</span>
             <strong id="schoolSyncPreviewTitle">시간표를 확인했습니다</strong>
           </div>
-          <span id="schoolSyncPreviewBadge" class="source-badge source-neis">NEIS</span>
+          <span id="schoolSyncPreviewBadge" class="source-badge source-neis" data-state="success" aria-label="NEIS 연결 정상">NEIS</span>
         </div>
         <div class="sync-preview-grid">
           <div><span>시간표</span><strong id="schoolSyncPreviewCount">0개</strong></div>
@@ -521,6 +521,6 @@
   <script src="./config.public.js?v=20260703-script-fix"></script>
   <script src="./config.js?v=20260703-script-fix" onerror="this.remove()"></script>
   <script src="./neis.js?v=20260727-review-fixes"></script>
-  <script src="./script.js?v=20260727-review-fixes"></script>
+  <script src="./script.js?v=20260811-neis-status"></script>
 </body>
 </html>
