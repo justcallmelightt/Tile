@@ -1492,8 +1492,7 @@ function getCurrentSchedule(minutesNow) {
       return { ...item, type: "schedule" };
     }
   }
-
-  // 교시 사이 빈틈을 쉬는시간으로 자동 인식 (커스텀 시간 수정에도 항상 정확하게 대응)
+  
   for (let i = 0; i < scheduleRanges.length - 1; i++) {
     const prevEnd = toMinutes(scheduleRanges[i].end);
     const nextStart = toMinutes(scheduleRanges[i + 1].start);
