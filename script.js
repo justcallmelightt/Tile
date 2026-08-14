@@ -293,11 +293,8 @@ function renderRollingCharacter(element, oldChar, newChar) {
   inner.append(oldSpan, newSpan);
   element.appendChild(inner);
   element.classList.remove("animate", "rolling");
-  void element.offsetWidth;
-
-  requestAnimationFrame(() => {
-    element.classList.add("animate", "rolling");
-  });
+  void element.offsetWidth; // force reflow so browser commits the "no-animate" state
+  element.classList.add("animate", "rolling"); // add immediately — no rAF delay, no race with cleanup timer
 }
 
 function finishRollingCharacter(element, char) {
@@ -345,39 +342,14 @@ function renderRollingStyleText(element, text, key, options = {}) {
   }
 
   if (chars.length !== text.length) {
+    // Text length changed (e.g. "1분 09초" -> "59초") so character positions no
+    // longer line up between the old and new string. Diffing them index-by-index
+    // produced nonsense old/new pairs and forced a rolling animation on nearly
+    // every character, which looked like the counter stutter/freeze for a beat.
+    // A plain crossfade communicates the change far more cleanly.
     resetRollingTextTimers(key);
     if (shouldSwapText) triggerTextSwapAnimation(element, key);
-    element.innerHTML = "";
-    const changedSpans = [];
-
-    [...text].forEach((char, index) => {
-      const oldChar = previousText[index] || char;
-      const span = document.createElement("span");
-      span.className = getRollingTimeCharClass(char);
-      span.dataset.value = char;
-
-      if (canRollCharacterElement(span) && char !== oldChar) {
-        renderRollingCharacter(span, oldChar, char);
-        changedSpans.push({ span, char });
-      } else if (canRollCharacterElement(span)) {
-        renderStaticRollingDigit(span, char);
-      } else {
-        span.textContent = char;
-      }
-
-      element.appendChild(span);
-    });
-
-    if (changedSpans.length > 0) {
-      const timer = setTimeout(() => {
-        changedSpans.forEach(({ span, char }) => {
-          finishRollingCharacter(span, char);
-        });
-        rollingTextTimersMap.delete(key);
-      }, finishDelay);
-      rollingTextTimersMap.set(key, [timer]);
-    }
-
+    renderStaticTimeStyleText(element, text);
     rollingTextPreviousMap.set(key, text);
     return;
   }
