@@ -698,6 +698,45 @@ function trapDialogFocus(event) {
   }
 }
 
+function bindBackdropDismiss(overlay, onDismiss, canDismiss = () => true) {
+  if (!overlay) return;
+
+  let activePointerId = null;
+  let startedOnBackdrop = false;
+  let endedOnBackdrop = false;
+
+  const resetPointerGesture = () => {
+    activePointerId = null;
+    startedOnBackdrop = false;
+    endedOnBackdrop = false;
+  };
+
+  overlay.addEventListener("pointerdown", (event) => {
+    if (!event.isPrimary) return;
+    activePointerId = event.pointerId;
+    startedOnBackdrop = event.target === overlay;
+    endedOnBackdrop = false;
+  });
+
+  overlay.addEventListener("pointerup", (event) => {
+    if (event.pointerId !== activePointerId) return;
+    endedOnBackdrop = event.target === overlay;
+  });
+
+  overlay.addEventListener("pointercancel", resetPointerGesture);
+
+  overlay.addEventListener("click", (event) => {
+    const isKeyboardClick = event.detail === 0;
+    const isIntentionalBackdropClick = startedOnBackdrop && endedOnBackdrop;
+    const shouldDismiss = event.target === overlay
+      && (isKeyboardClick || isIntentionalBackdropClick)
+      && canDismiss();
+
+    resetPointerGesture();
+    if (shouldDismiss) onDismiss();
+  });
+}
+
 function hideSubjectModes() {
   [modalInfoMode, modalInputMode, subjectEditMode, subjectBulkMode, periodEditMode]
     .forEach((mode) => mode?.classList.add("mode-hidden"));
@@ -1858,10 +1897,11 @@ function enableTileEditing() {
     });
   });
 
-  subjectOverlay?.addEventListener("click", (event) => {
-    if (Date.now() < overlayDismissBlockUntil) return;
-    if (event.target === subjectOverlay) closeSubjectModal();
-  });
+  bindBackdropDismiss(
+    subjectOverlay,
+    closeSubjectModal,
+    () => Date.now() >= overlayDismissBlockUntil
+  );
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
     if (subjectOverlay && !subjectOverlay.classList.contains("hidden")) {
@@ -2941,9 +2981,7 @@ appSettingsToggle?.addEventListener("click", () => {
 
 closeAppSettings?.addEventListener("click", closeAppSettingsModal);
 
-appSettingsModal?.addEventListener("click", (event) => {
-  if (event.target === appSettingsModal) closeAppSettingsModal();
-});
+bindBackdropDismiss(appSettingsModal, closeAppSettingsModal);
 
 saveAppSettings?.addEventListener("click", () => {
   triggerButtonPop(saveAppSettings);
@@ -3038,9 +3076,7 @@ undoTileChange?.addEventListener("click", restoreLastChange);
 
 closeSchoolSettings?.addEventListener("click", closeSchoolSettingsModal);
 
-setupModal?.addEventListener("click", (event) => {
-    if (event.target === setupModal) closeSchoolSettingsModal();
-});
+bindBackdropDismiss(setupModal, closeSchoolSettingsModal);
 
 saveSchoolButton?.addEventListener("click", async () => {
     const formUser = saveSchoolSettings({ persist: false });
