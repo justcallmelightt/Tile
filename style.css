@@ -3225,6 +3225,89 @@ body.light-mode .subject-modal {
   color: var(--text);
 }
 
+.share-card {
+  width: min(620px, calc(100vw - 32px));
+}
+
+.share-preview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.share-preview > div {
+  min-width: 0;
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--surface-soft);
+}
+
+.share-preview span,
+.share-preview strong {
+  display: block;
+}
+
+.share-preview span {
+  margin-bottom: 6px;
+  color: var(--text-soft);
+  font-size: 0.68rem;
+  font-weight: 680;
+}
+
+.share-preview strong {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 0.83rem;
+  letter-spacing: -0.015em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.share-privacy-note {
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface-soft));
+}
+
+.share-privacy-note strong {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--text);
+  font-size: 0.78rem;
+}
+
+.share-privacy-note p {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 0.72rem;
+  line-height: 1.55;
+}
+
+.share-link-field[hidden] {
+  display: none;
+}
+
+.share-link-field input {
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.share-actions {
+  grid-template-columns: minmax(0, 0.72fr) minmax(0, 1.28fr);
+}
+
+.share-actions.is-receive {
+  grid-template-columns: 1fr;
+}
+
+.share-actions > button:active {
+  transform: scale(0.975);
+}
+
 .tool-menu-panel .tool-menu-label {
   display: block;
   padding: 8px 10px 4px;
@@ -3558,8 +3641,13 @@ button:active,
   }
 
   .sync-preview-grid,
+  .share-preview,
   .settings-data-summary,
   .settings-secondary-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .share-actions {
     grid-template-columns: 1fr;
   }
 

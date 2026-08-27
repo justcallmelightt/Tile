@@ -156,6 +156,44 @@
       </div>
     </div>
   </div>
+  <div id="timetableShareModal" class="setup-modal hidden" aria-hidden="true">
+    <div class="setup-card share-card" role="dialog" aria-modal="true" aria-labelledby="timetableShareTitle">
+      <div class="setup-header">
+        <div>
+          <span class="dialog-eyebrow">시간표 공유</span>
+          <h2 id="timetableShareTitle">내 시간표를 링크로 공유</h2>
+          <p class="setup-subtitle" id="timetableShareDescription">받는 사람이 내용을 확인한 뒤 자신의 Tile에 적용할 수 있습니다.</p>
+        </div>
+        <button id="closeTimetableShare" class="dialog-close" type="button" aria-label="닫기">&times;</button>
+      </div>
+      <div class="share-preview" aria-label="공유 시간표 요약">
+        <div>
+          <span>학교</span>
+          <strong id="sharePreviewSchool">학교 정보 없음</strong>
+        </div>
+        <div>
+          <span>학급</span>
+          <strong id="sharePreviewClass">학급 정보 없음</strong>
+        </div>
+        <div>
+          <span>시간표 수정</span>
+          <strong id="sharePreviewChanges">기본 시간표</strong>
+        </div>
+      </div>
+      <div class="share-privacy-note">
+        <strong>공유 범위를 확인해주세요</strong>
+        <p>학교·학급, 교시 시간과 과목·교실·선생님 정보만 링크에 포함합니다. 개인 메모, 알레르기, 테마와 로그인 정보는 제외합니다. 링크는 암호화되지 않으므로 신뢰하는 사람에게만 전달하세요.</p>
+      </div>
+      <label class="setup-field share-link-field" for="timetableShareLink">
+        <span>공유 링크</span>
+        <input id="timetableShareLink" type="text" readonly spellcheck="false">
+      </label>
+      <div class="setup-actions share-actions">
+        <button id="copyTimetableShareLink" class="theme-toggle secondary-action" type="button">링크 복사</button>
+        <button id="timetableSharePrimary" class="theme-toggle save-action primary-action" type="button">공유하기</button>
+      </div>
+    </div>
+  </div>
   <div class="iphone-safe-zone" aria-hidden="true"></div>
   <div class="floating-topbar" id="floatingTopbar" aria-hidden="true">
     <div class="status-card" id="floatingStatusCard">
@@ -205,6 +243,7 @@
           <div class="tool-menu-panel" id="toolMenuPanel" aria-hidden="true">
             <span class="tool-menu-label">연결</span>
             <button id="schoolSettingsToggle" type="button"><span>학교 설정</span><small>학교와 학급 변경</small></button>
+            <button id="timetableShareToggle" type="button"><span>시간표 공유</span><small>링크로 안전하게 전달</small></button>
             <button id="mealToggle" type="button"><span>오늘 급식</span><small>조식·중식·석식</small></button>
             <span class="tool-menu-label">관리</span>
             <button id="appSettingsToggle" type="button"><span>Tile 설정</span><small>개인화와 데이터</small></button>

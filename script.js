@@ -76,6 +76,17 @@ const toolMenu = document.getElementById("toolMenu");
 const toolMenuToggle = document.getElementById("toolMenuToggle");
 const toolMenuPanel = document.getElementById("toolMenuPanel");
 const schoolSettingsToggle = document.getElementById("schoolSettingsToggle");
+const timetableShareToggle = document.getElementById("timetableShareToggle");
+const timetableShareModal = document.getElementById("timetableShareModal");
+const closeTimetableShare = document.getElementById("closeTimetableShare");
+const timetableShareTitle = document.getElementById("timetableShareTitle");
+const timetableShareDescription = document.getElementById("timetableShareDescription");
+const sharePreviewSchool = document.getElementById("sharePreviewSchool");
+const sharePreviewClass = document.getElementById("sharePreviewClass");
+const sharePreviewChanges = document.getElementById("sharePreviewChanges");
+const timetableShareLink = document.getElementById("timetableShareLink");
+const copyTimetableShareLink = document.getElementById("copyTimetableShareLink");
+const timetableSharePrimary = document.getElementById("timetableSharePrimary");
 const setupModal = document.getElementById("setupModal");
 const closeSchoolSettings = document.getElementById("closeSchoolSettings");
 const appSettingsToggle = document.getElementById("appSettingsToggle");
@@ -163,12 +174,26 @@ const MEAL_STORAGE_KEY = "tile-meals";
 const APP_SETTINGS_STORAGE_KEY = "tile-app-settings";
 const UNDO_STORAGE_KEY = "tile-last-undo";
 const LAST_SYNC_STORAGE_KEY = "tile-neis-last-sync";
+const TIMETABLE_SHARE_STORAGE_KEYS = [
+  CELL_EDIT_STORAGE_KEY,
+  SCHEDULE_EDIT_STORAGE_KEY,
+  SUBJECT_INFO_EDIT_STORAGE_KEY,
+  CELL_INFO_EDIT_STORAGE_KEY,
+  PERIOD_INFO_EDIT_STORAGE_KEY,
+  "tile-custom-json",
+  "tile_user",
+  "tile-neis-sync-scope"
+];
+const TIMETABLE_SHARE_TYPE = "tile-timetable";
+const TIMETABLE_SHARE_VERSION = 1;
+const MAX_TIMETABLE_SHARE_LENGTH = 18000;
 const USER_DATA_STORAGE_KEYS = [
   CELL_EDIT_STORAGE_KEY,
   SCHEDULE_EDIT_STORAGE_KEY,
   SUBJECT_MEMO_STORAGE_KEY,
   SUBJECT_INFO_EDIT_STORAGE_KEY,
   CELL_INFO_EDIT_STORAGE_KEY,
+  PERIOD_INFO_EDIT_STORAGE_KEY,
   MEAL_STORAGE_KEY,
   APP_SETTINGS_STORAGE_KEY,
   "tile-custom-json",
@@ -188,6 +213,8 @@ let selectedPeriodRow = null;
 let selectedPeriodItem = null;
 let preparedSchoolSync = null;
 let preparedSchoolSignature = "";
+let activeTimetableShare = null;
+let timetableShareMode = "create";
 let modalRestoreTarget = null;
 let overlayDismissBlockUntil = 0;
 const defaultCellSubjectMap = new Map();
@@ -590,6 +617,238 @@ function applySnapshotValues(values) {
     else localStorage.setItem(key, value);
   });
   return true;
+}
+
+function encodeSharePayload(payload) {
+  const bytes = new TextEncoder().encode(JSON.stringify(payload));
+  let binary = "";
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
+
+function decodeSharePayload(encoded) {
+  if (!encoded || encoded.length > MAX_TIMETABLE_SHARE_LENGTH) {
+    throw new Error("공유 링크가 비어 있거나 너무 깁니다.");
+  }
+  const base64 = encoded.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, "=");
+  const binary = atob(padded);
+  const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+
+function getShareableTileUser() {
+  const user = getSavedTileUser();
+  if (!user || typeof user !== "object") return null;
+  const school = user.school && typeof user.school === "object"
+    ? {
+        name: String(user.school.name || "").slice(0, 120),
+        office: String(user.school.office || "").slice(0, 40),
+        officeName: String(user.school.officeName || "").slice(0, 80),
+        code: String(user.school.code || "").slice(0, 40),
+        kind: String(user.school.kind || "").slice(0, 40),
+        foundation: String(user.school.foundation || "").slice(0, 40),
+        highSchoolType: String(user.school.highSchoolType || "").slice(0, 60),
+        specialPurpose: String(user.school.specialPurpose || "").slice(0, 60),
+        generalType: String(user.school.generalType || "").slice(0, 60)
+      }
+    : null;
+  return {
+    school,
+    grade: String(user.grade || "").slice(0, 8),
+    classNum: String(user.classNum || "").slice(0, 8),
+    department: String(user.department || "").slice(0, 80)
+  };
+}
+
+function captureTimetableShareValues() {
+  const values = {};
+  TIMETABLE_SHARE_STORAGE_KEYS.forEach((key) => {
+    if (key === "tile_user") {
+      const user = getShareableTileUser();
+      values[key] = user ? JSON.stringify(user) : null;
+      return;
+    }
+    values[key] = localStorage.getItem(key);
+  });
+  return values;
+}
+
+function validateTimetableSharePayload(payload) {
+  if (
+    payload?.type !== TIMETABLE_SHARE_TYPE
+    || payload?.version !== TIMETABLE_SHARE_VERSION
+    || !payload.values
+    || typeof payload.values !== "object"
+    || Array.isArray(payload.values)
+  ) {
+    throw new Error("Tile 시간표 공유 링크 형식이 아닙니다.");
+  }
+
+  const values = {};
+  let totalLength = 0;
+  TIMETABLE_SHARE_STORAGE_KEYS.forEach((key) => {
+    const value = Object.prototype.hasOwnProperty.call(payload.values, key)
+      ? payload.values[key]
+      : null;
+    if (value !== null && typeof value !== "string") {
+      throw new Error("공유된 시간표 데이터 형식을 읽지 못했습니다.");
+    }
+    if (typeof value === "string") {
+      totalLength += value.length;
+      if (value.length > 50000) throw new Error("공유된 시간표 항목이 너무 큽니다.");
+      if (key !== "tile-neis-sync-scope") JSON.parse(value);
+    }
+    values[key] = value;
+  });
+  if (totalLength > 100000) throw new Error("공유된 시간표 데이터가 너무 큽니다.");
+  return { ...payload, values };
+}
+
+function getTimetableShareSummary(payload) {
+  let user = null;
+  try {
+    user = JSON.parse(payload?.values?.tile_user || "null");
+  } catch (error) {
+    console.error(error);
+  }
+
+  const countEntries = (key) => {
+    try {
+      const value = JSON.parse(payload?.values?.[key] || "{}");
+      return value && typeof value === "object" && !Array.isArray(value)
+        ? Object.keys(value).length
+        : 0;
+    } catch (error) {
+      return 0;
+    }
+  };
+
+  const changes = countEntries(CELL_EDIT_STORAGE_KEY)
+    + countEntries(SCHEDULE_EDIT_STORAGE_KEY)
+    + countEntries(SUBJECT_INFO_EDIT_STORAGE_KEY)
+    + countEntries(CELL_INFO_EDIT_STORAGE_KEY);
+  return {
+    school: user?.school?.name || "학교 정보 없음",
+    className: user?.grade && user?.classNum
+      ? `${user.grade}학년 ${user.classNum}반`
+      : "학급 정보 없음",
+    changes: changes > 0 ? `${changes}개 항목` : "기본 시간표"
+  };
+}
+
+function createTimetableShareUrl() {
+  const payload = {
+    type: TIMETABLE_SHARE_TYPE,
+    version: TIMETABLE_SHARE_VERSION,
+    createdAt: new Date().toISOString(),
+    values: captureTimetableShareValues()
+  };
+  const url = new URL(window.location.href);
+  url.hash = `share=${encodeSharePayload(payload)}`;
+  if (url.href.length > MAX_TIMETABLE_SHARE_LENGTH) {
+    throw new Error("시간표가 너무 커서 링크 하나에 담을 수 없습니다. 데이터 내보내기를 이용해주세요.");
+  }
+  return { payload, url: url.href };
+}
+
+function renderTimetableShareSummary(payload) {
+  const summary = getTimetableShareSummary(payload);
+  if (sharePreviewSchool) sharePreviewSchool.textContent = summary.school;
+  if (sharePreviewClass) sharePreviewClass.textContent = summary.className;
+  if (sharePreviewChanges) sharePreviewChanges.textContent = summary.changes;
+}
+
+function openTimetableShare(payload, url, mode = "create") {
+  if (!timetableShareModal) return;
+  rememberDialogTrigger();
+  activeTimetableShare = payload;
+  timetableShareMode = mode;
+  renderTimetableShareSummary(payload);
+  if (timetableShareLink) timetableShareLink.value = url || "";
+  if (timetableShareTitle) {
+    timetableShareTitle.textContent = mode === "receive"
+      ? "공유받은 시간표"
+      : "내 시간표를 링크로 공유";
+  }
+  if (timetableShareDescription) {
+    timetableShareDescription.textContent = mode === "receive"
+      ? "보낸 사람과 학교·학급을 확인한 뒤 내 Tile에 적용하세요."
+      : "받는 사람이 내용을 확인한 뒤 자신의 Tile에 적용할 수 있습니다.";
+  }
+  if (copyTimetableShareLink) copyTimetableShareLink.hidden = mode === "receive";
+  document.querySelector(".share-link-field")?.toggleAttribute("hidden", mode === "receive");
+  timetableSharePrimary?.closest(".share-actions")?.classList.toggle("is-receive", mode === "receive");
+  if (timetableSharePrimary) {
+    timetableSharePrimary.textContent = mode === "receive" ? "이 시간표 적용" : "공유하기";
+  }
+  timetableShareModal.classList.remove("hidden");
+  timetableShareModal.setAttribute("aria-hidden", "false");
+  document.body.classList.add("modal-open");
+  window.setTimeout(() => timetableSharePrimary?.focus(), 80);
+}
+
+function clearTimetableShareHash() {
+  if (!window.location.hash.startsWith("#share=")) return;
+  window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+}
+
+function closeTimetableShareModal({ clearIncoming = false } = {}) {
+  if (!timetableShareModal) return;
+  timetableShareModal.classList.add("hidden");
+  timetableShareModal.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("modal-open");
+  if (clearIncoming && timetableShareMode === "receive") clearTimetableShareHash();
+  activeTimetableShare = null;
+  restoreDialogTrigger();
+}
+
+async function copyTimetableShareUrl() {
+  const value = timetableShareLink?.value || "";
+  if (!value) return false;
+  try {
+    await navigator.clipboard.writeText(value);
+  } catch (error) {
+    timetableShareLink.focus();
+    timetableShareLink.select();
+    if (!document.execCommand("copy")) throw error;
+  }
+  showToast("시간표 링크를 복사했습니다", "받는 사람은 내용을 확인한 뒤 자신의 Tile에 적용할 수 있습니다.");
+  return true;
+}
+
+function applySharedTimetable(payload) {
+  const validated = validateTimetableSharePayload(payload);
+  const undoSnapshot = pushUndoSnapshot("공유 시간표 적용");
+  TIMETABLE_SHARE_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
+  Object.entries(validated.values).forEach(([key, value]) => {
+    if (value !== null) localStorage.setItem(key, value);
+  });
+  localStorage.setItem(UNDO_STORAGE_KEY, JSON.stringify(undoSnapshot));
+  sessionStorage.setItem("tile-share-applied", "true");
+  clearTimetableShareHash();
+  window.location.reload();
+}
+
+function readIncomingTimetableShare() {
+  const params = new URLSearchParams(window.location.hash.slice(1));
+  const encoded = params.get("share");
+  if (!encoded) return;
+  try {
+    const payload = validateTimetableSharePayload(decodeSharePayload(encoded));
+    openTimetableShare(payload, window.location.href, "receive");
+  } catch (error) {
+    console.error(error);
+    clearTimetableShareHash();
+    showToast("시간표 공유 링크를 열지 못했습니다", error.message || "링크가 손상되었거나 지원하지 않는 형식입니다.", {
+      tone: "error"
+    });
+  }
 }
 
 function restoreSnapshot(snapshot, { reload = true } = {}) {
@@ -2416,6 +2675,12 @@ updateMemoIndicators();
 updateCurrentStatus();
 scheduleStatusTick();
 
+if (sessionStorage.getItem("tile-share-applied") === "true") {
+  sessionStorage.removeItem("tile-share-applied");
+  showToast("공유 시간표를 적용했습니다", "이전 시간표는 마지막 변경 되돌리기로 복원할 수 있습니다.");
+}
+readIncomingTimetableShare();
+
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden) updateCurrentStatus();
   scheduleStatusTick();
@@ -2982,6 +3247,75 @@ appSettingsToggle?.addEventListener("click", () => {
 closeAppSettings?.addEventListener("click", closeAppSettingsModal);
 
 bindBackdropDismiss(appSettingsModal, closeAppSettingsModal);
+
+timetableShareToggle?.addEventListener("click", () => {
+  triggerButtonPop(timetableShareToggle);
+  setToolMenuOpen(false);
+  try {
+    const share = createTimetableShareUrl();
+    openTimetableShare(share.payload, share.url, "create");
+  } catch (error) {
+    console.error(error);
+    showToast("시간표 링크를 만들지 못했습니다", error.message || "시간표 데이터를 확인해주세요.", {
+      tone: "error"
+    });
+  }
+});
+
+closeTimetableShare?.addEventListener("click", () => {
+  closeTimetableShareModal({ clearIncoming: true });
+});
+
+bindBackdropDismiss(
+  timetableShareModal,
+  () => closeTimetableShareModal({ clearIncoming: true })
+);
+
+copyTimetableShareLink?.addEventListener("click", async () => {
+  triggerButtonPop(copyTimetableShareLink);
+  try {
+    await copyTimetableShareUrl();
+  } catch (error) {
+    console.error(error);
+    showToast("링크를 복사하지 못했습니다", "브라우저의 클립보드 권한을 확인해주세요.", {
+      tone: "error"
+    });
+  }
+});
+
+timetableSharePrimary?.addEventListener("click", async () => {
+  triggerButtonPop(timetableSharePrimary);
+  if (timetableShareMode === "receive") {
+    try {
+      applySharedTimetable(activeTimetableShare);
+    } catch (error) {
+      console.error(error);
+      showToast("공유 시간표를 적용하지 못했습니다", error.message || "시간표 데이터를 확인해주세요.", {
+        tone: "error"
+      });
+    }
+    return;
+  }
+
+  const url = timetableShareLink?.value || "";
+  if (!url) return;
+  if (typeof navigator.share !== "function") {
+    await copyTimetableShareUrl();
+    return;
+  }
+  try {
+    await navigator.share({
+      title: "Tile 시간표",
+      text: "내 Tile 시간표를 확인해보세요.",
+      url
+    });
+  } catch (error) {
+    if (error?.name !== "AbortError") {
+      console.error(error);
+      showToast("공유를 시작하지 못했습니다", "링크 복사를 이용해 전달해주세요.", { tone: "error" });
+    }
+  }
+});
 
 saveAppSettings?.addEventListener("click", () => {
   triggerButtonPop(saveAppSettings);
