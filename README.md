@@ -85,7 +85,7 @@ Tile의 가장 큰 차별점은 단순한 시간표가 아니라,
 - 현재 교실 / 담당 선생님 정보 표시
 - 이동수업 시 이동해야 할 교실 확인 가능
 - 시각적 타임라인 바 구현
-- 링크 기반 시간표 공유 및 적용 전 미리보기
+- 원본을 보존하는 공유용 임시 편집과 시간표 프리셋 배포
 - 다크 모드 지원
 - 모바일 대응
 
@@ -116,7 +116,9 @@ Tile의 가장 큰 차별점은 단순한 시간표가 아니라,
 - 다크 모드 지원
 
 ### 7. 시간표 공유
-현재 학교·학급과 시간표 수정 내용을 링크로 전달할 수 있습니다. 받은 사람은 공유 내용을 먼저 확인한 뒤 자신의 Tile에 직접 적용하며, 개인 메모·알레르기·테마·로그인 정보는 공유 대상에서 제외됩니다.
+자신의 시간표를 소개하는 링크뿐 아니라, 재학생이 학교·학급에 맞게 과목·교실·선생님·메모를 정리한 **공유 프리셋**을 배포할 수 있습니다. 게시 전에는 현재 시간표를 복제한 임시본을 편집하므로 사용 중인 원본 Tile은 바뀌지 않습니다.
+
+제작자는 학교·학급, 교실·선생님, 과목 메모, Tile 메모의 공개 범위를 선택하고 로그인한 계정에서 링크를 복사하거나 공개 중지·재공개·삭제할 수 있습니다. 받은 사람은 로그인 없이 내용을 미리 보고, 원할 때만 자신의 Tile에 저장합니다. 적용 직전 상태는 되돌리기용으로 보관합니다.
 
 ---
 
@@ -130,7 +132,7 @@ Tile은 로그인 없이도 사용할 수 있는 로컬 우선 시간표 서비�
 - **백업 불러오기**는 백업 날짜와 학교·학급을 먼저 보여주고 사용자의 명시적 승인을 받은 뒤 적용하며, 적용 전 현재 데이터는 한 번 되돌릴 수 있도록 보관합니다.
 - 계정 삭제 시 Supabase 계정과 클라우드 백업은 삭제되지만, 사용 중인 기기의 로컬 시간표는 유지됩니다.
 - NEIS 동기화를 선택한 경우에만 학교 검색 및 시간표·급식 조회에 필요한 학교·학년·반 정보가 Vercel의 `/api/neis` 프록시를 거쳐 NEIS Open API로 전송됩니다.
-- 시간표 공유를 선택하면 학교·학급과 시간표 정보가 암호화되지 않은 URL Fragment에 포함되므로, 생성한 링크는 신뢰하는 사람에게만 전달해야 합니다.
+- 시간표 공유를 선택하면 선택한 공개 정보가 Supabase의 공유 레코드에 저장되고, 공개 링크에는 추측하기 어려운 공유 ID만 포함됩니다. 링크를 가진 사람은 공개 중인 내용을 볼 수 있으므로 민감한 정보는 공개 범위에서 제외해야 합니다.
 - 시간표와 메모에는 다른 사람의 개인정보나 민감한 정보를 입력하지 않는 것을 권장합니다.
 - Google 로그인 과정에서 Google과 Supabase가 이메일, 이름, 프로필 이미지 등 인증에 필요한 계정 정보를 처리할 수 있습니다.
 
@@ -144,6 +146,7 @@ Tile은 GitHub Pages와 Vercel 배포를 함께 고려합니다.
 - Vercel 배포판은 `/api/neis` 서버리스 프록시를 통해 NEIS 요청을 보내며, 실제 키는 Vercel Environment Variables의 `NEIS_KEY`에만 저장합니다.
 - Supabase 브라우저용 Publishable Key는 공개되어도 되는 값이지만, `SUPABASE_SECRET_KEY`는 계정 삭제 API에서만 사용하고 Vercel 서버 환경변수에만 저장합니다.
 - `tile_backups` 테이블은 Row Level Security를 사용해 로그인 사용자가 자신의 행만 읽고 수정하거나 삭제할 수 있도록 제한합니다.
+- `tile_timetable_shares`의 작성·관리에는 로그인이 필요하며, Row Level Security로 소유자만 목록 조회·수정·삭제할 수 있습니다. 공개 조회 API는 활성화된 공유 ID 한 건만 반환하고 목록 탐색은 허용하지 않습니다.
 - `config.js`, `.env`, `.env.*`는 `.gitignore`에 포함되어 있으므로 실제 키를 커밋하지 않습니다.
 - 공개 저장소에는 `config.public.js`, `config.example.js`, `.env.example`만 포함합니다.
 
@@ -160,11 +163,12 @@ SUPABASE_SECRET_KEY=sb_secret_YOUR_SERVER_ONLY_KEY
 Google 로그인 설정 순서:
 
 1. Supabase SQL Editor에서 `supabase/migrations/20260810_google_auth_mvp.sql`을 실행합니다.
-2. Supabase Authentication의 Google Provider를 활성화합니다.
-3. Google Cloud OAuth Client의 승인된 Redirect URI에 `https://YOUR_PROJECT.supabase.co/auth/v1/callback`을 등록합니다.
-4. Supabase Redirect URL 허용 목록에 `https://tile0.vercel.app/`과 개발 주소 `http://127.0.0.1:5506/`을 등록합니다.
-5. `config.public.js`의 `TILE_AUTH_CONFIG`에 Project URL과 브라우저용 Publishable Key를 입력합니다.
-6. Vercel에 `SUPABASE_URL`, `SUPABASE_SECRET_KEY`를 등록합니다.
+2. `supabase/migrations/20260827_timetable_shares.sql`을 실행해 공유 프리셋 테이블과 소유자 정책을 만듭니다.
+3. Supabase Authentication의 Google Provider를 활성화합니다.
+4. Google Cloud OAuth Client의 승인된 Redirect URI에 `https://YOUR_PROJECT.supabase.co/auth/v1/callback`을 등록합니다.
+5. Supabase Redirect URL 허용 목록에 `https://tile0.vercel.app/`과 개발 주소 `http://127.0.0.1:5506/`을 등록합니다.
+6. `config.public.js`의 `TILE_AUTH_CONFIG`에 Project URL과 브라우저용 Publishable Key를 입력합니다.
+7. Vercel에 `SUPABASE_URL`, `SUPABASE_SECRET_KEY`를 등록합니다.
 
 GitHub Pages 배포 체크가 `deployment_queued`에서 오래 멈추면 저장소의 **Settings → Pages → Build and deployment**에서 Source를 `GitHub Actions`로 맞춘 뒤, 포함된 `.github/workflows/pages.yml` 워크플로로 배포하세요. Vercel만 정식 배포판으로 쓸 경우 GitHub Pages를 비활성화하면 Pages deploy 체크 자체가 생성되지 않습니다.
 
@@ -178,7 +182,7 @@ GitHub Pages 배포 체크가 `deployment_queued`에서 오래 멈추면 저장�
 - [x] 강의실 / 담당 교사 정보
 - [x] 다크 모드
 - [x] 모바일 반응형 UI
-- [x] 시간표 공유 링크 및 적용 전 미리보기
+- [x] 시간표 공유용 임시 편집, 공개 범위 선택, 프리셋 배포·관리 및 적용 전 미리보기
 - [x] 앱에서 오프라인 상태일 경우 앱 내장 로컬 HTML로 Fallback (iOS)
 - [x] Google 로그인 및 수동 계정 백업 MVP
 - [ ] 사용자 별 맞춤형 학교 시간표 편집기
@@ -196,12 +200,14 @@ index.html
 style.css
 script.js
 auth.js                # Google 로그인, 계정 백업·복원 UI
+share.js               # 공유용 임시 편집, 프리셋 게시·미리보기·관리 UI
 neis.js                 # TypeScript build output used by the browser
 src/neis.ts             # Typed NEIS browser client
 src/types.d.ts          # Shared Tile and NEIS types
 api/neis.ts             # Vercel NEIS proxy
 api/account.ts          # 인증된 사용자 계정 삭제 API
-supabase/migrations/    # 백업 테이블과 RLS 정책
+api/share.ts            # 활성 공유 프리셋 한 건을 조회하는 Public API
+supabase/migrations/    # 백업·공유 테이블과 RLS 정책
 data/default-timetable.json
 package.json
 tsconfig.json

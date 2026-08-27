@@ -201,42 +201,56 @@
       </div>
     </div>
   </div>
-  <div id="timetableShareModal" class="setup-modal hidden" aria-hidden="true">
-    <div class="setup-card share-card" role="dialog" aria-modal="true" aria-labelledby="timetableShareTitle">
+  <div id="showcaseShareModal" class="setup-modal hidden" aria-hidden="true">
+    <div class="setup-card share-card" role="dialog" aria-modal="true" aria-labelledby="showcaseShareTitle">
       <div class="setup-header">
         <div>
-          <span class="dialog-eyebrow">시간표 공유</span>
-          <h2 id="timetableShareTitle">내 시간표를 링크로 공유</h2>
-          <p class="setup-subtitle" id="timetableShareDescription">받는 사람이 내용을 확인한 뒤 자신의 Tile에 적용할 수 있습니다.</p>
+          <span class="dialog-eyebrow">Tile Share Studio</span>
+          <h2 id="showcaseShareTitle">시간표 공유 스튜디오</h2>
+          <p class="setup-subtitle" id="showcaseShareDescription">시간표를 소개하거나, 학교·학급에 맞게 다듬은 설정을 배포할 수 있습니다.</p>
         </div>
-        <button id="closeTimetableShare" class="dialog-close" type="button" aria-label="닫기">&times;</button>
+        <button id="closeShowcaseShare" class="dialog-close" type="button" aria-label="닫기">&times;</button>
       </div>
-      <div class="share-preview" aria-label="공유 시간표 요약">
-        <div>
-          <span>학교</span>
-          <strong id="sharePreviewSchool">학교 정보 없음</strong>
+      <section id="shareCreatorPanel" class="share-mode-panel">
+        <label class="setup-field" for="showcaseTitleInput"><span>공유 페이지 이름</span><input id="showcaseTitleInput" maxlength="60" placeholder="예) 율이의 1학기 시간표"></label>
+        <label class="setup-field" for="showcaseDescriptionInput"><span>소개</span><textarea id="showcaseDescriptionInput" maxlength="240" rows="3" placeholder="예) 미림마이스터고 1학년 1반의 교실·선생님 정보까지 정리한 최적화 설정입니다."></textarea></label>
+        <fieldset class="share-scope-fieldset">
+          <legend>공개 범위</legend>
+          <label><input id="shareScopeSchool" type="checkbox" checked><span><strong>학교와 학급</strong><small>학교명, 학년, 반과 학과</small></span></label>
+          <label><input id="shareScopeDetails" type="checkbox" checked><span><strong>교실과 선생님</strong><small>수업별 장소와 담당 선생님</small></span></label>
+          <label><input id="shareScopeSubjectMemos" type="checkbox"><span><strong>과목 메모</strong><small>시간표 칸에 남긴 메모</small></span></label>
+          <label><input id="shareScopeTileMemo" type="checkbox"><span><strong>Tile 메모</strong><small>메모·일정 패널의 내용</small></span></label>
+        </fieldset>
+        <div class="share-draft-controls">
+          <div><strong>공유용 시간표</strong><span>원본과 별개인 임시본에서 공개할 정보를 다듬을 수 있습니다.</span></div>
+          <button id="editShareDraft" class="secondary-action" type="button">공유 시간표 수정</button>
         </div>
-        <div>
-          <span>학급</span>
-          <strong id="sharePreviewClass">학급 정보 없음</strong>
+        <div id="shareDraftEditor" class="share-draft-editor" hidden>
+          <div class="share-draft-editor-header"><strong>공유되는 시간표 편집</strong><button id="resetShareDraft" class="account-text-action" type="button">원본으로 되돌리기</button></div>
+          <div id="shareDraftGrid" class="share-draft-grid"></div>
+          <p>과목명을 빈칸으로 두면 해당 수업을 숨깁니다. 이곳의 수정은 내 Tile 원본에 반영되지 않습니다.</p>
         </div>
-        <div>
-          <span>시간표 수정</span>
-          <strong id="sharePreviewChanges">기본 시간표</strong>
+        <div id="shareLoginNotice" class="share-privacy-note">
+          <strong>공유 링크 관리는 로그인이 필요합니다</strong>
+          <p>로그인한 계정에서 링크를 다시 복사하거나 비활성화할 수 있습니다. 링크를 받은 사람은 로그인하지 않아도 볼 수 있습니다.</p>
         </div>
-      </div>
-      <div class="share-privacy-note">
-        <strong>공유 범위를 확인해주세요</strong>
-        <p>학교·학급, 교시 시간과 과목·교실·선생님 정보만 링크에 포함합니다. 개인 메모, 알레르기, 테마와 로그인 정보는 제외합니다. 링크는 암호화되지 않으므로 신뢰하는 사람에게만 전달하세요.</p>
-      </div>
-      <label class="setup-field share-link-field" for="timetableShareLink">
-        <span>공유 링크</span>
-        <input id="timetableShareLink" type="text" readonly spellcheck="false">
-      </label>
-      <div class="setup-actions share-actions">
-        <button id="copyTimetableShareLink" class="theme-toggle secondary-action" type="button">링크 복사</button>
-        <button id="timetableSharePrimary" class="theme-toggle save-action primary-action" type="button">공유하기</button>
-      </div>
+        <div class="share-privacy-note">
+          <strong>공개할 내용을 한 번 더 확인해주세요</strong>
+          <p>선택한 정보는 공개 링크를 가진 사람이 볼 수 있습니다. 비밀번호나 연락처처럼 민감한 내용은 메모에 포함하지 마세요.</p>
+        </div>
+        <div class="setup-actions share-actions"><button id="openShareManager" class="theme-toggle secondary-action" type="button">공유 링크 관리</button><button id="createShowcaseShare" class="theme-toggle save-action primary-action" type="button">공유 링크 만들기</button></div>
+      </section>
+      <section id="shareViewerPanel" class="share-mode-panel" hidden>
+        <div class="share-showcase-heading"><div><strong id="sharedShowcaseTitle">공유 시간표</strong><span id="sharedShowcaseMeta">시간표를 불러오는 중입니다.</span></div><span class="share-readonly-badge">미리보기</span></div>
+        <p id="sharedShowcaseDescription" class="shared-showcase-description" hidden></p>
+        <div id="sharedTimetableView" class="shared-timetable-view" aria-live="polite"></div>
+        <div id="sharedMemoView" class="shared-memo-view" hidden></div>
+        <div class="setup-actions share-actions"><button id="copyCurrentShare" class="theme-toggle secondary-action" type="button">링크 복사</button><button id="saveSharedTimetable" class="theme-toggle save-action primary-action" type="button">내 Tile에 저장</button></div>
+      </section>
+      <section id="shareManagerPanel" class="share-mode-panel" hidden>
+        <div class="share-manager-header"><div><strong>내 공유 링크</strong><span>언제든 다시 복사하거나 공개를 중지할 수 있습니다.</span></div><button id="backToShareCreator" class="secondary-action" type="button">돌아가기</button></div>
+        <div id="shareManagerList" class="share-manager-list" aria-live="polite"></div>
+      </section>
     </div>
   </div>
   <div class="iphone-safe-zone" aria-hidden="true"></div>
@@ -288,7 +302,7 @@
           <div class="tool-menu-panel" id="toolMenuPanel" aria-hidden="true">
             <span class="tool-menu-label">연결</span>
             <button id="schoolSettingsToggle" type="button"><span>학교 설정</span><small>학교와 학급 변경</small></button>
-            <button id="timetableShareToggle" type="button"><span>시간표 공유</span><small>링크로 안전하게 전달</small></button>
+            <button id="showcaseShareToggle" type="button"><span>시간표 공유</span><small>공유 프리셋 제작·배포</small></button>
             <button id="mealToggle" type="button"><span>오늘 급식</span><small>조식·중식·석식</small></button>
             <span class="tool-menu-label">관리</span>
             <button id="appSettingsToggle" type="button"><span>Tile 설정</span><small>개인화와 데이터</small></button>
@@ -613,5 +627,6 @@
   <script src="./neis.js?v=20260727-review-fixes"></script>
   <script src="./script.js?v=20260727-review-fixes"></script>
   <script src="./auth.js?v=20260810-google-login-mvp"></script>
+  <script src="./share.js?v=20260827-showcase-share"></script>
 </body>
 </html>

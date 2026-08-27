@@ -15,6 +15,7 @@
   let client = null;
   let currentSession = null;
   let pendingRestore = null;
+  const sessionSubscribers = new Set();
 
   function isConfigured() {
     return /^https:\/\/.+\.supabase\.co$/i.test(config.supabaseUrl || "")
@@ -75,6 +76,7 @@
     const user = session?.user;
     setHidden(nodes.signedOut, Boolean(user));
     setHidden(nodes.signedIn, !user);
+    sessionSubscribers.forEach((subscriber) => subscriber(session));
     if (!user) return;
     const name = user.user_metadata?.full_name || user.user_metadata?.name || "Tile 사용자";
     if (nodes.avatar) nodes.avatar.textContent = getInitial(user);
@@ -175,6 +177,21 @@
     nodes.cancelDelete?.addEventListener("click", () => setHidden(nodes.deletePanel, true));
     nodes.confirmDelete?.addEventListener("click", deleteAccount);
   }
+
+  window.TileAuth = {
+    getClient: () => client,
+    getSession: () => currentSession,
+    onSessionChange(subscriber) {
+      if (typeof subscriber !== "function") return () => {};
+      sessionSubscribers.add(subscriber);
+      subscriber(currentSession);
+      return () => sessionSubscribers.delete(subscriber);
+    },
+    openAccountSettings() {
+      byId("appSettingsToggle")?.click();
+      window.setTimeout(() => document.querySelector('[data-settings-target="accountSettings"]')?.click(), 0);
+    }
+  };
 
   async function init() {
     bindEvents();
