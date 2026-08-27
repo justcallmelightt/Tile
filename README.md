@@ -122,14 +122,17 @@ Tile의 가장 큰 차별점은 단순한 시간표가 아니라,
 
 ## 개인정보 보호 및 보안
 
-Tile은 현재 회원가입이나 로그인을 요구하지 않는 로컬 우선 시간표 서비스입니다.
+Tile은 로그인 없이도 사용할 수 있는 로컬 우선 시간표 서비스이며, Google 로그인을 선택한 사용자에게만 Supabase 계정 백업을 제공합니다.
 
 - 학교명, 학년·반, 직접 입력한 시간표, 과목 정보, 메모, 테마와 화면 설정은 사용 중인 브라우저의 `localStorage`에 저장됩니다.
-- 이 데이터는 Tile 서버의 사용자 계정 데이터베이스에 저장되지 않으며, 브라우저의 사이트 데이터를 삭제하면 함께 삭제됩니다.
+- 로그인하지 않은 사용자의 데이터는 Tile 서버의 사용자 계정 데이터베이스에 저장되지 않으며, 브라우저의 사이트 데이터를 삭제하면 함께 삭제됩니다.
+- 로그인 후 사용자가 **현재 데이터 백업**을 직접 선택한 경우에만 현재 Tile 데이터 사본이 Supabase에 저장됩니다. 자동 업로드나 자동 덮어쓰기는 하지 않습니다.
+- **백업 불러오기**는 백업 날짜와 학교·학급을 먼저 보여주고 사용자의 명시적 승인을 받은 뒤 적용하며, 적용 전 현재 데이터는 한 번 되돌릴 수 있도록 보관합니다.
+- 계정 삭제 시 Supabase 계정과 클라우드 백업은 삭제되지만, 사용 중인 기기의 로컬 시간표는 유지됩니다.
 - NEIS 동기화를 선택한 경우에만 학교 검색 및 시간표·급식 조회에 필요한 학교·학년·반 정보가 Vercel의 `/api/neis` 프록시를 거쳐 NEIS Open API로 전송됩니다.
 - 시간표 공유를 선택하면 학교·학급과 시간표 정보가 암호화되지 않은 URL Fragment에 포함되므로, 생성한 링크는 신뢰하는 사람에게만 전달해야 합니다.
 - 시간표와 메모에는 다른 사람의 개인정보나 민감한 정보를 입력하지 않는 것을 권장합니다.
-- 향후 계정, 동기화, 분석 기능을 도입하는 경우에는 수집 항목과 목적, 보관·삭제 방식을 이 문서에 명확히 업데이트합니다.
+- Google 로그인 과정에서 Google과 Supabase가 이메일, 이름, 프로필 이미지 등 인증에 필요한 계정 정보를 처리할 수 있습니다.
 
 자세한 내용은 [개인정보 보호 및 보안](./SECURITY.md)을 참고하세요.
 
@@ -139,6 +142,8 @@ Tile은 GitHub Pages와 Vercel 배포를 함께 고려합니다.
 
 - GitHub Pages는 정적 호스팅이므로 브라우저에서 사용하는 API 키를 완전히 숨길 수 없습니다.
 - Vercel 배포판은 `/api/neis` 서버리스 프록시를 통해 NEIS 요청을 보내며, 실제 키는 Vercel Environment Variables의 `NEIS_KEY`에만 저장합니다.
+- Supabase 브라우저용 Publishable Key는 공개되어도 되는 값이지만, `SUPABASE_SECRET_KEY`는 계정 삭제 API에서만 사용하고 Vercel 서버 환경변수에만 저장합니다.
+- `tile_backups` 테이블은 Row Level Security를 사용해 로그인 사용자가 자신의 행만 읽고 수정하거나 삭제할 수 있도록 제한합니다.
 - `config.js`, `.env`, `.env.*`는 `.gitignore`에 포함되어 있으므로 실제 키를 커밋하지 않습니다.
 - 공개 저장소에는 `config.public.js`, `config.example.js`, `.env.example`만 포함합니다.
 
@@ -146,9 +151,20 @@ Vercel 환경변수:
 
 ```bash
 NEIS_KEY=your_neis_open_api_key
+SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+SUPABASE_SECRET_KEY=sb_secret_YOUR_SERVER_ONLY_KEY
 ```
 
 로컬에서 키를 테스트해야 한다면 `config.example.js`를 참고해 `config.js`를 만들되, 실제 키는 절대 커밋하지 마세요.
+
+Google 로그인 설정 순서:
+
+1. Supabase SQL Editor에서 `supabase/migrations/20260810_google_auth_mvp.sql`을 실행합니다.
+2. Supabase Authentication의 Google Provider를 활성화합니다.
+3. Google Cloud OAuth Client의 승인된 Redirect URI에 `https://YOUR_PROJECT.supabase.co/auth/v1/callback`을 등록합니다.
+4. Supabase Redirect URL 허용 목록에 `https://tile0.vercel.app/`과 개발 주소 `http://127.0.0.1:5506/`을 등록합니다.
+5. `config.public.js`의 `TILE_AUTH_CONFIG`에 Project URL과 브라우저용 Publishable Key를 입력합니다.
+6. Vercel에 `SUPABASE_URL`, `SUPABASE_SECRET_KEY`를 등록합니다.
 
 GitHub Pages 배포 체크가 `deployment_queued`에서 오래 멈추면 저장소의 **Settings → Pages → Build and deployment**에서 Source를 `GitHub Actions`로 맞춘 뒤, 포함된 `.github/workflows/pages.yml` 워크플로로 배포하세요. Vercel만 정식 배포판으로 쓸 경우 GitHub Pages를 비활성화하면 Pages deploy 체크 자체가 생성되지 않습니다.
 
@@ -164,6 +180,7 @@ GitHub Pages 배포 체크가 `deployment_queued`에서 오래 멈추면 저장�
 - [x] 모바일 반응형 UI
 - [x] 시간표 공유 링크 및 적용 전 미리보기
 - [x] 앱에서 오프라인 상태일 경우 앱 내장 로컬 HTML로 Fallback (iOS)
+- [x] Google 로그인 및 수동 계정 백업 MVP
 - [ ] 사용자 별 맞춤형 학교 시간표 편집기
 - [ ] 사용자 별 맞춤형 수업 설정
 - [x] 웹 호스팅
@@ -178,10 +195,13 @@ GitHub Pages 배포 체크가 `deployment_queued`에서 오래 멈추면 저장�
 index.html
 style.css
 script.js
+auth.js                # Google 로그인, 계정 백업·복원 UI
 neis.js                 # TypeScript build output used by the browser
 src/neis.ts             # Typed NEIS browser client
 src/types.d.ts          # Shared Tile and NEIS types
 api/neis.ts             # Vercel NEIS proxy
+api/account.ts          # 인증된 사용자 계정 삭제 API
+supabase/migrations/    # 백업 테이블과 RLS 정책
 data/default-timetable.json
 package.json
 tsconfig.json
