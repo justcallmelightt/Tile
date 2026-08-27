@@ -208,6 +208,7 @@ let selectedSubjectCell = null;
 let selectedSubjectRow = null;
 let selectedSubjectIndex = null;
 let subjectBulkTargets = [];
+let subjectEditDraft = null;
 let modalCallback = null;
 let selectedPeriodRow = null;
 let selectedPeriodItem = null;
@@ -1246,28 +1247,47 @@ function openSubjectEditor(cell, row, index) {
   const memoKey = getCellMemoKey(row, index);
   const cellInfo = getCellInfo(row, index);
 
+  subjectEditDraft = {
+    name: subject,
+    room: cellInfo.room || cell.dataset.neisRoom || classroomMap[subject] || "",
+    teacher: cellInfo.teacher || cell.dataset.neisTeacher || teacherMap[subject] || "",
+    memo: memos[memoKey] || ""
+  };
+  showSingleSubjectEditor();
+  showSubjectOverlay();
+  setTimeout(() => subjectEditName?.focus(), 100);
+}
+
+function captureSingleSubjectDraft() {
+  subjectEditDraft = {
+    name: subjectEditName?.value || "",
+    room: subjectEditRoom?.value || "",
+    teacher: subjectEditTeacher?.value || "",
+    memo: subjectEditMemo?.value || ""
+  };
+  return subjectEditDraft;
+}
+
+function showSingleSubjectEditor() {
+  if (!selectedSubjectCell || !selectedSubjectRow || !subjectEditMode) return;
+  const subject = selectedSubjectCell.dataset.subject || "";
+  const draft = subjectEditDraft || { name: subject, room: "", teacher: "", memo: "" };
+
   hideSubjectModes();
   subjectEditMode.classList.remove("mode-hidden");
   if (subjectEditTitle) subjectEditTitle.textContent = subject ? "과목 수정" : "과목 추가";
-  if (subjectEditName) subjectEditName.value = subject;
-  if (subjectEditRoom) {
-    subjectEditRoom.value = cellInfo.room || cell.dataset.neisRoom || classroomMap[subject] || "";
-  }
-  if (subjectEditTeacher) {
-    subjectEditTeacher.value = cellInfo.teacher || cell.dataset.neisTeacher || teacherMap[subject] || "";
-  }
-  if (subjectEditMemo) subjectEditMemo.value = memos[memoKey] || "";
+  if (subjectEditName) subjectEditName.value = draft.name;
+  if (subjectEditRoom) subjectEditRoom.value = draft.room;
+  if (subjectEditTeacher) subjectEditTeacher.value = draft.teacher;
+  if (subjectEditMemo) subjectEditMemo.value = draft.memo;
   if (subjectEditContext) {
-    subjectEditContext.textContent = `${getSubjectDayLabel(index)}요일 · ${row.dataset.period || "교시"}`;
+    subjectEditContext.textContent = `${getSubjectDayLabel(selectedSubjectIndex)}요일 · ${selectedSubjectRow.dataset.period || "교시"}`;
   }
   if (subjectEditSource) {
-    const source = getCellSourceLabel(cell);
+    const source = getCellSourceLabel(selectedSubjectCell);
     subjectEditSource.textContent = source.label;
     subjectEditSource.className = `source-badge ${source.className}`.trim();
   }
-
-  showSubjectOverlay();
-  setTimeout(() => subjectEditName?.focus(), 100);
 }
 
 function showSubjectOverlay() {
@@ -1302,6 +1322,7 @@ function closeSubjectModal() {
     selectedSubjectCell = null;
     selectedSubjectRow = null;
     selectedSubjectIndex = null;
+    subjectEditDraft = null;
     selectedPeriodRow = null;
     selectedPeriodItem = null;
     subjectBulkTargets = [];
@@ -1386,6 +1407,7 @@ function openSubjectBulkEditor() {
   if (!selectedSubjectCell || !subjectBulkMode || !subjectBulkRows) return;
 
   const selectedSubject = selectedSubjectCell.dataset.subject || "";
+  const pendingDraft = captureSingleSubjectDraft();
   subjectBulkTargets = getSubjectBulkTargets(selectedSubject);
   if (!selectedSubject || !subjectBulkTargets.length) return;
 
@@ -1394,22 +1416,10 @@ function openSubjectBulkEditor() {
   if (subjectBulkTitle) subjectBulkTitle.textContent = `${selectedSubject} 일괄 수정`;
 
   const memos = readJsonStorage(SUBJECT_MEMO_STORAGE_KEY);
-  const selectedCellInfo = getCellInfo(selectedSubjectRow, selectedSubjectIndex);
-  const selectedMemoKey = getCellMemoKey(selectedSubjectRow, selectedSubjectIndex);
-  if (subjectBulkName) subjectBulkName.value = selectedSubject;
-  if (subjectBulkRoom) {
-    subjectBulkRoom.value = selectedCellInfo.room
-      || selectedSubjectCell.dataset.neisRoom
-      || classroomMap[selectedSubject]
-      || "";
-  }
-  if (subjectBulkTeacher) {
-    subjectBulkTeacher.value = selectedCellInfo.teacher
-      || selectedSubjectCell.dataset.neisTeacher
-      || teacherMap[selectedSubject]
-      || "";
-  }
-  if (subjectBulkMemo) subjectBulkMemo.value = memos[selectedMemoKey] || "";
+  if (subjectBulkName) subjectBulkName.value = pendingDraft.name;
+  if (subjectBulkRoom) subjectBulkRoom.value = pendingDraft.room;
+  if (subjectBulkTeacher) subjectBulkTeacher.value = pendingDraft.teacher;
+  if (subjectBulkMemo) subjectBulkMemo.value = pendingDraft.memo;
   subjectBulkRows.textContent = "";
 
   subjectBulkTargets.forEach(({ row, cell, index }, targetIndex) => {
@@ -1564,8 +1574,13 @@ subjectEditNeis?.addEventListener("click", async () => {
 subjectBulkSave?.addEventListener("click", saveBulkSubjectEdits);
 
 subjectBulkBack?.addEventListener("click", () => {
-  hideSubjectModes();
-  subjectEditMode?.classList.remove("mode-hidden");
+  subjectEditDraft = {
+    name: subjectBulkName?.value || "",
+    room: subjectBulkRoom?.value || "",
+    teacher: subjectBulkTeacher?.value || "",
+    memo: subjectBulkMemo?.value || ""
+  };
+  showSingleSubjectEditor();
   setTimeout(() => subjectEditName?.focus(), 40);
 });
 
