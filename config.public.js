@@ -8,6 +8,6 @@ window.TILE_NEIS_CONFIG = {
 };
 
 window.TILE_AUTH_CONFIG = {
-  supabaseUrl: "",
-  supabasePublishableKey: ""
+  supabaseUrl: "https://rfvgrpnchibvprabirjh.supabase.co",
+  supabasePublishableKey: "sb_publishable_QYn9-kCwNx1ojBuFvfO4gg_2IPmaQSh"
 };
