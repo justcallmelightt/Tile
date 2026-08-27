@@ -1,15 +1,19 @@
 # Tile
 ![Tile Banner](./assets/TileBanner.png)
 
+
+
 > [!CAUTION]
 > `© 2026 Lightframe. All Rights Reserved.` <br>
 > **이 Repository의 모든 파일은 소중한 개인 저작권의 보호를 받습니다. 무단 복제 및 도용을 금지합니다.** <br>
-> **This repository is NOT open source.**
+> **This repository is NOT open source.** <br>
+> 
+> Tile 서비스는 개인정보 보호와 보안을 기본 원칙으로 다룹니다. <br> 자세한 내용은 [개인정보 보호 및 보안](./SECURITY.md)을 참고하시거나, 상단 Repository 해더에서, `Security` 탭을 확인하세요.
 
 > 학교 일과 관리를 위한 리얼타임 시스템 기반 통합형 크로스플랫폼 TimeTable<br>
 > <img src="https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white"> <img src="https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white"> <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black"> <img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white"> <img src="https://img.shields.io/badge/JSON-5E5C5C?style=for-the-badge&logo=json&logoColor=white"> <img src="https://img.shields.io/badge/Swift-F05138?style=for-the-badge&logo=swift&logoColor=white"> <br>
 > <img src="https://img.shields.io/badge/iOS-Pre_Alpha-orange?style=for-the-badge&logo=apple&logoColor=white&labelColor=000000"> <img src="https://img.shields.io/badge/Android-Planned-3178C6?style=for-the-badge&logo=android&logoColor=white&labelColor=3DDC84"> <img src="https://img.shields.io/badge/Web-Alpha-red?style=for-the-badge&logo=googlechrome&logoColor=white&labelColor=4285F4"> <br>
-> **Web: [Tile](https://tile0.vercel.app/) | [GitHub Pages Mirror](https://justcallmelightt.github.io/Tile/) | App: Coming Soon**
+> **Web: [Tile](https://tile0.vercel.app/) | App: Coming Soon**
 
 ## 기여자
 
@@ -125,7 +129,9 @@ Tile은 로그인 없이도 사용할 수 있는 로컬 우선 시간표 서비�
 - 시간표와 메모에는 다른 사람의 개인정보나 민감한 정보를 입력하지 않는 것을 권장합니다.
 - Google 로그인 과정에서 Google과 Supabase가 이메일, 이름, 프로필 이미지 등 인증에 필요한 계정 정보를 처리할 수 있습니다.
 
-## 보안 및 배포
+자세한 내용은 [개인정보 보호 및 보안](./PRIVACY_SECURITY.md)을 참고하세요.
+
+## 배포와 환경 변수
 
 Tile은 GitHub Pages와 Vercel 배포를 함께 고려합니다.
 

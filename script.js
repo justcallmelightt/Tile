@@ -52,14 +52,6 @@ const scheduleRanges = [
   { name: "방과후 B", start: "18:20", end: "20:00" }
 ];
 
-const breakRanges = [
-  { name: "쉬는시간", start: "09:10", end: "09:20" },
-  { name: "쉬는시간", start: "10:10", end: "10:20" },
-  { name: "쉬는시간", start: "11:10", end: "11:20" },
-  { name: "쉬는시간", start: "13:50", end: "14:00" },
-  { name: "쉬는시간", start: "14:50", end: "15:00" }
-];
-
 const dayNames = ["일", "월", "화", "수", "목", "금", "토"];
 const themeToggle = document.getElementById("themeToggle");
 const todayOnlyToggle = document.getElementById("todayOnlyToggle");
@@ -735,6 +727,45 @@ function trapDialogFocus(event) {
     event.preventDefault();
     first.focus();
   }
+}
+
+function bindBackdropDismiss(overlay, onDismiss, canDismiss = () => true) {
+  if (!overlay) return;
+
+  let activePointerId = null;
+  let startedOnBackdrop = false;
+  let endedOnBackdrop = false;
+
+  const resetPointerGesture = () => {
+    activePointerId = null;
+    startedOnBackdrop = false;
+    endedOnBackdrop = false;
+  };
+
+  overlay.addEventListener("pointerdown", (event) => {
+    if (!event.isPrimary) return;
+    activePointerId = event.pointerId;
+    startedOnBackdrop = event.target === overlay;
+    endedOnBackdrop = false;
+  });
+
+  overlay.addEventListener("pointerup", (event) => {
+    if (event.pointerId !== activePointerId) return;
+    endedOnBackdrop = event.target === overlay;
+  });
+
+  overlay.addEventListener("pointercancel", resetPointerGesture);
+
+  overlay.addEventListener("click", (event) => {
+    const isKeyboardClick = event.detail === 0;
+    const isIntentionalBackdropClick = startedOnBackdrop && endedOnBackdrop;
+    const shouldDismiss = event.target === overlay
+      && (isKeyboardClick || isIntentionalBackdropClick)
+      && canDismiss();
+
+    resetPointerGesture();
+    if (shouldDismiss) onDismiss();
+  });
 }
 
 function hideSubjectModes() {
@@ -1531,12 +1562,17 @@ function getCurrentSchedule(minutesNow) {
       return { ...item, type: "schedule" };
     }
   }
-
-  for (const item of breakRanges) {
-    const start = toMinutes(item.start);
-    const end = toMinutes(item.end);
-    if (minutesNow >= start && minutesNow < end) {
-      return { ...item, type: "break" };
+  
+  for (let i = 0; i < scheduleRanges.length - 1; i++) {
+    const prevEnd = toMinutes(scheduleRanges[i].end);
+    const nextStart = toMinutes(scheduleRanges[i + 1].start);
+    if (minutesNow >= prevEnd && minutesNow < nextStart) {
+      return {
+        name: "쉬는시간",
+        start: scheduleRanges[i].end,
+        end: scheduleRanges[i + 1].start,
+        type: "break"
+      };
     }
   }
 
@@ -1892,10 +1928,11 @@ function enableTileEditing() {
     });
   });
 
-  subjectOverlay?.addEventListener("click", (event) => {
-    if (Date.now() < overlayDismissBlockUntil) return;
-    if (event.target === subjectOverlay) closeSubjectModal();
-  });
+  bindBackdropDismiss(
+    subjectOverlay,
+    closeSubjectModal,
+    () => Date.now() >= overlayDismissBlockUntil
+  );
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
     if (subjectOverlay && !subjectOverlay.classList.contains("hidden")) {
@@ -2977,9 +3014,7 @@ appSettingsToggle?.addEventListener("click", () => {
 
 closeAppSettings?.addEventListener("click", closeAppSettingsModal);
 
-appSettingsModal?.addEventListener("click", (event) => {
-  if (event.target === appSettingsModal) closeAppSettingsModal();
-});
+bindBackdropDismiss(appSettingsModal, closeAppSettingsModal);
 
 saveAppSettings?.addEventListener("click", () => {
   triggerButtonPop(saveAppSettings);
@@ -3074,9 +3109,7 @@ undoTileChange?.addEventListener("click", restoreLastChange);
 
 closeSchoolSettings?.addEventListener("click", closeSchoolSettingsModal);
 
-setupModal?.addEventListener("click", (event) => {
-    if (event.target === setupModal) closeSchoolSettingsModal();
-});
+bindBackdropDismiss(setupModal, closeSchoolSettingsModal);
 
 saveSchoolButton?.addEventListener("click", async () => {
     const formUser = saveSchoolSettings({ persist: false });
