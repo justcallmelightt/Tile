@@ -193,29 +193,13 @@ let overlayDismissBlockUntil = 0;
 const defaultCellSubjectMap = new Map();
 
 let previousTimeString = null;
-const rollingTimeTimers = [];
+const rollingCharacterAnimations = new WeakMap();
 const rollingTextPreviousMap = new Map();
-const rollingTextTimersMap = new Map();
-const textSwapTimersMap = new Map();
+const textSwapAnimationsMap = new Map();
 let cursorGlowFrame = null;
 let topbarFrame = null;
 let floatingTopbarVisible = false;
 let statusTickTimer = null;
-
-function resetRollingTimeTimers() {
-  while (rollingTimeTimers.length > 0) {
-    clearTimeout(rollingTimeTimers.pop());
-  }
-}
-
-function resetRollingTextTimers(key) {
-  const timers = rollingTextTimersMap.get(key);
-  if (!timers) return;
-
-  while (timers.length > 0) {
-    clearTimeout(timers.pop());
-  }
-}
 
 function getRollingTimeCharClass(char) {
   if (/[0-9]/.test(char)) return "time-char";
@@ -232,23 +216,40 @@ function renderStaticRollingDigit(element, char) {
 function triggerTextSwapAnimation(element, key) {
   if (!element || !key) return;
 
-  const previousTimer = textSwapTimersMap.get(key);
-  if (previousTimer) clearTimeout(previousTimer);
+  const previousAnimation = textSwapAnimationsMap.get(key);
+  if (previousAnimation) {
+    previousAnimation.element.removeEventListener("animationend", previousAnimation.finish);
+    previousAnimation.element.removeEventListener("animationcancel", previousAnimation.finish);
+    previousAnimation.element.classList.remove("text-roll-swap");
+    textSwapAnimationsMap.delete(key);
+  }
 
   element.classList.remove("text-roll-swap");
   void element.offsetWidth;
+
+  const animation = { element, finish: null };
+  const finish = (event) => {
+    if (event && (event.target !== element || event.animationName !== "textRollSwap")) return;
+    if (textSwapAnimationsMap.get(key) !== animation) return;
+
+    element.removeEventListener("animationend", finish);
+    element.removeEventListener("animationcancel", finish);
+    element.classList.remove("text-roll-swap");
+    textSwapAnimationsMap.delete(key);
+  };
+  animation.finish = finish;
+  textSwapAnimationsMap.set(key, animation);
+  element.addEventListener("animationend", finish);
+  element.addEventListener("animationcancel", finish);
   element.classList.add("text-roll-swap");
 
-  const timer = setTimeout(() => {
-    element.classList.remove("text-roll-swap");
-    textSwapTimersMap.delete(key);
-  }, 460);
-  textSwapTimersMap.set(key, timer);
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) finish();
 }
 
 function renderStaticTimeStyleText(element, text) {
   if (!element) return;
 
+  cancelRollingCharacters(element);
   element.innerHTML = "";
   element.dataset.timeText = text;
   element.setAttribute("aria-label", text);
@@ -275,7 +276,28 @@ function canRollCharacterElement(element) {
   return element?.classList?.contains("time-char");
 }
 
+function clearRollingCharacterAnimation(element) {
+  const animation = rollingCharacterAnimations.get(element);
+  if (!animation) return;
+
+  animation.inner.removeEventListener("animationend", animation.finish);
+  animation.inner.removeEventListener("animationcancel", animation.finish);
+  rollingCharacterAnimations.delete(element);
+}
+
+function cancelRollingCharacters(element) {
+  if (!element) return;
+
+  [...element.children].forEach((child) => {
+    if (!canRollCharacterElement(child)) return;
+    clearRollingCharacterAnimation(child);
+    child.classList.remove("animate", "rolling");
+  });
+}
+
 function renderRollingCharacter(element, oldChar, newChar) {
+  clearRollingCharacterAnimation(element);
+  element.classList.remove("animate", "rolling");
   element.dataset.value = newChar;
   element.textContent = "";
 
@@ -292,15 +314,25 @@ function renderRollingCharacter(element, oldChar, newChar) {
 
   inner.append(oldSpan, newSpan);
   element.appendChild(inner);
-  element.classList.remove("animate", "rolling");
-  void element.offsetWidth;
 
-  requestAnimationFrame(() => {
-    element.classList.add("animate", "rolling");
-  });
+  const animation = { inner, finish: null };
+  const finish = (event) => {
+    if (event && (event.target !== inner || event.animationName !== "rollUp")) return;
+    finishRollingCharacter(element, newChar, animation);
+  };
+  animation.finish = finish;
+  rollingCharacterAnimations.set(element, animation);
+  inner.addEventListener("animationend", finish);
+  inner.addEventListener("animationcancel", finish);
+  element.classList.add("animate", "rolling");
+
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) finish();
 }
 
-function finishRollingCharacter(element, char) {
+function finishRollingCharacter(element, char, expectedAnimation = null) {
+  if (expectedAnimation && rollingCharacterAnimations.get(element) !== expectedAnimation) return;
+
+  clearRollingCharacterAnimation(element);
   element.classList.remove("animate", "rolling");
   renderStaticRollingDigit(element, char);
 }
@@ -314,7 +346,7 @@ function renderRollingStyleText(element, text, key, options = {}) {
   if (!element) return;
 
   const shouldSwapText = !options.disableTextSwap;
-  const finishDelay = Number.isFinite(options.finishDelay) ? options.finishDelay : 600;
+  const textChars = [...text];
   element.dataset.timeText = text;
   element.setAttribute("aria-label", text);
 
@@ -322,14 +354,14 @@ function renderRollingStyleText(element, text, key, options = {}) {
   const chars = element.children;
 
   if (!/[0-9]/.test(text)) {
-    resetRollingTextTimers(key);
     if (shouldSwapText && previousText && previousText !== text) triggerTextSwapAnimation(element, key);
+    cancelRollingCharacters(element);
     element.textContent = text;
     rollingTextPreviousMap.set(key, text);
     return;
   }
 
-  if (previousText === text && chars.length === text.length) return;
+  if (previousText === text && chars.length === textChars.length) return;
 
   if (!previousText) {
     renderStaticTimeStyleText(element, text);
@@ -344,54 +376,45 @@ function renderRollingStyleText(element, text, key, options = {}) {
     return;
   }
 
-  if (chars.length !== text.length) {
-    resetRollingTextTimers(key);
+  if (chars.length !== textChars.length) {
     if (shouldSwapText) triggerTextSwapAnimation(element, key);
+    cancelRollingCharacters(element);
     element.innerHTML = "";
-    const changedSpans = [];
+    const previousChars = [...previousText];
+    const previousOffset = previousChars.length - textChars.length;
 
-    [...text].forEach((char, index) => {
-      const oldChar = previousText[index] || char;
+    textChars.forEach((char, index) => {
+      const oldChar = previousChars[index + previousOffset];
       const span = document.createElement("span");
       span.className = getRollingTimeCharClass(char);
       span.dataset.value = char;
+      element.appendChild(span);
 
-      if (canRollCharacterElement(span) && char !== oldChar) {
+      if (canRollCharacterElement(span) && /[0-9]/.test(oldChar) && char !== oldChar) {
         renderRollingCharacter(span, oldChar, char);
-        changedSpans.push({ span, char });
       } else if (canRollCharacterElement(span)) {
         renderStaticRollingDigit(span, char);
       } else {
         span.textContent = char;
       }
-
-      element.appendChild(span);
     });
-
-    if (changedSpans.length > 0) {
-      const timer = setTimeout(() => {
-        changedSpans.forEach(({ span, char }) => {
-          finishRollingCharacter(span, char);
-        });
-        rollingTextTimersMap.delete(key);
-      }, finishDelay);
-      rollingTextTimersMap.set(key, [timer]);
-    }
 
     rollingTextPreviousMap.set(key, text);
     return;
   }
 
-  const changedWrappers = [];
   let textChanged = false;
 
-  [...text].forEach((char, index) => {
-    const oldChar = previousText[index];
+  const previousChars = [...previousText];
+  textChars.forEach((char, index) => {
+    const oldChar = previousChars[index];
     if (char === oldChar) return;
 
     const wrapper = chars[index];
     if (!wrapper) return;
 
+    clearRollingCharacterAnimation(wrapper);
+    wrapper.classList.remove("animate", "rolling");
     wrapper.className = getRollingTimeCharClass(char);
     if (!canRollCharacterElement(wrapper)) {
       wrapper.textContent = char;
@@ -401,21 +424,10 @@ function renderRollingStyleText(element, text, key, options = {}) {
     }
 
     renderRollingCharacter(wrapper, oldChar, char);
-    changedWrappers.push({ wrapper, char });
   });
 
   if (textChanged) {
     if (shouldSwapText) triggerTextSwapAnimation(element, key);
-  }
-
-  if (changedWrappers.length > 0) {
-    const timer = setTimeout(() => {
-      changedWrappers.forEach(({ wrapper, char }) => {
-        finishRollingCharacter(wrapper, char);
-      });
-      rollingTextTimersMap.delete(key);
-    }, finishDelay);
-    rollingTextTimersMap.set(key, [timer]);
   }
 
   rollingTextPreviousMap.set(key, text);
@@ -434,7 +446,6 @@ function createRollingTime(timeString) {
   const chars = currentTimeEl.children;
 
   if (chars.length !== timeString.length) {
-    resetRollingTimeTimers();
     renderRollingTimeText(timeString);
     return;
   }
@@ -454,13 +465,6 @@ function createRollingTime(timeString) {
     }
 
     renderRollingCharacter(wrapper, oldChar, char);
-
-    const timer = setTimeout(() => {
-      finishRollingCharacter(wrapper, char);
-      const timerIndex = rollingTimeTimers.indexOf(timer);
-      if (timerIndex !== -1) rollingTimeTimers.splice(timerIndex, 1);
-    }, 600);
-    rollingTimeTimers.push(timer);
   });
 
   previousTimeString = timeString;
@@ -1444,7 +1448,12 @@ function format12Hour(timeText) {
 }
 
 function formatRelativeDuration(diffMinutes, suffix) {
-  const totalSeconds = Math.max(0, Math.ceil(diffMinutes * 60));
+  const rawSeconds = diffMinutes * 60;
+  const nearestSecond = Math.round(rawSeconds);
+  // Snap floating-point noise at whole-second boundaries without discarding real milliseconds.
+  const totalSeconds = Math.max(0, Math.abs(rawSeconds - nearestSecond) < 1e-7
+    ? nearestSecond
+    : Math.ceil(rawSeconds));
   const days = Math.floor(totalSeconds / 86400);
   const hours = Math.floor((totalSeconds % 86400) / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -2478,7 +2487,6 @@ window.TileApp = {
   replayRollingText(element, fromText, toText, key, options = {}) {
     if (!element || !fromText || !toText || fromText === toText) return;
 
-    resetRollingTextTimers(key);
     renderStaticTimeStyleText(element, fromText);
     rollingTextPreviousMap.set(key, fromText);
     requestAnimationFrame(() => {
@@ -3165,7 +3173,7 @@ saveSchoolButton?.addEventListener("click", async () => {
 
     requestAnimationFrame(() => {
       replayStartupSpotlight();
-      const neisRollOptions = { disableTextSwap: true, finishDelay: 1120 };
+      const neisRollOptions = { disableTextSwap: true };
       window.TileApp?.replayRollingText?.(
         neisStatusEl,
         previousNeisStatus,
