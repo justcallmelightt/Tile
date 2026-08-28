@@ -2119,12 +2119,13 @@ body.mobile-today-mode col.day-col {
 .time-char-inner {
   position: absolute;
   top: 0;
-  left: 50%;
+  left: 0;
+  right: 0;
   display: flex;
   flex-direction: column;
   height: 2em;
-  min-width: 100%;
-  transform: translate3d(-50%, 0, 0);
+  width: 100%;
+  transform: translate3d(0, 0, 0);
   will-change: transform, opacity;
   backface-visibility: hidden;
 }
@@ -2193,12 +2194,12 @@ body.mobile-today-mode col.day-col {
 
 @keyframes rollUp {
   0% {
-    transform: translate3d(-50%, 0, 0);
+    transform: translate3d(0, 0, 0);
     opacity: 1;
   }
 
   100% {
-    transform: translate3d(-50%, -1em, 0);
+    transform: translate3d(0, -1em, 0);
     opacity: 1;
   }
 }
