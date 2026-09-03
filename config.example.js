@@ -7,9 +7,3 @@ window.TILE_NEIS_CONFIG = {
   grade: "1",
   className: "2"
 };
-
-window.TILE_AUTH_CONFIG = {
-  // Browser-safe values from Supabase Project Settings > API.
-  supabaseUrl: "https://YOUR_PROJECT.supabase.co",
-  supabasePublishableKey: "sb_publishable_YOUR_KEY"
-};
