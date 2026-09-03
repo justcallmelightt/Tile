@@ -23,9 +23,11 @@
   ];
   const USER_SNAPSHOT_KEYS = [...IMPORT_KEYS, "tile-meals", "tile-app-settings", "tile-neis-last-sync", "mirim-theme", "mirim-today-only"];
   const DAYS = ["월", "화", "수", "목", "금"];
+  const COMPOSER_DRAFT_KEY = "tile-share-composer-draft";
   let draft = null;
   let currentShare = null;
   let session = null;
+  let restoredComposerState = null;
   let lastTrigger = null;
   let deleteArmedId = null;
   let deleteArmTimer = 0;
@@ -91,6 +93,7 @@
   function resetDraft() {
     draft = captureDraft();
     renderDraftEditor();
+    persistComposerState();
     notify("공유용 임시본을 되돌렸습니다", "현재 Tile 시간표를 다시 복사했습니다.");
   }
 
@@ -102,7 +105,7 @@
     const input = document.createElement("input");
     input.value = value || "";
     input.maxLength = limit;
-    input.addEventListener("input", () => onInput(input.value));
+    input.addEventListener("input", () => { onInput(input.value); persistComposerState(); });
     wrapper.append(title, input);
     return wrapper;
   }
@@ -146,6 +149,49 @@
       school: Boolean(nodes.scopeSchool?.checked), details: Boolean(nodes.scopeDetails?.checked),
       subjectMemos: Boolean(nodes.scopeSubjectMemos?.checked), tileMemo: Boolean(nodes.scopeTileMemo?.checked)
     };
+  }
+
+  function composerState(resumeAfterLogin = restoredComposerState?.resumeAfterLogin || false) {
+    return {
+      version: 1,
+      resumeAfterLogin: Boolean(resumeAfterLogin),
+      title: safeText(nodes.title?.value, 60),
+      description: safeText(nodes.description?.value, 240),
+      scopes: getScopes(),
+      draft: draft ? JSON.parse(JSON.stringify(draft)) : null,
+      draftEditorOpen: Boolean(nodes.draftEditor && !nodes.draftEditor.hidden)
+    };
+  }
+
+  function persistComposerState(resumeAfterLogin) {
+    try {
+      restoredComposerState = composerState(resumeAfterLogin);
+      sessionStorage.setItem(COMPOSER_DRAFT_KEY, JSON.stringify(restoredComposerState));
+    }
+    catch (error) { console.error(error); }
+  }
+
+  function clearComposerState() {
+    sessionStorage.removeItem(COMPOSER_DRAFT_KEY);
+    restoredComposerState = null;
+  }
+
+  function restoreComposerState() {
+    if (restoredComposerState) return restoredComposerState;
+    try {
+      const stored = JSON.parse(sessionStorage.getItem(COMPOSER_DRAFT_KEY) || "null");
+      if (!stored || stored.version !== 1 || typeof stored !== "object") return null;
+      restoredComposerState = stored;
+      if (nodes.title) nodes.title.value = safeText(stored.title, 60);
+      if (nodes.description) nodes.description.value = safeText(stored.description, 240);
+      const scopes = stored.scopes || {};
+      if (nodes.scopeSchool) nodes.scopeSchool.checked = Boolean(scopes.school);
+      if (nodes.scopeDetails) nodes.scopeDetails.checked = Boolean(scopes.details);
+      if (nodes.scopeSubjectMemos) nodes.scopeSubjectMemos.checked = Boolean(scopes.subjectMemos);
+      if (nodes.scopeTileMemo) nodes.scopeTileMemo.checked = Boolean(scopes.tileMemo);
+      if (stored.draft?.rows && Array.isArray(stored.draft.rows)) draft = stored.draft;
+      return restoredComposerState;
+    } catch (error) { console.error(error); sessionStorage.removeItem(COMPOSER_DRAFT_KEY); return null; }
   }
 
   function makeImportValues(scopes) {
@@ -276,6 +322,7 @@
     const client = window.TileAuth?.getClient?.();
     const activeSession = window.TileAuth?.getSession?.();
     if (!client || !activeSession?.user) {
+      persistComposerState(true);
       notify("로그인이 먼저 필요합니다", "공유 링크를 관리할 Lightframe. 통합 회원으로 로그인해주세요.");
       closeModal();
       window.TileAuth?.openAccountSettings?.();
@@ -289,6 +336,7 @@
     const { data, error } = await client.from("tile_timetable_shares").insert(record).select("id,title,description,payload,scopes,is_active,created_at,updated_at").single();
     setBusy(nodes.create, false);
     if (error) return notify("공유 링크를 만들지 못했습니다", error.message, "error");
+    clearComposerState();
     renderShare(data);
     window.history.replaceState(null, "", shareUrl(data.id));
     notify("공유 프리셋을 게시했습니다", "원본 Tile은 변경되지 않았습니다.");
@@ -380,20 +428,54 @@
   }
 
   function bindEvents() {
-    nodes.toggle?.addEventListener("click", () => { draft = captureDraft(); renderDraftEditor(); openModal(nodes.creator); });
-    nodes.close?.addEventListener("click", closeModal);
+    nodes.toggle?.addEventListener("click", () => { restoreComposerState(); if (!draft) draft = captureDraft(); renderDraftEditor(); openModal(nodes.creator); });
+    nodes.close?.addEventListener("click", () => { persistComposerState(); closeModal(); });
     nodes.modal?.addEventListener("pointerdown", (event) => { if (event.target === nodes.modal) nodes.modal.dataset.dismissCandidate = "true"; });
-    nodes.modal?.addEventListener("pointerup", (event) => { const shouldClose = event.target === nodes.modal && nodes.modal.dataset.dismissCandidate === "true"; delete nodes.modal.dataset.dismissCandidate; if (shouldClose) closeModal(); });
+    nodes.modal?.addEventListener("pointerup", (event) => { const shouldClose = event.target === nodes.modal && nodes.modal.dataset.dismissCandidate === "true"; delete nodes.modal.dataset.dismissCandidate; if (shouldClose) { persistComposerState(); closeModal(); } });
     nodes.modal?.addEventListener("pointercancel", () => { delete nodes.modal.dataset.dismissCandidate; });
-    nodes.editDraft?.addEventListener("click", () => { if (!draft) draft = captureDraft(); const opening = nodes.draftEditor.hidden; nodes.draftEditor.hidden = !opening; nodes.editDraft.textContent = opening ? "수정 닫기" : "공유 시간표 수정"; if (opening) renderDraftEditor(); });
+    nodes.editDraft?.addEventListener("click", () => { if (!draft) draft = captureDraft(); const opening = nodes.draftEditor.hidden; nodes.draftEditor.hidden = !opening; nodes.editDraft.textContent = opening ? "수정 닫기" : "공유 시간표 수정"; if (opening) renderDraftEditor(); persistComposerState(); });
     nodes.resetDraft?.addEventListener("click", resetDraft);
     nodes.create?.addEventListener("click", createShare);
     nodes.openManager?.addEventListener("click", loadManager);
     nodes.backToCreator?.addEventListener("click", () => showPanel(nodes.creator));
     nodes.copy?.addEventListener("click", () => currentShare?.id && copyText(shareUrl(currentShare.id)));
     nodes.save?.addEventListener("click", saveSharedTimetable);
-    document.addEventListener("keydown", (event) => { if (event.key === "Escape" && !nodes.modal?.classList.contains("hidden")) closeModal(); });
-    window.TileAuth?.onSessionChange?.((nextSession) => { session = nextSession; if (nodes.loginNotice) nodes.loginNotice.hidden = Boolean(session?.user); });
+    document.addEventListener("keydown", (event) => { if (event.key === "Escape" && !nodes.modal?.classList.contains("hidden")) { persistComposerState(); closeModal(); } });
+    [nodes.title, nodes.description].forEach((input) => input?.addEventListener("input", persistComposerState));
+    [nodes.scopeSchool, nodes.scopeDetails, nodes.scopeSubjectMemos, nodes.scopeTileMemo].forEach((input) => input?.addEventListener("change", persistComposerState));
+    window.TileAuth?.onSessionChange?.((nextSession) => {
+      session = nextSession;
+      if (nodes.loginNotice) nodes.loginNotice.hidden = Boolean(session?.user);
+      const state = restoreComposerState();
+      if (session?.user && state?.resumeAfterLogin) {
+        if (state.draftEditorOpen && nodes.draftEditor) {
+          nodes.draftEditor.hidden = false;
+          nodes.editDraft.textContent = "수정 닫기";
+          renderDraftEditor();
+        }
+        state.resumeAfterLogin = false;
+        sessionStorage.setItem(COMPOSER_DRAFT_KEY, JSON.stringify(state));
+        openModal(nodes.creator);
+        notify("작성 중이던 공유를 복원했습니다", "로그인 전 입력한 제목, 소개, 공개 범위와 임시 시간표를 그대로 이어서 작성할 수 있습니다.");
+      }
+    });
+    const initialSession = window.TileAuth?.getSession?.();
+    if (initialSession) {
+      session = initialSession;
+      if (nodes.loginNotice) nodes.loginNotice.hidden = true;
+      const state = restoreComposerState();
+      if (state?.resumeAfterLogin) {
+        if (state.draftEditorOpen && nodes.draftEditor) {
+          nodes.draftEditor.hidden = false;
+          nodes.editDraft.textContent = "수정 닫기";
+          renderDraftEditor();
+        }
+        state.resumeAfterLogin = false;
+        sessionStorage.setItem(COMPOSER_DRAFT_KEY, JSON.stringify(state));
+        openModal(nodes.creator);
+        notify("작성 중이던 공유를 복원했습니다", "로그인 전 입력한 제목, 소개, 공개 범위와 임시 시간표를 그대로 이어서 작성할 수 있습니다.");
+      }
+    }
   }
 
   bindEvents();

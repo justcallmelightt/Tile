@@ -10,7 +10,8 @@
     backup: byId("backupCloudData"), restore: byId("restoreCloudData"), restorePanel: byId("restoreConfirmPanel"),
     restoreDescription: byId("restoreConfirmDescription"), cancelRestore: byId("cancelCloudRestore"),
     confirmRestore: byId("confirmCloudRestore"), signOut: byId("accountSignOut"), showDelete: byId("showDeleteAccount"),
-    deletePanel: byId("deleteAccountPanel"), cancelDelete: byId("cancelDeleteAccount"), confirmDelete: byId("confirmDeleteAccount")
+    deletePanel: byId("deleteAccountPanel"), cancelDelete: byId("cancelDeleteAccount"), confirmDelete: byId("confirmDeleteAccount"),
+    accountEntry: byId("accountSettingsToggle"), accountEntryStatus: byId("accountSettingsStatus")
   };
   let client = null;
   let currentSession = null;
@@ -74,6 +75,11 @@
     setHidden(nodes.restorePanel, true);
     setHidden(nodes.deletePanel, true);
     const user = session?.user;
+    if (nodes.accountEntryStatus) {
+      nodes.accountEntryStatus.textContent = user
+        ? `${user.user_metadata?.full_name || user.user_metadata?.name || "로그인됨"} · 계정 관리`
+        : "로그인 및 계정 관리";
+    }
     setHidden(nodes.signedOut, Boolean(user));
     setHidden(nodes.signedIn, !user);
     sessionSubscribers.forEach((subscriber) => subscriber(session));
@@ -166,7 +172,13 @@
     } finally { setBusy(nodes.confirmDelete, false); }
   }
 
+  function openAccountSettings() {
+    byId("appSettingsToggle")?.click();
+    window.setTimeout(() => document.querySelector('[data-settings-target="accountSettings"]')?.click(), 0);
+  }
+
   function bindEvents() {
+    nodes.accountEntry?.addEventListener("click", openAccountSettings);
     nodes.googleSignIn?.addEventListener("click", signInWithGoogle);
     nodes.backup?.addEventListener("click", backupCurrentData);
     nodes.restore?.addEventListener("click", prepareRestore);
@@ -187,10 +199,7 @@
       subscriber(currentSession);
       return () => sessionSubscribers.delete(subscriber);
     },
-    openAccountSettings() {
-      byId("appSettingsToggle")?.click();
-      window.setTimeout(() => document.querySelector('[data-settings-target="accountSettings"]')?.click(), 0);
-    }
+    openAccountSettings
   };
 
   async function init() {
