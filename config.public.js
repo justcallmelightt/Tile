@@ -6,3 +6,8 @@ window.TILE_NEIS_CONFIG = {
   grade: "1",
   className: "2"
 };
+
+window.TILE_AUTH_CONFIG = {
+  supabaseUrl: "https://rfvgrpnchibvprabirjh.supabase.co",
+  supabasePublishableKey: "sb_publishable_QYn9-kCwNx1ojBuFvfO4gg_2IPmaQSh"
+};
