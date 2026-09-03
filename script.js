@@ -281,6 +281,7 @@ function renderStaticTimeStyleText(element, text) {
   element.innerHTML = "";
   element.dataset.timeText = text;
   element.setAttribute("aria-label", text);
+  element.title = text;
 
   if (!/[0-9]/.test(text)) {
     element.textContent = text;
@@ -377,6 +378,7 @@ function renderRollingStyleText(element, text, key, options = {}) {
   const textChars = [...text];
   element.dataset.timeText = text;
   element.setAttribute("aria-label", text);
+  element.title = text;
 
   const previousText = rollingTextPreviousMap.get(key);
   const chars = element.children;

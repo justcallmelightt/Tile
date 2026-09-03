@@ -2069,6 +2069,27 @@ body.mobile-today-mode col.day-col {
   font-variant-numeric: tabular-nums;
 }
 
+/* Keep the compact floating status bar inside its own grid cells. Long NEIS
+   messages remain available through the element title and aria-label. */
+.floating-topbar .status-item {
+  min-width: 0;
+}
+
+#topbarTime,
+#topbarPeriod,
+#topbarRemaining,
+#topbarDayRemaining,
+#topbarRoom,
+#topbarNeis {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .time-char {
   position: relative;
   font: inherit;
