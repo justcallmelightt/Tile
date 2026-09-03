@@ -10,7 +10,8 @@
     backup: byId("backupCloudData"), restore: byId("restoreCloudData"), restorePanel: byId("restoreConfirmPanel"),
     restoreDescription: byId("restoreConfirmDescription"), cancelRestore: byId("cancelCloudRestore"),
     confirmRestore: byId("confirmCloudRestore"), signOut: byId("accountSignOut"), showDelete: byId("showDeleteAccount"),
-    deletePanel: byId("deleteAccountPanel"), cancelDelete: byId("cancelDeleteAccount"), confirmDelete: byId("confirmDeleteAccount")
+    deletePanel: byId("deleteAccountPanel"), cancelDelete: byId("cancelDeleteAccount"), confirmDelete: byId("confirmDeleteAccount"),
+    accountEntry: byId("accountSettingsToggle"), accountEntryStatus: byId("accountSettingsStatus")
   };
   let client = null;
   let currentSession = null;
@@ -58,6 +59,24 @@
     return String(name).trim().slice(0, 1).toUpperCase() || "T";
   }
 
+  function consumeAuthError() {
+    const url = new URL(window.location.href);
+    const hashParams = new URLSearchParams(url.hash.startsWith("#error=") ? url.hash.slice(1) : "");
+    const errorCode = url.searchParams.get("error_code") || hashParams.get("error_code");
+    if (!errorCode) return;
+    const description = url.searchParams.get("error_description") || hashParams.get("error_description") || "인증 제공자 설정을 확인해주세요.";
+    ["error", "error_code", "error_description", "sb"].forEach((key) => url.searchParams.delete(key));
+    if (url.hash.startsWith("#error=")) url.hash = "";
+    window.history.replaceState(null, "", url.toString());
+    window.setTimeout(() => window.TileApp?.notify?.(
+      "Google 로그인을 완료하지 못했습니다",
+      description.startsWith("Unable to exchange external code")
+        ? "Google 인증 설정에서 코드를 확인하지 못했습니다. 공유 링크는 로그인 없이 만들 수 있습니다."
+        : description,
+      { tone: "error" }
+    ), 0);
+  }
+
   async function refreshBackupStatus() {
     if (!client || !currentSession?.user) return;
     const { data, error } = await client.from("tile_backups").select("updated_at").eq("user_id", currentSession.user.id).maybeSingle();
@@ -74,6 +93,11 @@
     setHidden(nodes.restorePanel, true);
     setHidden(nodes.deletePanel, true);
     const user = session?.user;
+    if (nodes.accountEntryStatus) {
+      nodes.accountEntryStatus.textContent = user
+        ? `${user.user_metadata?.full_name || user.user_metadata?.name || "로그인됨"} · 계정 관리`
+        : "로그인 및 계정 관리";
+    }
     setHidden(nodes.signedOut, Boolean(user));
     setHidden(nodes.signedIn, !user);
     sessionSubscribers.forEach((subscriber) => subscriber(session));
@@ -166,7 +190,13 @@
     } finally { setBusy(nodes.confirmDelete, false); }
   }
 
+  function openAccountSettings() {
+    byId("appSettingsToggle")?.click();
+    window.setTimeout(() => document.querySelector('[data-settings-target="accountSettings"]')?.click(), 0);
+  }
+
   function bindEvents() {
+    nodes.accountEntry?.addEventListener("click", openAccountSettings);
     nodes.googleSignIn?.addEventListener("click", signInWithGoogle);
     nodes.backup?.addEventListener("click", backupCurrentData);
     nodes.restore?.addEventListener("click", prepareRestore);
@@ -187,14 +217,12 @@
       subscriber(currentSession);
       return () => sessionSubscribers.delete(subscriber);
     },
-    openAccountSettings() {
-      byId("appSettingsToggle")?.click();
-      window.setTimeout(() => document.querySelector('[data-settings-target="accountSettings"]')?.click(), 0);
-    }
+    openAccountSettings
   };
 
   async function init() {
     bindEvents();
+    consumeAuthError();
     if (!isConfigured()) {
       setHidden(nodes.unavailable, false);
       setHidden(nodes.signedOut, true);
