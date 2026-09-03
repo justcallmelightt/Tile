@@ -113,7 +113,6 @@
       <nav class="settings-nav" aria-label="Tile 설정 항목">
         <button class="is-active" type="button" data-settings-target="mealSettings">급식</button>
         <button type="button" data-settings-target="dataSettings">데이터</button>
-        <button type="button" data-settings-target="accountSettings">계정</button>
       </nav>
       <section class="settings-section is-active" id="mealSettings" aria-labelledby="allergySettingsTitle">
         <div class="settings-section-header">
@@ -151,106 +150,10 @@
           <button id="undoTileChange" class="secondary-action" type="button">마지막 변경 되돌리기</button>
         </div>
       </section>
-      <section class="settings-section" id="accountSettings" aria-labelledby="accountSettingsTitle" hidden>
-        <div class="settings-section-header">
-          <h3 id="accountSettingsTitle">Tile 계정</h3>
-          <p>로그인하면 현재 시간표를 계정에 백업하고 다른 기기에서 복원할 수 있습니다.</p>
-        </div>
-        <div id="accountUnavailable" class="account-notice" role="status" hidden>
-          <strong>계정 기능 준비 중</strong>
-          <span>Supabase 연결 설정을 완료하면 Google 로그인을 사용할 수 있습니다.</span>
-        </div>
-        <div id="accountSignedOut" class="account-state" hidden>
-          <div class="account-identity">
-            <span class="account-avatar" aria-hidden="true">T</span>
-            <div><strong>이 기기에만 저장 중</strong><span>로그인하지 않아도 Tile은 계속 사용할 수 있어요.</span></div>
-          </div>
-          <button id="googleSignIn" class="account-primary-action" type="button"><span class="google-mark" aria-hidden="true">G</span>Google로 계속하기</button>
-        </div>
-        <div id="accountSignedIn" class="account-state" hidden>
-          <div class="account-identity">
-            <span id="accountAvatar" class="account-avatar" aria-hidden="true">T</span>
-            <div><strong id="accountDisplayName">Tile 사용자</strong><span id="accountEmail"></span></div>
-          </div>
-          <div class="settings-data-summary account-summary">
-            <div><span>현재 저장 위치</span><strong>이 기기 + Tile 계정</strong></div>
-            <div><span>클라우드 백업</span><strong id="cloudBackupStatus">확인 전</strong></div>
-          </div>
-          <p id="accountMessage" class="form-message account-message" aria-live="polite"></p>
-          <div class="settings-secondary-actions account-actions">
-            <button id="backupCloudData" class="secondary-action" type="button">현재 데이터 백업</button>
-            <button id="restoreCloudData" class="secondary-action" type="button">백업 불러오기</button>
-          </div>
-          <div id="restoreConfirmPanel" class="account-confirm-panel" hidden>
-            <strong>이 기기의 데이터를 교체할까요?</strong>
-            <p id="restoreConfirmDescription">현재 데이터는 되돌리기용으로 보관한 뒤 클라우드 백업을 적용합니다.</p>
-            <div><button id="cancelCloudRestore" class="secondary-action" type="button">취소</button><button id="confirmCloudRestore" class="primary-action" type="button">백업 적용</button></div>
-          </div>
-          <button id="accountSignOut" class="account-text-action" type="button">로그아웃</button>
-          <button id="showDeleteAccount" class="account-text-action account-danger-action" type="button">계정 삭제</button>
-          <div id="deleteAccountPanel" class="account-confirm-panel account-danger-panel" hidden>
-            <strong>Tile 계정을 삭제할까요?</strong>
-            <p>클라우드 백업과 계정은 삭제되며 이 기기의 시간표는 유지됩니다. 이 작업은 되돌릴 수 없습니다.</p>
-            <div><button id="cancelDeleteAccount" class="secondary-action" type="button">취소</button><button id="confirmDeleteAccount" class="danger-action" type="button">계정 삭제</button></div>
-          </div>
-        </div>
-      </section>
       <div class="setup-actions">
         <button id="resetAppSettings" class="theme-toggle secondary-action" type="button">현재 항목 초기화</button>
         <button id="saveAppSettings" class="theme-toggle save-action primary-action" type="button">설정 저장</button>
       </div>
-    </div>
-  </div>
-  <div id="showcaseShareModal" class="setup-modal hidden" aria-hidden="true">
-    <div class="setup-card share-card" role="dialog" aria-modal="true" aria-labelledby="showcaseShareTitle">
-      <div class="setup-header">
-        <div>
-          <span class="dialog-eyebrow">Tile Share Studio</span>
-          <h2 id="showcaseShareTitle">시간표 공유 스튜디오</h2>
-          <p class="setup-subtitle" id="showcaseShareDescription">시간표를 소개하거나, 학교·학급에 맞게 다듬은 설정을 배포할 수 있습니다.</p>
-        </div>
-        <button id="closeShowcaseShare" class="dialog-close" type="button" aria-label="닫기">&times;</button>
-      </div>
-      <section id="shareCreatorPanel" class="share-mode-panel">
-        <label class="setup-field" for="showcaseTitleInput"><span>공유 페이지 이름</span><input id="showcaseTitleInput" maxlength="60" placeholder="예) 율이의 1학기 시간표"></label>
-        <label class="setup-field" for="showcaseDescriptionInput"><span>소개</span><textarea id="showcaseDescriptionInput" maxlength="240" rows="3" placeholder="예) 미림마이스터고 1학년 1반의 교실·선생님 정보까지 정리한 최적화 설정입니다."></textarea></label>
-        <fieldset class="share-scope-fieldset">
-          <legend>공개 범위</legend>
-          <label><input id="shareScopeSchool" type="checkbox" checked><span><strong>학교와 학급</strong><small>학교명, 학년, 반과 학과</small></span></label>
-          <label><input id="shareScopeDetails" type="checkbox" checked><span><strong>교실과 선생님</strong><small>수업별 장소와 담당 선생님</small></span></label>
-          <label><input id="shareScopeSubjectMemos" type="checkbox"><span><strong>과목 메모</strong><small>시간표 칸에 남긴 메모</small></span></label>
-          <label><input id="shareScopeTileMemo" type="checkbox"><span><strong>Tile 메모</strong><small>메모·일정 패널의 내용</small></span></label>
-        </fieldset>
-        <div class="share-draft-controls">
-          <div><strong>공유용 시간표</strong><span>원본과 별개인 임시본에서 공개할 정보를 다듬을 수 있습니다.</span></div>
-          <button id="editShareDraft" class="secondary-action" type="button">공유 시간표 수정</button>
-        </div>
-        <div id="shareDraftEditor" class="share-draft-editor" hidden>
-          <div class="share-draft-editor-header"><strong>공유되는 시간표 편집</strong><button id="resetShareDraft" class="account-text-action" type="button">원본으로 되돌리기</button></div>
-          <div id="shareDraftGrid" class="share-draft-grid"></div>
-          <p>과목명을 빈칸으로 두면 해당 수업을 숨깁니다. 이곳의 수정은 내 Tile 원본에 반영되지 않습니다.</p>
-        </div>
-        <div id="shareLoginNotice" class="share-privacy-note">
-          <strong>공유 링크 관리는 로그인이 필요합니다</strong>
-          <p>로그인한 계정에서 링크를 다시 복사하거나 비활성화할 수 있습니다. 링크를 받은 사람은 로그인하지 않아도 볼 수 있습니다.</p>
-        </div>
-        <div class="share-privacy-note">
-          <strong>공개할 내용을 한 번 더 확인해주세요</strong>
-          <p>선택한 정보는 공개 링크를 가진 사람이 볼 수 있습니다. 비밀번호나 연락처처럼 민감한 내용은 메모에 포함하지 마세요.</p>
-        </div>
-        <div class="setup-actions share-actions"><button id="openShareManager" class="theme-toggle secondary-action" type="button">공유 링크 관리</button><button id="createShowcaseShare" class="theme-toggle save-action primary-action" type="button">공유 링크 만들기</button></div>
-      </section>
-      <section id="shareViewerPanel" class="share-mode-panel" hidden>
-        <div class="share-showcase-heading"><div><strong id="sharedShowcaseTitle">공유 시간표</strong><span id="sharedShowcaseMeta">시간표를 불러오는 중입니다.</span></div><span class="share-readonly-badge">미리보기</span></div>
-        <p id="sharedShowcaseDescription" class="shared-showcase-description" hidden></p>
-        <div id="sharedTimetableView" class="shared-timetable-view" aria-live="polite"></div>
-        <div id="sharedMemoView" class="shared-memo-view" hidden></div>
-        <div class="setup-actions share-actions"><button id="copyCurrentShare" class="theme-toggle secondary-action" type="button">링크 복사</button><button id="saveSharedTimetable" class="theme-toggle save-action primary-action" type="button">내 Tile에 저장</button></div>
-      </section>
-      <section id="shareManagerPanel" class="share-mode-panel" hidden>
-        <div class="share-manager-header"><div><strong>내 공유 링크</strong><span>언제든 다시 복사하거나 공개를 중지할 수 있습니다.</span></div><button id="backToShareCreator" class="secondary-action" type="button">돌아가기</button></div>
-        <div id="shareManagerList" class="share-manager-list" aria-live="polite"></div>
-      </section>
     </div>
   </div>
   <div class="iphone-safe-zone" aria-hidden="true"></div>
@@ -302,7 +205,6 @@
           <div class="tool-menu-panel" id="toolMenuPanel" aria-hidden="true">
             <span class="tool-menu-label">연결</span>
             <button id="schoolSettingsToggle" type="button"><span>학교 설정</span><small>학교와 학급 변경</small></button>
-            <button id="showcaseShareToggle" type="button"><span>시간표 공유</span><small>공유 프리셋 제작·배포</small></button>
             <button id="mealToggle" type="button"><span>오늘 급식</span><small>조식·중식·석식</small></button>
             <span class="tool-menu-label">관리</span>
             <button id="appSettingsToggle" type="button"><span>Tile 설정</span><small>개인화와 데이터</small></button>
@@ -600,7 +502,7 @@
         </div>
         <div id="subjectBulkRows" class="subject-bulk-list"></div>
         <div class="subject-actions subject-bulk-actions">
-          <button id="subjectBulkBack" class="secondary-action" type="button">단일 과목 수정</button>
+          <button id="subjectBulkBack" class="secondary-action" type="button">돌아가기</button>
           <button id="subjectBulkNeis" class="secondary-action" type="button">NEIS로 복원</button>
           <button id="subjectBulkSave" class="primary-action" type="button">선택한 수업 저장</button>
         </div>
@@ -625,8 +527,6 @@
   <script src="./config.public.js?v=20260703-script-fix"></script>
   <script src="./config.js?v=20260703-script-fix" onerror="this.remove()"></script>
   <script src="./neis.js?v=20260727-review-fixes"></script>
-  <script src="./script.js?v=20260829-rolling-share-sync"></script>
-  <script src="./auth.js?v=20260810-google-login-mvp"></script>
-  <script src="./share.js?v=20260827-showcase-share"></script>
+  <script src="./script.js?v=20260813-stable-seconds"></script>
 </body>
 </html>
