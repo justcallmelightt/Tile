@@ -59,6 +59,24 @@
     return String(name).trim().slice(0, 1).toUpperCase() || "T";
   }
 
+  function consumeAuthError() {
+    const url = new URL(window.location.href);
+    const hashParams = new URLSearchParams(url.hash.startsWith("#error=") ? url.hash.slice(1) : "");
+    const errorCode = url.searchParams.get("error_code") || hashParams.get("error_code");
+    if (!errorCode) return;
+    const description = url.searchParams.get("error_description") || hashParams.get("error_description") || "인증 제공자 설정을 확인해주세요.";
+    ["error", "error_code", "error_description", "sb"].forEach((key) => url.searchParams.delete(key));
+    if (url.hash.startsWith("#error=")) url.hash = "";
+    window.history.replaceState(null, "", url.toString());
+    window.setTimeout(() => window.TileApp?.notify?.(
+      "Google 로그인을 완료하지 못했습니다",
+      description.startsWith("Unable to exchange external code")
+        ? "Google 인증 설정에서 코드를 확인하지 못했습니다. 공유 링크는 로그인 없이 만들 수 있습니다."
+        : description,
+      { tone: "error" }
+    ), 0);
+  }
+
   async function refreshBackupStatus() {
     if (!client || !currentSession?.user) return;
     const { data, error } = await client.from("tile_backups").select("updated_at").eq("user_id", currentSession.user.id).maybeSingle();
@@ -204,6 +222,7 @@
 
   async function init() {
     bindEvents();
+    consumeAuthError();
     if (!isConfigured()) {
       setHidden(nodes.unavailable, false);
       setHidden(nodes.signedOut, true);
