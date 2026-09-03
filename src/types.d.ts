@@ -122,6 +122,16 @@ interface ReadRowsOptions extends NeisRequestOptions {
 }
 
 interface TileAppBridge {
+  createAccountBackup?: () => {
+    version: number;
+    createdAt: string;
+    summary: { schoolName: string; grade: string; classNum: string };
+    values: Record<string, string | null>;
+  };
+  restoreAccountBackup?: (backup: {
+    version: number;
+    values: Record<string, unknown>;
+  }) => void;
   renderRollingText?: (element: HTMLElement, text: string, key: string) => void;
   renderSubjectCell?: (cell: HTMLTableCellElement, subject: string) => void;
   setCellInfoByCell?: (
@@ -157,6 +167,10 @@ interface TileNeisBridge {
 
 interface Window {
   TILE_NEIS_CONFIG?: Partial<NeisConfig>;
+  TILE_AUTH_CONFIG?: {
+    supabaseUrl?: string;
+    supabasePublishableKey?: string;
+  };
   TileApp?: TileAppBridge;
   TileNeis?: TileNeisBridge;
   searchSchool: TileNeisBridge["searchSchool"];
