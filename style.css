@@ -3338,6 +3338,12 @@ body.light-mode .subject-modal {
 .share-draft-field input:focus { outline-color: color-mix(in srgb, var(--accent) 52%, transparent); background: var(--surface); }
 
 .share-readonly-badge { flex: 0 0 auto; padding: 6px 9px; border-radius: 999px; background: var(--accent-soft); color: var(--accent) !important; font-weight: 760; }
+.share-beta-badge { display: inline-flex; margin-left: 5px; padding: 2px 6px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 0.58rem; font-weight: 780; letter-spacing: 0; vertical-align: 1px; }
+.share-preview-state { display: grid; grid-template-columns: auto auto 1fr; align-items: center; gap: 5px 7px; min-width: 0; padding: 10px 13px; border-radius: 14px; background: color-mix(in srgb, var(--accent) 7%, var(--surface-soft)); color: var(--text); }
+.share-preview-state > span { grid-row: 1 / 3; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 14%, transparent); }
+.share-preview-state strong { font-size: 0.69rem; letter-spacing: -0.012em; }
+.share-preview-state small { color: var(--text-soft); font-size: 0.64rem; }
+.share-viewer-actions { grid-template-columns: minmax(0, .8fr) minmax(0, .8fr) minmax(0, 1.25fr); }
 .shared-showcase-description { margin: 0; padding: 2px 4px; color: var(--text-soft); font-size: 0.76rem; line-height: 1.65; white-space: pre-wrap; }
 .shared-timetable-view { min-height: 160px; }
 .shared-timetable-scroll { overflow: auto; border-radius: 18px; background: var(--surface-soft); scrollbar-width: thin; }
@@ -3384,6 +3390,8 @@ body.light-mode .subject-modal {
   .share-draft-controls button, .share-manager-header button { width: 100%; }
   .share-manager-actions { justify-content: stretch; }
   .share-manager-actions button { flex: 1 1 auto; }
+  .share-viewer-actions { grid-template-columns: 1fr 1fr; }
+  .share-viewer-actions .primary-action { grid-column: 1 / -1; }
 }
 
 .share-preview {

@@ -209,13 +209,14 @@
       <div class="setup-header">
         <div>
           <span class="dialog-eyebrow">Tile Share Studio</span>
-          <h2 id="showcaseShareTitle">시간표 공유 스튜디오</h2>
+          <h2 id="showcaseShareTitle">시간표 공유 스튜디오 <span class="share-beta-badge">Beta</span></h2>
           <p class="setup-subtitle" id="showcaseShareDescription">시간표를 소개하거나, 학교·학급에 맞게 다듬은 설정을 배포할 수 있습니다.</p>
         </div>
         <button id="closeShowcaseShare" class="dialog-close" type="button" aria-label="닫기">&times;</button>
       </div>
       <section id="shareCreatorPanel" class="share-mode-panel">
         <label class="setup-field" for="showcaseTitleInput"><span>공유 페이지 이름</span><input id="showcaseTitleInput" maxlength="60" placeholder="예) 율이의 1학기 시간표"></label>
+        <label class="setup-field" for="showcaseAuthorInput"><span>공유자 이름</span><input id="showcaseAuthorInput" maxlength="30" autocomplete="off" placeholder="예) Yul"></label>
         <label class="setup-field" for="showcaseDescriptionInput"><span>소개</span><textarea id="showcaseDescriptionInput" maxlength="240" rows="3" placeholder="예) 미림마이스터고 1학년 1반의 교실·선생님 정보까지 정리한 최적화 설정입니다."></textarea></label>
         <fieldset class="share-scope-fieldset">
           <legend>공개 범위</legend>
@@ -244,12 +245,13 @@
         <div class="setup-actions share-actions"><button id="openShareManager" class="theme-toggle secondary-action" type="button">공유 링크 관리</button><button id="createShowcaseShare" class="theme-toggle save-action primary-action share-create-action" type="button">공유 링크 만들기</button></div>
       </section>
       <section id="shareViewerPanel" class="share-mode-panel" hidden>
-        <div class="share-showcase-heading"><div><strong id="sharedShowcaseTitle">공유 시간표</strong><span id="sharedShowcaseMeta">시간표를 불러오는 중입니다.</span></div><span class="share-readonly-badge">미리보기</span></div>
+        <div class="share-showcase-heading"><div><strong id="sharedShowcaseTitle">공유 시간표</strong><span id="sharedShowcaseMeta">시간표를 불러오는 중입니다.</span></div><span class="share-readonly-badge">Beta · 미리보기</span></div>
         <p id="sharedShowcaseDescription" class="shared-showcase-description" hidden></p>
         <label class="setup-field share-result-link" for="sharedShowcaseLink"><span>공유 링크</span><input id="sharedShowcaseLink" type="text" readonly aria-label="생성된 시간표 공유 링크"></label>
         <div id="sharedTimetableView" class="shared-timetable-view" aria-live="polite"></div>
         <div id="sharedMemoView" class="shared-memo-view" hidden></div>
-        <div class="setup-actions share-actions"><button id="copyCurrentShare" class="theme-toggle secondary-action" type="button">링크 복사</button><button id="saveSharedTimetable" class="theme-toggle save-action primary-action" type="button">내 Tile에 저장</button></div>
+        <div class="share-preview-state" role="status"><span aria-hidden="true"></span><strong>미리보기 상태</strong><small>아직 내 시간표에는 적용되지 않았습니다.</small></div>
+        <div class="setup-actions share-actions share-viewer-actions"><button id="closeSharePreview" class="theme-toggle secondary-action" type="button">미리보기 종료</button><button id="copyCurrentShare" class="theme-toggle secondary-action" type="button">링크 복사</button><button id="saveSharedTimetable" class="theme-toggle save-action primary-action" type="button">내 Tile에 적용</button></div>
       </section>
       <section id="shareManagerPanel" class="share-mode-panel" hidden>
         <div class="share-manager-header"><div><strong>내 공유 링크</strong><span>언제든 다시 복사하거나 공개를 중지할 수 있습니다.</span></div><button id="backToShareCreator" class="secondary-action" type="button">돌아가기</button></div>
@@ -631,8 +633,8 @@
   <script src="./config.public.js?v=20260703-script-fix"></script>
   <script src="./config.js?v=20260703-script-fix" onerror="this.remove()"></script>
   <script src="./neis.js?v=20260727-review-fixes"></script>
-  <script src="./script.js?v=20260829-rolling-share-sync"></script>
+  <script src="./script.js?v=20260904-share-room-restore"></script>
   <script src="./auth.js?v=20260904-auth-return-context"></script>
-  <script src="./share.js?v=20260904-share-auth-continuity"></script>
+  <script src="./share.js?v=20260904-share-preview-ux"></script>
 </body>
 </html>

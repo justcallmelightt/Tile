@@ -2726,6 +2726,7 @@ syncFloatingTopbar();
 updateFloatingTopbar();
 applyTodayOnlyMode();
 loadCellEdits();
+applyRoomBadges();
 loadScheduleEdits();
 enableTileEditing();
 updateMemoIndicators();
