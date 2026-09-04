@@ -4,7 +4,7 @@
   const byId = (id) => document.getElementById(id);
   const nodes = {
     toggle: byId("showcaseShareToggle"), bulkToggle: byId("shareBulkEditToggle"), modal: byId("showcaseShareModal"), close: byId("closeShowcaseShare"),
-    title: byId("showcaseTitleInput"), description: byId("showcaseDescriptionInput"),
+    title: byId("showcaseTitleInput"), author: byId("showcaseAuthorInput"), description: byId("showcaseDescriptionInput"),
     scopeSchool: byId("shareScopeSchool"), scopeDetails: byId("shareScopeDetails"),
     scopeSubjectMemos: byId("shareScopeSubjectMemos"), scopeTileMemo: byId("shareScopeTileMemo"),
     creator: byId("shareCreatorPanel"), viewer: byId("shareViewerPanel"), manager: byId("shareManagerPanel"),
@@ -14,7 +14,7 @@
     managerList: byId("shareManagerList"), sharedTitle: byId("sharedShowcaseTitle"),
     sharedMeta: byId("sharedShowcaseMeta"), sharedDescription: byId("sharedShowcaseDescription"), sharedLink: byId("sharedShowcaseLink"),
     timetable: byId("sharedTimetableView"), memo: byId("sharedMemoView"),
-    copy: byId("copyCurrentShare"), save: byId("saveSharedTimetable")
+    copy: byId("copyCurrentShare"), save: byId("saveSharedTimetable"), closePreview: byId("closeSharePreview")
   };
 
   const IMPORT_KEYS = [
@@ -53,6 +53,24 @@
 
   function safeText(value, limit = 160) {
     return String(value || "").trim().slice(0, limit);
+  }
+
+  function displaySchoolType(school = {}) {
+    const name = safeText(school?.name, 120).replace(/\s+/g, "");
+    const type = safeText(school?.highSchoolType, 60).replace(/\s+/g, "");
+    const purpose = safeText(school?.specialPurpose, 60).replace(/\s+/g, "");
+    if (type.includes("특목") || type.includes("특수목적")) {
+      return ["특목고", purpose.includes("산업수요") || name.includes("마이스터") ? "마이스터고" : ""].filter(Boolean).join(" · ");
+    }
+    if (type.includes("특성화")) return "특성화고";
+    if (type.includes("자율")) return "자율고";
+    if (type.includes("일반")) return "일반고";
+    return safeText(school?.kind, 40);
+  }
+
+  function sessionDisplayName() {
+    const user = window.TileAuth?.getSession?.()?.user;
+    return safeText(user?.user_metadata?.preferred_username || user?.user_metadata?.name || user?.user_metadata?.full_name, 30);
   }
 
   function getCellKey(row, index) {
@@ -158,6 +176,7 @@
       version: 1,
       resumeAfterLogin: Boolean(resumeAfterLogin),
       title: safeText(nodes.title?.value, 60),
+      author: safeText(nodes.author?.value, 30),
       description: safeText(nodes.description?.value, 240),
       scopes: getScopes(),
       draft: draft ? JSON.parse(JSON.stringify(draft)) : null,
@@ -185,6 +204,7 @@
       if (!stored || stored.version !== 1 || typeof stored !== "object") return null;
       restoredComposerState = stored;
       if (nodes.title) nodes.title.value = safeText(stored.title, 60);
+      if (nodes.author) nodes.author.value = safeText(stored.author, 30);
       if (nodes.description) nodes.description.value = safeText(stored.description, 240);
       const scopes = stored.scopes || {};
       if (nodes.scopeSchool) nodes.scopeSchool.checked = Boolean(scopes.school);
@@ -232,7 +252,15 @@
       if (!scopes.subjectMemos) cell.memo = "";
     }));
     const tileMemo = scopes.tileMemo ? safeText(localStorage.getItem("tile-memo-content"), 4000) : "";
-    return { version: 1, presentation, importValues: makeImportValues(scopes), tileMemo };
+    const user = readJson("tile_user", null);
+    presentation.schoolType = scopes.school ? displaySchoolType(user?.school) : "";
+    return {
+      version: 1,
+      presentation,
+      authorName: safeText(nodes.author?.value, 30) || sessionDisplayName() || "익명",
+      importValues: makeImportValues(scopes),
+      tileMemo
+    };
   }
 
   function showPanel(panel) {
@@ -325,8 +353,25 @@
   }
 
   async function copyText(value, message = "공유 링크를 복사했습니다") {
-    try { await navigator.clipboard.writeText(value); notify(message, "원하는 곳에 붙여넣어 전달할 수 있습니다."); }
-    catch (error) { console.error(error); notify("링크를 복사하지 못했습니다", "브라우저의 클립보드 권한을 확인해주세요.", "error"); }
+    if (!value) return notify("복사할 링크가 없습니다", "공유 링크를 다시 만든 뒤 시도해주세요.", "error");
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error("Clipboard API unavailable");
+      await navigator.clipboard.writeText(value);
+      notify(message, "원하는 곳에 붙여넣어 전달할 수 있습니다.");
+    } catch (error) {
+      console.error(error);
+      const input = nodes.sharedLink;
+      if (input) {
+        input.focus(); input.select(); input.setSelectionRange(0, input.value.length);
+        try {
+          if (document.execCommand("copy")) {
+            notify(message, "원하는 곳에 붙여넣어 전달할 수 있습니다.");
+            return;
+          }
+        } catch (fallbackError) { console.error(fallbackError); }
+      }
+      notify("링크를 선택했습니다", "복사가 차단되어 있습니다. Command+C 또는 Ctrl+C를 눌러 복사해주세요.", "error");
+    }
   }
 
   function renderTimetable(presentation) {
@@ -369,9 +414,12 @@
     currentShare = share;
     const payload = share?.payload || {};
     const presentation = payload.presentation || {};
-    nodes.sharedTitle.textContent = safeText(share.title, 60) || "공유 시간표";
+    const title = safeText(share.title, 60) || "공유 시간표";
+    const author = safeText(payload.authorName, 30) || "익명";
+    nodes.sharedTitle.textContent = title;
     const classText = presentation.grade && presentation.classNum ? `${presentation.grade}학년 ${presentation.classNum}반` : "";
-    nodes.sharedMeta.textContent = [presentation.school, classText, presentation.department].filter(Boolean).join(" · ") || "Tile 공유 프리셋";
+    nodes.sharedMeta.textContent = [presentation.school, presentation.schoolType, classText, presentation.department, `${author}의 시간표: ${title}`]
+      .filter(Boolean).join(" | ") || "Tile 공유 프리셋";
     const description = safeText(share.description, 240);
     nodes.sharedDescription.textContent = description;
     nodes.sharedDescription.hidden = !description;
@@ -546,10 +594,18 @@
     nodes.copy?.addEventListener("click", () => { const url = currentShareUrl(); if (url) copyText(url); });
     nodes.save?.addEventListener("click", saveSharedTimetable);
     document.addEventListener("keydown", (event) => { if (event.key === "Escape" && !nodes.modal?.classList.contains("hidden")) { persistComposerState(); closeModal(); } });
-    [nodes.title, nodes.description].forEach((input) => input?.addEventListener("input", persistComposerState));
+    nodes.closePreview?.addEventListener("click", () => {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("share");
+      if (new URLSearchParams(url.hash.slice(1)).has(PORTABLE_SHARE_HASH_KEY)) url.hash = "";
+      window.history.replaceState(null, "", url.toString());
+      closeModal();
+    });
+    [nodes.title, nodes.author, nodes.description].forEach((input) => input?.addEventListener("input", persistComposerState));
     [nodes.scopeSchool, nodes.scopeDetails, nodes.scopeSubjectMemos, nodes.scopeTileMemo].forEach((input) => input?.addEventListener("change", persistComposerState));
     window.TileAuth?.onSessionChange?.((nextSession) => {
       session = nextSession;
+      if (nodes.author && !nodes.author.value) nodes.author.value = sessionDisplayName();
       if (nodes.loginNotice) nodes.loginNotice.hidden = Boolean(session?.user);
       const state = restoreComposerState();
       if (session?.user && state?.resumeAfterLogin) {
@@ -581,6 +637,7 @@
         notify("작성 중이던 공유를 복원했습니다", "로그인 전 입력한 제목, 소개, 공개 범위와 임시 시간표를 그대로 이어서 작성할 수 있습니다.");
       }
     }
+    if (nodes.author && !nodes.author.value) nodes.author.value = sessionDisplayName();
   }
 
   bindEvents();
