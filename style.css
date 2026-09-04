@@ -3354,7 +3354,17 @@ body.light-mode .subject-modal {
 .shared-timetable-scroll td > span { margin-top: 5px; color: var(--text-soft); font-size: 0.58rem; line-height: 1.35; }
 .shared-timetable-scroll td > small { margin-top: 7px; color: var(--accent); font-size: 0.57rem; line-height: 1.4; }
 .shared-timetable-scroll .shared-empty-cell { background: transparent; }
-.shared-timetable-scroll .shared-special-cell { color: var(--text-soft); text-align: center; vertical-align: middle; }
+.shared-timetable-scroll .shared-special-cell {
+  color: var(--text);
+  font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  font-size: 0.7rem;
+  font-weight: 680;
+  line-height: 1.35;
+  letter-spacing: -0.012em;
+  font-variation-settings: "wght" 680;
+  text-align: center;
+  vertical-align: middle;
+}
 .shared-memo-view { padding: 14px 16px; border-radius: 16px; background: var(--surface-soft); color: var(--text-soft); font-size: 0.72rem; line-height: 1.6; white-space: pre-wrap; }
 
 .share-manager-list { display: grid; gap: 8px; }
@@ -3518,7 +3528,7 @@ body.light-mode .subject-modal {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 9px;
   min-height: 46px;
   padding: 0 12px;
   border: 1px solid #747775;
@@ -3526,19 +3536,20 @@ body.light-mode .subject-modal {
   background: #fff;
   color: #1f1f1f;
   box-shadow: 0 1px 2px rgba(31, 31, 31, 0.08);
-  font-family: inherit;
+  font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   font-size: 0.875rem;
-  font-weight: 700;
+  font-weight: 620;
   line-height: 20px;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.012em;
+  font-variation-settings: "wght" 620;
   transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 120ms ease;
 }
 
 .google-mark {
   display: block;
-  width: 20px;
-  height: 20px;
-  flex: 0 0 20px;
+  width: 18px;
+  height: auto;
+  flex: 0 0 18px;
   object-fit: contain;
 }
 
