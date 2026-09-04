@@ -403,7 +403,13 @@
   async function loadManager() {
     const client = window.TileAuth?.getClient?.();
     const activeSession = window.TileAuth?.getSession?.();
-    if (!client || !activeSession?.user) { notify("로그인이 필요합니다", "내가 만든 공유 링크는 로그인 후 관리할 수 있습니다."); return; }
+    if (!client || !activeSession?.user) {
+      persistComposerState(true);
+      closeModal();
+      window.TileAuth?.openAccountSettings?.();
+      notify("로그인 후 이어서 관리할 수 있습니다", "작성 중인 공유 정보는 그대로 보관했습니다.");
+      return;
+    }
     showPanel(nodes.manager); nodes.managerList.textContent = "공유 링크를 불러오는 중입니다…";
     const { data, error } = await client.from("tile_timetable_shares").select("id,title,description,is_active,created_at,updated_at").order("created_at", { ascending: false });
     if (error) { nodes.managerList.textContent = "공유 링크를 불러오지 못했습니다."; return notify("관리 목록을 열지 못했습니다", error.message, "error"); }
@@ -459,7 +465,11 @@
       localStorage.setItem("tile-last-undo", JSON.stringify(snapshot));
       IMPORT_KEYS.forEach((key) => { const value = values[key]; if (value === null) localStorage.removeItem(key); else localStorage.setItem(key, value); });
       sessionStorage.setItem("tile-session-toast", JSON.stringify({ title: "공유 시간표를 저장했습니다", detail: "내 Tile에 적용했어요. 설정에서 되돌릴 수 있습니다." }));
-      const url = new URL(window.location.href); url.searchParams.delete("share"); window.location.replace(url.toString());
+      const url = new URL(window.location.href);
+      url.searchParams.delete("share");
+      const hashParams = new URLSearchParams(url.hash.slice(1));
+      if (hashParams.has(PORTABLE_SHARE_HASH_KEY)) url.hash = "";
+      window.location.replace(url.toString());
     } catch (error) { notify("시간표를 저장하지 못했습니다", error instanceof Error ? error.message : "공유 데이터를 확인해주세요.", "error"); }
   }
 
