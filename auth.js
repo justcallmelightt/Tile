@@ -17,6 +17,8 @@
   let currentSession = null;
   let pendingRestore = null;
   const sessionSubscribers = new Set();
+  const AUTH_RETURN_KEY = "tile-auth-return-location";
+  const MAX_AUTH_RETURN_LENGTH = 20000;
 
   function isConfigured() {
     return /^https:\/\/.+\.supabase\.co$/i.test(config.supabaseUrl || "")
@@ -59,6 +61,31 @@
     return String(name).trim().slice(0, 1).toUpperCase() || "T";
   }
 
+  function currentReturnLocation() {
+    return `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  }
+
+  function readAuthReturnLocation() {
+    const value = sessionStorage.getItem(AUTH_RETURN_KEY);
+    if (!value || value.length > MAX_AUTH_RETURN_LENGTH || !value.startsWith("/") || value.startsWith("//")) return "";
+    try {
+      const target = new URL(value, window.location.origin);
+      return target.origin === window.location.origin
+        ? `${target.pathname}${target.search}${target.hash}`
+        : "";
+    } catch (_error) {
+      return "";
+    }
+  }
+
+  function restoreAuthReturnLocation() {
+    const target = readAuthReturnLocation();
+    sessionStorage.removeItem(AUTH_RETURN_KEY);
+    if (!target || target === currentReturnLocation()) return false;
+    window.location.replace(target);
+    return true;
+  }
+
   function consumeAuthError() {
     const url = new URL(window.location.href);
     const hashParams = new URLSearchParams(url.hash.startsWith("#error=") ? url.hash.slice(1) : "");
@@ -67,7 +94,9 @@
     const description = url.searchParams.get("error_description") || hashParams.get("error_description") || "인증 제공자 설정을 확인해주세요.";
     ["error", "error_code", "error_description", "sb"].forEach((key) => url.searchParams.delete(key));
     if (url.hash.startsWith("#error=")) url.hash = "";
-    window.history.replaceState(null, "", url.toString());
+    const returnLocation = readAuthReturnLocation();
+    sessionStorage.removeItem(AUTH_RETURN_KEY);
+    window.history.replaceState(null, "", returnLocation || `${url.pathname}${url.search}${url.hash}`);
     window.setTimeout(() => window.TileApp?.notify?.(
       "Google 로그인을 완료하지 못했습니다",
       description.startsWith("Unable to exchange external code")
@@ -113,11 +142,13 @@
   async function signInWithGoogle() {
     if (!client) return;
     setBusy(nodes.googleSignIn, true);
+    sessionStorage.setItem(AUTH_RETURN_KEY, currentReturnLocation());
     const { error } = await client.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: `${window.location.origin}${window.location.pathname}`, queryParams: { prompt: "select_account" } }
     });
     if (error) {
+      sessionStorage.removeItem(AUTH_RETURN_KEY);
       setBusy(nodes.googleSignIn, false);
       window.TileApp?.notify?.("Google 로그인에 실패했습니다", error.message, { tone: "error" });
     }
@@ -237,6 +268,7 @@
     });
     const { data, error } = await client.auth.getSession();
     if (error) throw error;
+    if (data.session && restoreAuthReturnLocation()) return;
     await renderSession(data.session);
     client.auth.onAuthStateChange((_event, session) => window.setTimeout(() => renderSession(session), 0));
   }

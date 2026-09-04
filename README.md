@@ -118,7 +118,7 @@ Tile의 가장 큰 차별점은 단순한 시간표가 아니라,
 ### 7. 시간표 공유
 자신의 시간표를 소개하는 링크뿐 아니라, 재학생이 학교·학급에 맞게 과목·교실·선생님·메모를 정리한 **공유 프리셋**을 배포할 수 있습니다. 게시 전에는 현재 시간표를 복제한 임시본을 편집하므로 사용 중인 원본 Tile은 바뀌지 않습니다.
 
-제작자는 학교·학급, 교실·선생님, 과목 메모, Tile 메모의 공개 범위를 선택하고 로그인한 계정에서 링크를 복사하거나 공개 중지·재공개·삭제할 수 있습니다. 받은 사람은 로그인 없이 내용을 미리 보고, 원할 때만 자신의 Tile에 저장합니다. 적용 직전 상태는 되돌리기용으로 보관합니다.
+제작자는 학교·학급, 교실·선생님, 과목 메모, Tile 메모의 공개 범위를 선택할 수 있습니다. 로그인 없이 만든 짧은 링크는 30일 동안 열 수 있으며, 로그인한 계정에서 만든 링크는 복사하거나 공개 중지·재공개·삭제할 수 있습니다. 받은 사람은 로그인 없이 내용을 미리 보고, 원할 때만 자신의 Tile에 저장합니다. 적용 직전 상태는 되돌리기용으로 보관합니다.
 
 ---
 
@@ -127,7 +127,7 @@ Tile의 가장 큰 차별점은 단순한 시간표가 아니라,
 Tile은 로그인 없이도 사용할 수 있는 로컬 우선 시간표 서비스이며, Google 로그인을 선택한 사용자에게만 Supabase 계정 백업을 제공합니다.
 
 - 학교명, 학년·반, 직접 입력한 시간표, 과목 정보, 메모, 테마와 화면 설정은 사용 중인 브라우저의 `localStorage`에 저장됩니다.
-- 로그인하지 않은 사용자의 데이터는 Tile 서버의 사용자 계정 데이터베이스에 저장되지 않으며, 브라우저의 사이트 데이터를 삭제하면 함께 삭제됩니다.
+- 로그인하지 않은 사용자의 개인 설정은 Tile 서버의 사용자 계정 데이터베이스에 저장되지 않습니다. 다만 사용자가 시간표 공유를 직접 실행하면 선택한 공개 정보가 짧은 링크 생성을 위해 최대 30일 동안 별도의 공유 레코드로 저장됩니다.
 - 로그인 후 사용자가 **현재 데이터 백업**을 직접 선택한 경우에만 현재 Tile 데이터 사본이 Supabase에 저장됩니다. 자동 업로드나 자동 덮어쓰기는 하지 않습니다.
 - **백업 불러오기**는 백업 날짜와 학교·학급을 먼저 보여주고 사용자의 명시적 승인을 받은 뒤 적용하며, 적용 전 현재 데이터는 한 번 되돌릴 수 있도록 보관합니다.
 - 계정 삭제 시 Supabase 계정과 클라우드 백업은 삭제되지만, 사용 중인 기기의 로컬 시간표는 유지됩니다.
@@ -146,7 +146,7 @@ Tile은 GitHub Pages와 Vercel 배포를 함께 고려합니다.
 - Vercel 배포판은 `/api/neis` 서버리스 프록시를 통해 NEIS 요청을 보내며, 실제 키는 Vercel Environment Variables의 `NEIS_KEY`에만 저장합니다.
 - Supabase 브라우저용 Publishable Key는 공개되어도 되는 값이지만, `SUPABASE_SECRET_KEY`는 계정 삭제 API에서만 사용하고 Vercel 서버 환경변수에만 저장합니다.
 - `tile_backups` 테이블은 Row Level Security를 사용해 로그인 사용자가 자신의 행만 읽고 수정하거나 삭제할 수 있도록 제한합니다.
-- `tile_timetable_shares`의 작성·관리에는 로그인이 필요하며, Row Level Security로 소유자만 목록 조회·수정·삭제할 수 있습니다. 공개 조회 API는 활성화된 공유 ID 한 건만 반환하고 목록 탐색은 허용하지 않습니다.
+- 로그인 공유 레코드는 Row Level Security로 소유자만 목록 조회·수정·삭제할 수 있습니다. 비로그인 공유 생성 API는 허용된 Tile 배포 출처, 150KB 입력 제한, 네트워크 식별값의 단방향 해시를 이용한 시간당 5회 제한과 30일 만료를 적용합니다. 공개 조회 API는 활성화되고 만료되지 않은 공유 ID 한 건만 반환하며 목록 탐색은 허용하지 않습니다.
 - `config.js`, `.env`, `.env.*`는 `.gitignore`에 포함되어 있으므로 실제 키를 커밋하지 않습니다.
 - 공개 저장소에는 `config.public.js`, `config.example.js`, `.env.example`만 포함합니다.
 
@@ -163,7 +163,7 @@ SUPABASE_SECRET_KEY=sb_secret_YOUR_SERVER_ONLY_KEY
 Google 로그인 설정 순서:
 
 1. Supabase SQL Editor에서 `supabase/migrations/20260810_google_auth_mvp.sql`을 실행합니다.
-2. `supabase/migrations/20260827_timetable_shares.sql`을 실행해 공유 프리셋 테이블과 소유자 정책을 만듭니다.
+2. `supabase/migrations/20260827_timetable_shares.sql`, `20260904_share_service_role_select.sql`, `20260904_anonymous_short_shares.sql`을 순서대로 실행해 공유 프리셋과 짧은 비로그인 링크를 준비합니다.
 3. Supabase Authentication의 Google Provider를 활성화합니다.
 4. Google Cloud OAuth Client의 승인된 Redirect URI에 `https://YOUR_PROJECT.supabase.co/auth/v1/callback`을 등록합니다.
 5. Supabase Redirect URL 허용 목록에 `https://tile0.vercel.app/`과 개발 주소 `http://127.0.0.1:5506/`을 등록합니다.
@@ -206,7 +206,7 @@ src/neis.ts             # Typed NEIS browser client
 src/types.d.ts          # Shared Tile and NEIS types
 api/neis.ts             # Vercel NEIS proxy
 api/account.ts          # 인증된 사용자 계정 삭제 API
-api/share.ts            # 활성 공유 프리셋 한 건을 조회하는 Public API
+api/share.ts            # 짧은 비로그인 링크 생성과 활성 공유 프리셋 조회 API
 supabase/migrations/    # 백업·공유 테이블과 RLS 정책
 data/default-timetable.json
 package.json

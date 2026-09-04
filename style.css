@@ -3354,7 +3354,17 @@ body.light-mode .subject-modal {
 .shared-timetable-scroll td > span { margin-top: 5px; color: var(--text-soft); font-size: 0.58rem; line-height: 1.35; }
 .shared-timetable-scroll td > small { margin-top: 7px; color: var(--accent); font-size: 0.57rem; line-height: 1.4; }
 .shared-timetable-scroll .shared-empty-cell { background: transparent; }
-.shared-timetable-scroll .shared-special-cell { color: var(--text-soft); text-align: center; vertical-align: middle; }
+.shared-timetable-scroll .shared-special-cell {
+  color: var(--text);
+  font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  font-size: 0.7rem;
+  font-weight: 680;
+  line-height: 1.35;
+  letter-spacing: -0.012em;
+  font-variation-settings: "wght" 680;
+  text-align: center;
+  vertical-align: middle;
+}
 .shared-memo-view { padding: 14px 16px; border-radius: 16px; background: var(--surface-soft); color: var(--text-soft); font-size: 0.72rem; line-height: 1.6; white-space: pre-wrap; }
 
 .share-manager-list { display: grid; gap: 8px; }
@@ -3520,25 +3530,30 @@ body.light-mode .subject-modal {
   justify-content: center;
   gap: 9px;
   min-height: 46px;
-  border: 1px solid #dadce0;
-  border-radius: 4px;
+  padding: 0 12px;
+  border: 1px solid #747775;
+  border-radius: 12px;
   background: #fff;
-  color: #3c4043;
-  box-shadow: 0 1px 2px rgba(60, 64, 67, 0.08);
-  font-family: Roboto, Arial, sans-serif;
+  color: #1f1f1f;
+  box-shadow: 0 1px 2px rgba(31, 31, 31, 0.08);
+  font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 620;
+  line-height: 20px;
+  letter-spacing: -0.012em;
+  font-variation-settings: "wght" 620;
   transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 120ms ease;
 }
 
 .google-mark {
   display: block;
   width: 18px;
-  height: 18px;
+  height: auto;
   flex: 0 0 18px;
+  object-fit: contain;
 }
 
-.account-primary-action:hover { background: #f8faff; border-color: #d2e3fc; box-shadow: 0 1px 3px rgba(60, 64, 67, 0.18); }
+.account-primary-action:hover { background: #f8faff; border-color: #5f6368; box-shadow: 0 2px 5px rgba(31, 31, 31, 0.16); }
 .account-primary-action:focus-visible { outline: 3px solid rgba(66, 133, 244, 0.24); outline-offset: 2px; }
 
 .account-primary-action:active,

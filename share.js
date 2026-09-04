@@ -273,18 +273,36 @@
     return url.toString();
   }
 
-  function encodePortableShare(share) {
-    const bytes = new TextEncoder().encode(JSON.stringify(share));
+  function bytesToBase64Url(bytes) {
     let binary = "";
     bytes.forEach((byte) => { binary += String.fromCharCode(byte); });
     return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
   }
 
-  function decodePortableShare(encoded) {
-    if (!encoded || encoded.length > MAX_PORTABLE_SHARE_LENGTH) throw new Error("공유 링크가 비어 있거나 너무 깁니다.");
+  function base64UrlToBytes(encoded) {
     const base64 = encoded.replace(/-/g, "+").replace(/_/g, "/");
     const binary = atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, "="));
-    const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+    return Uint8Array.from(binary, (character) => character.charCodeAt(0));
+  }
+
+  async function encodePortableShare(share) {
+    const bytes = new TextEncoder().encode(JSON.stringify(share));
+    if (typeof CompressionStream !== "function") return `v1.${bytesToBase64Url(bytes)}`;
+    const stream = new Blob([bytes]).stream().pipeThrough(new CompressionStream("gzip"));
+    const compressed = new Uint8Array(await new Response(stream).arrayBuffer());
+    return `gz.${bytesToBase64Url(compressed)}`;
+  }
+
+  async function decodePortableShare(encoded) {
+    if (!encoded || encoded.length > MAX_PORTABLE_SHARE_LENGTH) throw new Error("공유 링크가 비어 있거나 너무 깁니다.");
+    const compressed = encoded.startsWith("gz.");
+    const versioned = compressed || encoded.startsWith("v1.");
+    let bytes = base64UrlToBytes(versioned ? encoded.slice(3) : encoded);
+    if (compressed) {
+      if (typeof DecompressionStream !== "function") throw new Error("이 브라우저에서는 압축된 공유 링크를 열 수 없습니다.");
+      const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
+      bytes = new Uint8Array(await new Response(stream).arrayBuffer());
+    }
     const share = JSON.parse(new TextDecoder().decode(bytes));
     if (share?.version !== 1 || !share.payload?.presentation || !share.payload?.importValues) {
       throw new Error("Tile 공유 링크 형식이 아닙니다.");
@@ -292,10 +310,10 @@
     return share;
   }
 
-  function portableShareUrl(share) {
+  async function portableShareUrl(share) {
     const url = new URL(window.location.href);
     ["share", "error", "error_code", "error_description"].forEach((key) => url.searchParams.delete(key));
-    url.hash = `${PORTABLE_SHARE_HASH_KEY}=${encodePortableShare(share)}`;
+    url.hash = `${PORTABLE_SHARE_HASH_KEY}=${await encodePortableShare(share)}`;
     if (url.toString().length > MAX_PORTABLE_SHARE_LENGTH) {
       throw new Error("공유 정보가 너무 많습니다. 메모 공개 범위를 줄인 뒤 다시 시도해주세요.");
     }
@@ -374,12 +392,18 @@
     const record = { title, description: safeText(nodes.description?.value, 240), payload: buildPayload(), scopes };
     if (!client || !activeSession?.user) {
       try {
-        const portableShare = { version: 1, ...record, created_at: new Date().toISOString() };
-        portableShare.url = portableShareUrl(portableShare);
+        const response = await fetch("/api/share", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify(record)
+        });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok || !body.share?.id) throw new Error(body.error || "공유 링크를 저장하지 못했습니다.");
+        const portableShare = { ...body.share, url: shareUrl(body.share.id) };
         clearComposerState();
         renderShare(portableShare);
         window.history.replaceState(null, "", portableShare.url);
-        notify("공유 링크를 만들었습니다", "로그인 없이 사용할 수 있습니다. 로그인 후 만든 링크만 관리 목록에 저장됩니다.");
+        notify("짧은 공유 링크를 만들었습니다", "로그인 없이 만든 링크는 30일 동안 유지되며 관리 목록에는 저장되지 않습니다.");
       } catch (error) {
         notify("공유 링크를 만들지 못했습니다", error instanceof Error ? error.message : "공유 정보를 확인해주세요.", "error");
       } finally { setBusy(nodes.create, false); }
@@ -403,7 +427,13 @@
   async function loadManager() {
     const client = window.TileAuth?.getClient?.();
     const activeSession = window.TileAuth?.getSession?.();
-    if (!client || !activeSession?.user) { notify("로그인이 필요합니다", "내가 만든 공유 링크는 로그인 후 관리할 수 있습니다."); return; }
+    if (!client || !activeSession?.user) {
+      persistComposerState(true);
+      closeModal();
+      window.TileAuth?.openAccountSettings?.();
+      notify("로그인 후 이어서 관리할 수 있습니다", "작성 중인 공유 정보는 그대로 보관했습니다.");
+      return;
+    }
     showPanel(nodes.manager); nodes.managerList.textContent = "공유 링크를 불러오는 중입니다…";
     const { data, error } = await client.from("tile_timetable_shares").select("id,title,description,is_active,created_at,updated_at").order("created_at", { ascending: false });
     if (error) { nodes.managerList.textContent = "공유 링크를 불러오지 못했습니다."; return notify("관리 목록을 열지 못했습니다", error.message, "error"); }
@@ -459,7 +489,11 @@
       localStorage.setItem("tile-last-undo", JSON.stringify(snapshot));
       IMPORT_KEYS.forEach((key) => { const value = values[key]; if (value === null) localStorage.removeItem(key); else localStorage.setItem(key, value); });
       sessionStorage.setItem("tile-session-toast", JSON.stringify({ title: "공유 시간표를 저장했습니다", detail: "내 Tile에 적용했어요. 설정에서 되돌릴 수 있습니다." }));
-      const url = new URL(window.location.href); url.searchParams.delete("share"); window.location.replace(url.toString());
+      const url = new URL(window.location.href);
+      url.searchParams.delete("share");
+      const hashParams = new URLSearchParams(url.hash.slice(1));
+      if (hashParams.has(PORTABLE_SHARE_HASH_KEY)) url.hash = "";
+      window.location.replace(url.toString());
     } catch (error) { notify("시간표를 저장하지 못했습니다", error instanceof Error ? error.message : "공유 데이터를 확인해주세요.", "error"); }
   }
 
@@ -467,7 +501,7 @@
     const encoded = new URLSearchParams(window.location.hash.slice(1)).get(PORTABLE_SHARE_HASH_KEY);
     if (encoded) {
       try {
-        const share = decodePortableShare(encoded);
+        const share = await decodePortableShare(encoded);
         share.url = window.location.href;
         renderShare(share);
         openModal(nodes.viewer);
