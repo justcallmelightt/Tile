@@ -5,6 +5,10 @@ alter table public.tile_timetable_shares
 add column if not exists anonymous_key text,
 add column if not exists expires_at timestamptz;
 
+grant select, insert, update, delete
+on public.tile_timetable_shares
+to service_role;
+
 create index if not exists tile_timetable_shares_anonymous_rate_idx
 on public.tile_timetable_shares (anonymous_key, created_at desc)
 where owner_id is null;
