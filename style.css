@@ -3628,7 +3628,7 @@ button, input, textarea, select, option {
 @media (hover: hover) {
   .account-lightframe-toggle:hover:not(:disabled) {
     filter: brightness(1.1) saturate(1.06);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
   }
   .account-lightframe-action:hover::before,
   .account-lightframe-action:focus-within::before {
