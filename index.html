@@ -161,11 +161,9 @@
           <span>연결 설정을 완료하면 Lightframe. 계정을 사용할 수 있습니다.</span>
         </div>
         <div id="accountSignedOut" class="account-state" hidden>
-          <div class="account-identity">
-            <img class="account-brand-logo" src="./assets/lightframe-logo.png" alt="Lightframe.">
-            <div><strong>Lightframe. 계정으로 이어서 사용하기</strong><span>로그인하면 시간표와 설정을 다른 기기에서도 이어서 사용할 수 있어요.</span></div>
+          <div class="account-lightframe-action">
+            <button id="lightframeEmailToggle" class="account-lightframe-toggle" type="button" aria-expanded="false" aria-controls="lightframeEmailForm"><span class="account-lightframe-mark" aria-hidden="true">✨</span><span class="account-lightframe-label"><strong>Lightframe.</strong><span>으로 로그인</span></span></button>
           </div>
-          <button id="lightframeEmailToggle" class="account-lightframe-toggle" type="button" aria-expanded="false" aria-controls="lightframeEmailForm"><span class="account-lightframe-mark" aria-hidden="true">✨</span><span class="account-lightframe-label"><strong>Lightframe.</strong><span>으로 로그인</span></span></button>
           <form id="lightframeEmailForm" class="account-email-form" hidden>
             <p class="account-email-intro">이메일과 비밀번호로 Lightframe. 계정에 로그인하거나 새로 만들 수 있습니다.</p>
             <label class="setup-field" for="lightframeEmailInput"><span>이메일</span><input id="lightframeEmailInput" type="email" autocomplete="email" inputmode="email" placeholder="name@example.com" required></label>

@@ -3579,6 +3579,26 @@ button, input, textarea, select, option {
   height: 13px;
 }
 
+.account-lightframe-action {
+  position: relative;
+  z-index: 0;
+  display: grid;
+}
+
+.account-lightframe-action::before {
+  position: absolute;
+  z-index: -1;
+  inset: -6px;
+  border-radius: 18px;
+  background: linear-gradient(90deg, #008469 0%, #064a9c 10%, #1600cf 22%, #7400f2 48%, #a810e8 65%, #ec58cd 79%, #f3a38e 90%, #f8e36d 100%);
+  filter: blur(18px) saturate(1.22) brightness(1.08);
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.97);
+  transition: opacity 180ms ease, transform 220ms ease;
+  content: "";
+}
+
 .account-lightframe-toggle {
   position: relative;
   display: flex;
@@ -3594,7 +3614,7 @@ button, input, textarea, select, option {
   border-radius: 14px;
   background: linear-gradient(90deg, #008469 0%, #064a9c 10%, #1600cf 22%, #7400f2 48%, #a810e8 65%, #ec58cd 79%, #f3a38e 90%, #f8e36d 100%);
   background-clip: border-box;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.24);
   color: #faf9fc;
   font: inherit;
   cursor: pointer;
@@ -3606,12 +3626,21 @@ button, input, textarea, select, option {
 .account-lightframe-label strong { font-size: 1rem; font-weight: 650; letter-spacing: -0.035em; line-height: 1.1; }
 .account-lightframe-label > span { color: #faf9fc; font-size: 0.79rem; font-weight: 500; line-height: 1.5; }
 @media (hover: hover) {
-  .account-lightframe-toggle:hover { filter: brightness(1.06); box-shadow: 0 4px 12px rgba(71, 0, 170, 0.2); }
+  .account-lightframe-toggle:hover:not(:disabled) {
+    filter: brightness(1.1) saturate(1.06);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+  }
+  .account-lightframe-action:hover::before,
+  .account-lightframe-action:focus-within::before {
+    opacity: 0.88;
+    transform: scale(1);
+  }
 }
-.account-lightframe-toggle:active { transform: scale(0.985); filter: brightness(0.93); box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2); transition: none; }
+.account-lightframe-toggle:active { transform: scale(0.985); filter: brightness(0.93); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18); transition: none; }
 .account-lightframe-toggle:focus-visible { outline: 3px solid #aa8fe7; outline-offset: 3px; }
 @media (prefers-reduced-motion: reduce) {
   .account-lightframe-toggle { transition: opacity 150ms ease; }
+  .account-lightframe-action::before { transition: opacity 150ms ease; transform: none; }
   .account-lightframe-toggle:active { transform: none; opacity: 0.8; }
 }
 
@@ -3731,7 +3760,10 @@ button, input, textarea, select, option {
   object-fit: contain;
 }
 
-.account-primary-action:hover { background: #f8faff; border-color: #5f6368; box-shadow: 0 2px 5px rgba(31, 31, 31, 0.16); }
+@media (hover: hover) {
+  .account-primary-action:hover:not(:disabled) { background: #fff; border-color: #edf3ff; box-shadow: 0 0 10px rgba(235, 242, 255, 0.65), 0 0 24px rgba(218, 233, 255, 0.45), 0 0 40px rgba(218, 233, 255, 0.25); }
+}
+.account-primary-action:active:not(:disabled) { box-shadow: inset 0 1px 3px rgba(31, 31, 31, 0.14); transition: none; }
 .account-primary-action:focus-visible { outline: 3px solid rgba(66, 133, 244, 0.24); outline-offset: 2px; }
 
 .account-primary-action:active,
