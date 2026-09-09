@@ -102,6 +102,16 @@ const importTileData = document.getElementById("importTileData");
 const importTileDataInput = document.getElementById("importTileDataInput");
 const undoTileChange = document.getElementById("undoTileChange");
 const toastRegion = document.getElementById("toastRegion");
+const tileDemo = document.getElementById("tileDemo");
+const tileDemoLaunch = document.getElementById("tileDemoLaunch");
+const tileDemoClose = document.getElementById("tileDemoClose");
+const tileDemoVisual = document.getElementById("tileDemoVisual");
+const tileDemoEyebrow = document.getElementById("tileDemoEyebrow");
+const tileDemoTitle = document.getElementById("tileDemoTitle");
+const tileDemoDescription = document.getElementById("tileDemoDescription");
+const tileDemoProgress = document.getElementById("tileDemoProgress");
+const tileDemoPlayback = document.getElementById("tileDemoPlayback");
+const tileDemoNext = document.getElementById("tileDemoNext");
 const mealToggle = document.getElementById("mealToggle");
 const mealPanel = document.getElementById("mealPanel");
 const mealClose = document.getElementById("mealClose");
@@ -2298,7 +2308,7 @@ function updateFloatingTopbar() {
   if (topbarFrame) cancelAnimationFrame(topbarFrame);
 
   topbarFrame = requestAnimationFrame(() => {
-    const statusCard = document.querySelector(".status-card");
+    const statusCard = document.querySelector("#mainContent .status-card");
     const threshold = statusCard
       ? statusCard.getBoundingClientRect().bottom
       : 0;
@@ -2654,6 +2664,7 @@ toolMenuToggle?.addEventListener("click", () => {
 });
 
 document.addEventListener("click", (event) => {
+  if (tileDemo?.classList.contains('is-open')) return;
   if (!toolMenu || toolMenu.contains(event.target)) return;
   setToolMenuOpen(false);
 });
@@ -3652,16 +3663,264 @@ schoolInput?.addEventListener("input", () => {
   });
 });
 
+const TILE_DEMO_DURATION = 4200;
+const tileDemoScenes = [
+  {
+    eyebrow: "지금, 한눈에",
+    title: "오늘을 바로 읽어요.",
+    description: "현재 수업과 남은 시간, 다음 이동할 교실까지 필요한 정보만 또렷하게 보여줍니다.",
+    visual: `<div class="demo-device"><div class="demo-device-head"><strong>Tile</strong><span>화요일 · 10:42</span></div><div class="demo-now"><span>현재 진행</span><strong>프로그래밍 JAVA 기초</strong><time>종료까지 18분</time></div><div class="demo-status-row"><div class="demo-mini-card"><span>현재 교실</span><strong>제4소프트웨어랩</strong></div><div class="demo-mini-card"><span>다음 수업</span><strong>공통영어</strong></div></div></div>`
+  },
+  {
+    eyebrow: "나만의 시간표",
+    title: "누르면, 바로 자세히.",
+    description: "과목을 선택해 교실과 선생님을 확인하고, 과제나 준비물을 해당 수업에 바로 남길 수 있습니다.",
+    visual: `<div class="demo-timetable"><span></span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>1</span><span>국어</span><span class="is-live">JAVA</span><span>수학</span><span>영어</span><span>한국사</span><span>2</span><span>영어</span><span>미디어</span><span>국어</span><span>체육</span><span>수학</span><span>3</span><span>수학</span><span>한국사</span><span>JAVA</span><span>일본어</span><span>미디어</span></div>`
+  },
+  {
+    eyebrow: "일과를 함께",
+    title: "급식과 메모도 놓치지 않게.",
+    description: "오늘의 급식을 빠르게 확인하고, 알레르기 알림과 해야 할 일을 한곳에서 관리합니다.",
+    visual: `<div class="demo-stack"><div class="demo-panel"><small>오늘의 중식</small><strong>돈육김치찌개 · 계란말이</strong><p>등록한 알레르기 정보가 포함되면 미리 알려드려요.</p></div><div class="demo-panel"><small>Tile 메모</small><strong>JAVA 수행평가 준비</strong><p>USB · 발표 자료 · 최종 코드 확인</p></div></div>`
+  },
+  {
+    eyebrow: "어디서든 그대로",
+    title: "당신의 Tile은 이어집니다.",
+    description: "Lightframe. 계정으로 시간표와 설정을 안전하게 백업하고 다른 기기에서도 그대로 이어서 사용하세요.",
+    visual: `<div class="demo-sync"><div class="demo-sync-orbit"><div class="demo-sync-card"><b>✨</b><strong>Lightframe.</strong><span>동기화 완료</span></div></div></div>`
+  }
+];
+
+let tileDemoIndex = 0;
+let tileDemoTimer = null;
+let tileDemoStartedAt = 0;
+let tileDemoRemaining = TILE_DEMO_DURATION;
+let tileDemoPaused = false;
+let tileDemoPreviousFocus = null;
+let tileTourFrame = 0;
+let tileTourScroll = 0;
+let tileTourPanels = [];
+let tileTourMenuOpen = false;
+let tileFinaleTimers = [];
+const TILE_TOUR_SEEN_KEY = 'tile-tutorial-seen-v1';
+let tileTourFirstVisit = false;
+try { tileTourFirstVisit = localStorage.getItem(TILE_TOUR_SEEN_KEY) !== 'yes'; } catch { tileTourFirstVisit = true; }
+let tileTourAutoTimer = null;
+let tileTourNeedsSchoolSetup = false;
+const tileTourSteps = [
+  { target: '#mainContent .status-card', title: '지금 수업, 여기서 확인해요.', description: '현재 진행 중인 수업, 남은 시간과 교실을 확인하세요. 스크롤해도 상단 요약에서 계속 볼 수 있어요.' },
+  { target: '#timetable', title: '시간표의 과목을 눌러보세요.', description: '과목 칸을 누르면 과목명·교실·선생님을 수정하고 수업별 메모를 남길 수 있어요. 지금은 위치를 안내하는 중이에요.' },
+  { target: '#mealPanel', title: '오늘 급식은 도구에서.', description: '도구 → 오늘 급식을 누르면 이 패널이 열려요. Tile 설정에서 피하고 싶은 재료도 등록할 수 있어요.', panel: '#mealPanel' },
+  { target: '#memoPanel', title: '준비물과 과제를 남겨요.', description: '도구 → 메모에서 해야 할 일을 적고 저장하세요. 입력한 내용은 이 브라우저에 보관돼요.', panel: '#memoPanel' },
+  { target: '#toolMenuPanel', title: '설정도, 계정도 이곳에.', description: '학교 설정으로 학급을 연결하고, 내 계정에서 로그인과 백업을 관리하세요. 이제 직접 Tile을 사용해 보세요.', menu: true }
+];
+
+function positionTileTour() {
+  if (!tileDemo?.classList.contains('is-open') || tileDemo.classList.contains('is-finale')) return;
+  const target = document.querySelector(tileTourSteps[tileDemoIndex].target);
+  const spot = document.getElementById('tileDemoSpotlight');
+  const shell = tileDemo.querySelector('.tile-demo-shell');
+  if (target && spot) {
+    const rect = target.getBoundingClientRect();
+    if (!rect.width || !rect.height) {
+      spot.style.visibility = 'hidden';
+      tileTourFrame = requestAnimationFrame(positionTileTour);
+      return;
+    }
+    spot.style.visibility = 'visible';
+    const bottom = Math.min(rect.bottom + 6, shell.getBoundingClientRect().top - 18);
+    const top = Math.max(12, rect.top - 6);
+    Object.assign(spot.style, { left: `${Math.max(8, rect.left - 6)}px`, top: `${top}px`, width: `${Math.min(rect.width + 12, innerWidth - Math.max(8, rect.left - 6) - 8)}px`, height: `${Math.max(20, bottom - top)}px` });
+  }
+  tileTourFrame = requestAnimationFrame(positionTileTour);
+}
+
+function revealTileTourStep() {
+  for (const panel of [mealPanel, memoPanel]) {
+    panel?.classList.remove('is-open');
+    panel?.setAttribute('aria-hidden', 'true');
+  }
+  const step = tileTourSteps[tileDemoIndex];
+  setToolMenuOpen(Boolean(step.menu));
+  if (step.panel) {
+    const panel = document.querySelector(step.panel);
+    panel.classList.add('is-open');
+    panel.setAttribute('aria-hidden', 'false');
+  }
+  const target = document.querySelector(step.menu ? '.hero' : step.target);
+  if (target) window.scrollTo({ top: Math.max(0, scrollY + target.getBoundingClientRect().top - 64), behavior: 'instant' });
+}
+
+function scheduleTileDemoAdvance() {
+  window.clearTimeout(tileDemoTimer);
+  if (tileDemoPaused || !tileDemo?.classList.contains("is-open")) return;
+  tileDemoStartedAt = performance.now();
+  tileDemoTimer = window.setTimeout(() => {
+    if (tileDemoIndex === tileTourSteps.length - 1) {
+      showTileTourFinale();
+      return;
+    }
+    setTileDemoScene(tileDemoIndex + 1);
+  }, tileDemoRemaining);
+}
+
+function renderTileDemoProgress() {
+  if (!tileDemoProgress) return;
+  tileDemoProgress.replaceChildren();
+  tileTourSteps.forEach((scene, index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.setAttribute("aria-label", `${index + 1}번째 장면: ${scene.title}`);
+    button.classList.toggle("is-complete", index < tileDemoIndex);
+    button.classList.toggle("is-current", index === tileDemoIndex);
+    button.addEventListener("click", () => setTileDemoScene(index));
+    tileDemoProgress.appendChild(button);
+  });
+}
+
+function setTileDemoScene(index) {
+  if (index >= tileTourSteps.length) { showTileTourFinale(); return; }
+  tileDemoIndex = Math.max(0, Math.min(index, tileTourSteps.length - 1));
+  tileDemoRemaining = TILE_DEMO_DURATION;
+  const scene = tileTourSteps[tileDemoIndex];
+  if (tileDemoVisual) {
+    tileDemoVisual.replaceChildren();
+  }
+  if (tileDemoEyebrow) tileDemoEyebrow.textContent = `${tileDemoIndex + 1} / ${tileTourSteps.length} · 실제 화면 안내`;
+  if (tileDemoTitle) tileDemoTitle.textContent = scene.title;
+  if (tileDemoDescription) tileDemoDescription.textContent = scene.description;
+  if (tileDemoNext) tileDemoNext.textContent = tileDemoIndex === tileTourSteps.length - 1 ? "직접 사용하기" : "다음";
+  revealTileTourStep();
+  tileDemo?.style.setProperty("--demo-duration", `${TILE_DEMO_DURATION}ms`);
+  renderTileDemoProgress();
+  scheduleTileDemoAdvance();
+}
+
+function openTileDemo() {
+  if (!tileDemo || tileDemo.classList.contains('is-open')) return;
+  window.clearTimeout(tileTourAutoTimer);
+  tileDemo.classList.remove('is-finale', 'is-start-hover', 'is-start-leaving', 'is-start-revealing');
+  document.getElementById('tileDemoBegin').hidden = true;
+  try { localStorage.setItem(TILE_TOUR_SEEN_KEY, 'yes'); } catch { /* Private browsing may disallow persistence. */ }
+  tileDemoPreviousFocus = document.activeElement;
+  tileTourScroll = scrollY;
+  tileTourMenuOpen = toolMenu?.classList.contains('is-open') || false;
+  tileTourPanels = [mealPanel, memoPanel].map(panel => ({ panel, open: panel.classList.contains('is-open') }));
+  tileDemoPaused = false;
+  tileDemo.style.setProperty("--demo-play-state", "running");
+  tileDemoPlayback?.setAttribute("aria-pressed", "false");
+  if (tileDemoPlayback) tileDemoPlayback.textContent = "일시정지";
+  tileDemo.classList.add("is-open");
+  tileDemo.setAttribute("aria-hidden", "false");
+  document.body.classList.add("tile-demo-open");
+  setToolMenuOpen(false);
+  setTileDemoScene(0);
+  cancelAnimationFrame(tileTourFrame);
+  positionTileTour();
+  window.setTimeout(() => tileDemoClose?.focus(), 80);
+}
+
+function closeTileDemo(options = {}) {
+  tileFinaleTimers.forEach(window.clearTimeout);
+  tileFinaleTimers = [];
+  window.clearTimeout(tileDemoTimer);
+  cancelAnimationFrame(tileTourFrame);
+  tileTourPanels.forEach(({ panel, open }) => { panel.classList.toggle('is-open', open); panel.setAttribute('aria-hidden', String(!open)); });
+  setToolMenuOpen(tileTourMenuOpen);
+  tileDemo?.classList.remove("is-open");
+  tileDemo?.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("tile-demo-open");
+  window.scrollTo({ top: tileTourScroll, behavior: 'instant' });
+  tileDemoPreviousFocus?.focus?.({ preventScroll: true });
+  if (tileTourNeedsSchoolSetup) {
+    tileTourNeedsSchoolSetup = false;
+    if (options.startup) window.setTimeout(openSchoolSettings, 3200);
+    else openSchoolSettings();
+  }
+}
+
+function showTileTourFinale() {
+  window.clearTimeout(tileDemoTimer);
+  cancelAnimationFrame(tileTourFrame);
+  tileDemo.classList.add('is-finale');
+  const begin = document.getElementById('tileDemoBegin');
+  begin.hidden = false;
+  begin.focus();
+}
+
+const tileFinaleButton = document.getElementById('tileDemoBegin');
+tileFinaleButton?.addEventListener('pointerenter', event => {
+  if (event.pointerType !== 'touch') tileDemo.classList.add('is-start-hover');
+});
+tileFinaleButton?.addEventListener('pointerleave', () => {
+  if (!tileDemo.classList.contains('is-start-leaving')) tileDemo.classList.remove('is-start-hover');
+});
+tileFinaleButton?.addEventListener('click', () => {
+  if (tileDemo.classList.contains('is-start-leaving')) return;
+  const reduced = startupSpotlightReduceMotion.matches;
+  tileDemo.classList.add('is-start-hover', 'is-start-leaving');
+  tileFinaleTimers.push(window.setTimeout(() => {
+    tileDemo.classList.add('is-start-revealing');
+  }, reduced ? 150 : 650));
+  tileFinaleTimers.push(window.setTimeout(() => {
+    closeTileDemo({ startup: true });
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    replayStartupSpotlight();
+  }, reduced ? 300 : 1550));
+});
+
+tileDemoLaunch?.addEventListener("click", openTileDemo);
+tileDemoClose?.addEventListener("click", closeTileDemo);
+tileDemoNext?.addEventListener("click", () => {
+  if (tileDemoIndex === tileTourSteps.length - 1) showTileTourFinale();
+  else setTileDemoScene(tileDemoIndex + 1);
+});
+tileDemoPlayback?.addEventListener("click", () => {
+  tileDemoPaused = !tileDemoPaused;
+  tileDemo?.style.setProperty("--demo-play-state", tileDemoPaused ? "paused" : "running");
+  tileDemoPlayback.setAttribute("aria-pressed", String(tileDemoPaused));
+  tileDemoPlayback.textContent = tileDemoPaused ? "계속 재생" : "일시정지";
+  if (tileDemoPaused) {
+    tileDemoRemaining = Math.max(200, tileDemoRemaining - (performance.now() - tileDemoStartedAt));
+    window.clearTimeout(tileDemoTimer);
+  } else {
+    scheduleTileDemoAdvance();
+  }
+});
+tileDemo?.addEventListener("click", (event) => {
+  if (event.target === tileDemo && !tileDemo.classList.contains('is-finale')) closeTileDemo();
+});
+document.addEventListener("keydown", (event) => {
+  if (!tileDemo?.classList.contains("is-open")) return;
+  event.stopImmediatePropagation();
+  if (event.key === 'Tab') {
+    const buttons = [...tileDemo.querySelectorAll('button')].filter(button => !button.disabled && button.getClientRects().length);
+    const first = buttons[0];
+    const last = buttons[buttons.length - 1];
+    if (event.shiftKey && (document.activeElement === first || !tileDemo.contains(document.activeElement))) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && (document.activeElement === last || !tileDemo.contains(document.activeElement))) { event.preventDefault(); first.focus(); }
+  }
+  if (['Escape', 'ArrowRight', 'ArrowLeft'].includes(event.key)) event.preventDefault();
+  if (event.key === "Escape") closeTileDemo();
+  if (tileDemo.classList.contains('is-finale')) return;
+  if (event.key === "ArrowRight") setTileDemoScene(tileDemoIndex + 1);
+  if (event.key === "ArrowLeft") setTileDemoScene(tileDemoIndex - 1);
+}, true);
+
 async function init() {
 
     const user = getSavedTileUser();
 
     fillSchoolSettingsFromSavedUser();
+    if (tileTourFirstVisit) {
+      tileTourNeedsSchoolSetup = !user;
+      tileTourAutoTimer = window.setTimeout(openTileDemo, 1800);
+    }
 
     if (!user) {
       const status = document.getElementById("neisStatus");
       if (status) status.textContent = "학교 설정 필요";
-      window.setTimeout(openSchoolSettings, 1450);
+      if (!tileTourFirstVisit) window.setTimeout(openSchoolSettings, 1450);
       return;
     }
 

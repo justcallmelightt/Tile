@@ -9,7 +9,7 @@
   <link rel="icon" href="./assets/favicon/favicon-32x32.png" sizes="32x32" type="image/png" />
   <link rel="icon" href="./assets/favicon/favicon-96x96.png" sizes="96x96" type="image/png" />
   <link rel="apple-touch-icon" href="./assets/favicon/favicon-96x96.png" />
-  <link rel="stylesheet" href="./style.css?v=20260907-lightframe-edge-polish" />
+  <link rel="stylesheet" href="./style.css?v=20260907-tile-demo" />
   <!-- Google AdSense: site ownership verification and ad delivery -->
   <script
     async
@@ -21,6 +21,52 @@
   <a class="skip-link" href="#timetable">시간표로 바로가기</a>
   <div class="startup-spotlight" aria-hidden="true"></div>
   <div id="toastRegion" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+  <dialog id="feedbackDialog" class="feedback-dialog" aria-labelledby="feedbackTitle">
+    <form id="feedbackForm">
+      <div class="setup-header">
+        <div><span class="dialog-eyebrow">함께 만드는 Tile</span><h2 id="feedbackTitle">피드백 보내기</h2></div>
+        <button id="feedbackClose" class="dialog-close" type="button" aria-label="피드백 닫기">×</button>
+      </div>
+      <fieldset class="feedback-types">
+        <legend>어떤 이야기를 보내실 건가요?</legend>
+        <label><input type="radio" name="feedbackType" value="idea" checked><span>아이디어 제안</span></label>
+        <label><input type="radio" name="feedbackType" value="bug"><span>버그 신고</span></label>
+      </fieldset>
+      <label class="setup-field" for="feedbackSubject"><span>제목</span><input id="feedbackSubject" maxlength="100" required placeholder="어떤 기능이 있으면 좋을까요?"></label>
+      <label class="setup-field" for="feedbackBody"><span id="feedbackBodyLabel">아이디어</span><textarea id="feedbackBody" maxlength="2000" rows="5" required placeholder="원하는 기능과 어떤 상황에서 도움이 될지 알려주세요."></textarea></label>
+      <div id="feedbackBugFields" hidden>
+        <label class="setup-field" for="feedbackSteps"><span>문제를 다시 확인하는 방법 · 선택</span><textarea id="feedbackSteps" maxlength="1200" rows="3" placeholder="어떤 화면에서 무엇을 눌렀을 때 발생했나요?"></textarea></label>
+        <label class="setup-field" for="feedbackExpected"><span>기대했던 동작 · 선택</span><input id="feedbackExpected" maxlength="300" placeholder="원래는 어떻게 동작해야 하나요?"></label>
+      </div>
+      <p class="feedback-privacy">비밀번호나 개인 정보는 적지 마세요. 시간표와 계정 정보는 자동으로 첨부하지 않습니다.</p>
+      <p id="feedbackStatus" class="form-message" role="status">GitHub 계정이 필요합니다. 다음 화면에서 확인 후 등록하며, 등록한 내용은 공개됩니다.</p>
+      <button id="feedbackSubmit" class="primary-action feedback-submit" type="submit">GitHub에서 확인하고 등록</button>
+    </form>
+  </dialog>
+  <div id="tileDemo" class="tile-demo" aria-hidden="true">
+    <div id="tileDemoSpotlight" aria-hidden="true"></div>
+    <button id="tileDemoBegin" type="button" hidden><span>Tile 시작하기</span><small>눌러서 시작하세요</small></button>
+    <div class="tile-demo-shell" role="dialog" aria-modal="true" aria-labelledby="tileDemoTitle">
+      <div class="tile-demo-topbar">
+        <button id="tileDemoClose" class="tile-demo-text-button" type="button" aria-label="튜토리얼 닫기">건너뛰기</button>
+      </div>
+      <div class="tile-demo-stage">
+        <div id="tileDemoVisual" class="tile-demo-visual" aria-hidden="true"></div>
+        <div class="tile-demo-copy" aria-live="polite">
+          <span id="tileDemoEyebrow" class="tile-demo-eyebrow"></span>
+          <h2 id="tileDemoTitle"></h2>
+          <p id="tileDemoDescription"></p>
+        </div>
+      </div>
+      <div class="tile-demo-footer">
+        <div id="tileDemoProgress" class="tile-demo-progress" aria-label="Demo 진행률"></div>
+        <div class="tile-demo-controls">
+          <button id="tileDemoPlayback" class="tile-demo-text-button" type="button" aria-pressed="false">일시정지</button>
+          <button id="tileDemoNext" class="tile-demo-next" type="button">다음</button>
+        </div>
+      </div>
+    </div>
+  </div>
   <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-G0FCVJ0M52"></script>
 <script>
@@ -323,6 +369,8 @@
             <button id="appSettingsToggle" type="button"><span>Tile 설정</span><small>개인화와 데이터</small></button>
             <button id="memoToggle" type="button"><span>메모</span><small>과제와 준비물 기록</small></button>
             <button id="customToggle" class="custom-toggle" type="button"><span>JSON 편집기</span><small>고급 시간표 설정</small></button>
+            <button id="tileDemoLaunch" type="button"><span>사용법 익히기</span><small>Tile 화면 안내 다시 보기</small></button>
+            <button id="feedbackLaunch" type="button"><span>피드백 보내기</span><small>아이디어 제안 · 버그 신고</small></button>
           </div>
         </div>
       </div>
@@ -640,8 +688,9 @@
   <script src="./config.public.js?v=20260703-script-fix"></script>
   <script src="./config.js?v=20260703-script-fix" onerror="this.remove()"></script>
   <script src="./neis.js?v=20260727-review-fixes"></script>
-  <script src="./script.js?v=20260904-share-room-restore"></script>
+  <script src="./script.js?v=20260907-tile-demo"></script>
   <script src="./auth.js?v=20260906-lightframe-account"></script>
   <script src="./share.js?v=20260904-share-preview-ux"></script>
+  <script src="./feedback.js?v=20260909"></script>
 </body>
 </html>
