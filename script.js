@@ -111,6 +111,7 @@ const tileDemoTitle = document.getElementById("tileDemoTitle");
 const tileDemoDescription = document.getElementById("tileDemoDescription");
 const tileDemoProgress = document.getElementById("tileDemoProgress");
 const tileDemoPlayback = document.getElementById("tileDemoPlayback");
+const tileDemoPrevious = document.getElementById("tileDemoPrevious");
 const tileDemoNext = document.getElementById("tileDemoNext");
 const mealToggle = document.getElementById("mealToggle");
 const mealPanel = document.getElementById("mealPanel");
@@ -2764,9 +2765,7 @@ function replayWelcomeTitle() {
 
   tileTitle.classList.remove("is-welcome-rolling");
   void tileTitle.offsetWidth;
-  requestAnimationFrame(() => {
-    tileTitle.classList.add("is-welcome-rolling");
-  });
+  tileTitle.classList.add("is-welcome-rolling");
 }
 
 function replayStartupSpotlight() {
@@ -2777,16 +2776,21 @@ function replayStartupSpotlight() {
     return;
   }
 
-  startupSpotlight.classList.add("is-settled");
+  startupSpotlight.classList.remove("is-settled");
   if (startupSpotlightReduceMotion.matches) {
+    document.documentElement.classList.remove('tile-tour-pending');
     document.body.classList.remove("welcome-active");
     return;
   }
 
+  startupSpotlight.style.animation = 'none';
+  startupSpotlight.style.opacity = '0';
+  startupSpotlight.style.transform = 'translate3d(0, -20vh, 0)';
   void startupSpotlight.offsetWidth;
-  requestAnimationFrame(() => {
-    startupSpotlight.classList.remove("is-settled");
-  });
+  document.documentElement.classList.remove('tile-tour-pending');
+  startupSpotlight.style.removeProperty('animation');
+  startupSpotlight.style.removeProperty('opacity');
+  startupSpotlight.style.removeProperty('transform');
 }
 
 startupSpotlight?.addEventListener("animationend", (event) => {
@@ -3663,7 +3667,7 @@ schoolInput?.addEventListener("input", () => {
   });
 });
 
-const TILE_DEMO_DURATION = 4200;
+const TILE_DEMO_DURATION = 2600;
 const tileDemoScenes = [
   {
     eyebrow: "지금, 한눈에",
@@ -3766,16 +3770,9 @@ function scheduleTileDemoAdvance() {
 
 function renderTileDemoProgress() {
   if (!tileDemoProgress) return;
-  tileDemoProgress.replaceChildren();
-  tileTourSteps.forEach((scene, index) => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.setAttribute("aria-label", `${index + 1}번째 장면: ${scene.title}`);
-    button.classList.toggle("is-complete", index < tileDemoIndex);
-    button.classList.toggle("is-current", index === tileDemoIndex);
-    button.addEventListener("click", () => setTileDemoScene(index));
-    tileDemoProgress.appendChild(button);
-  });
+  const bar = document.createElement('i');
+  tileDemoProgress.replaceChildren(bar);
+  void tileDemoProgress.offsetWidth;
 }
 
 function setTileDemoScene(index) {
@@ -3789,6 +3786,15 @@ function setTileDemoScene(index) {
   if (tileDemoEyebrow) tileDemoEyebrow.textContent = `${tileDemoIndex + 1} / ${tileTourSteps.length} · 실제 화면 안내`;
   if (tileDemoTitle) tileDemoTitle.textContent = scene.title;
   if (tileDemoDescription) tileDemoDescription.textContent = scene.description;
+  const copyFrames = startupSpotlightReduceMotion.matches
+    ? [{ opacity: 0 }, { opacity: 1 }]
+    : [{ opacity: 0, transform: 'translateY(7px)', filter: 'blur(4px)' }, { opacity: 1, transform: 'translateY(0)', filter: 'blur(0)' }];
+  [tileDemoTitle, tileDemoDescription].forEach((element, order) => {
+    if (!element) return;
+    element.getAnimations?.().forEach(animation => animation.cancel());
+    element.animate?.(copyFrames, { duration: startupSpotlightReduceMotion.matches ? 150 : 280, delay: startupSpotlightReduceMotion.matches ? 0 : order * 55, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'backwards' });
+  });
+  if (tileDemoPrevious) tileDemoPrevious.disabled = tileDemoIndex === 0;
   if (tileDemoNext) tileDemoNext.textContent = tileDemoIndex === tileTourSteps.length - 1 ? "직접 사용하기" : "다음";
   revealTileTourStep();
   tileDemo?.style.setProperty("--demo-duration", `${TILE_DEMO_DURATION}ms`);
@@ -3799,6 +3805,9 @@ function setTileDemoScene(index) {
 function openTileDemo() {
   if (!tileDemo || tileDemo.classList.contains('is-open')) return;
   window.clearTimeout(tileTourAutoTimer);
+  document.documentElement.classList.add('tile-tour-pending');
+  startupSpotlight?.classList.remove('is-settled');
+  tileTitle?.classList.remove('is-welcome-rolling');
   tileDemo.classList.remove('is-finale', 'is-start-hover', 'is-start-leaving', 'is-start-revealing');
   document.getElementById('tileDemoBegin').hidden = true;
   try { localStorage.setItem(TILE_TOUR_SEEN_KEY, 'yes'); } catch { /* Private browsing may disallow persistence. */ }
@@ -3821,6 +3830,7 @@ function openTileDemo() {
 }
 
 function closeTileDemo(options = {}) {
+  const shouldPlayWelcome = document.documentElement.classList.contains('tile-tour-pending');
   tileFinaleTimers.forEach(window.clearTimeout);
   tileFinaleTimers = [];
   window.clearTimeout(tileDemoTimer);
@@ -3830,6 +3840,9 @@ function closeTileDemo(options = {}) {
   tileDemo?.classList.remove("is-open");
   tileDemo?.setAttribute("aria-hidden", "true");
   document.body.classList.remove("tile-demo-open");
+  if (shouldPlayWelcome) {
+    replayStartupSpotlight();
+  }
   window.scrollTo({ top: tileTourScroll, behavior: 'instant' });
   tileDemoPreviousFocus?.focus?.({ preventScroll: true });
   if (tileTourNeedsSchoolSetup) {
@@ -3865,12 +3878,14 @@ tileFinaleButton?.addEventListener('click', () => {
   tileFinaleTimers.push(window.setTimeout(() => {
     closeTileDemo({ startup: true });
     window.scrollTo({ top: 0, behavior: 'instant' });
-    replayStartupSpotlight();
   }, reduced ? 300 : 1550));
 });
 
 tileDemoLaunch?.addEventListener("click", openTileDemo);
 tileDemoClose?.addEventListener("click", closeTileDemo);
+tileDemoPrevious?.addEventListener("click", () => {
+  if (tileDemoIndex > 0) setTileDemoScene(tileDemoIndex - 1);
+});
 tileDemoNext?.addEventListener("click", () => {
   if (tileDemoIndex === tileTourSteps.length - 1) showTileTourFinale();
   else setTileDemoScene(tileDemoIndex + 1);
@@ -3914,7 +3929,9 @@ async function init() {
     fillSchoolSettingsFromSavedUser();
     if (tileTourFirstVisit) {
       tileTourNeedsSchoolSetup = !user;
-      tileTourAutoTimer = window.setTimeout(openTileDemo, 1800);
+      tileTourAutoTimer = window.setTimeout(openTileDemo, 0);
+    } else {
+      document.documentElement.classList.remove('tile-tour-pending');
     }
 
     if (!user) {

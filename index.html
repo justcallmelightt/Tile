@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <script src="./tour-boot.js?v=20260910"></script>
   <link rel="preload" href="./assets/fonts/PretendardVariable.woff2" as="font" type="font/woff2" crossorigin />
   <title>Tile</title>
   <link rel="icon" href="./assets/favicon/favicon-16x16.png" sizes="16x16" type="image/png" />
@@ -47,24 +48,21 @@
     <div id="tileDemoSpotlight" aria-hidden="true"></div>
     <button id="tileDemoBegin" type="button" hidden><span>Tile 시작하기</span><small>눌러서 시작하세요</small></button>
     <div class="tile-demo-shell" role="dialog" aria-modal="true" aria-labelledby="tileDemoTitle">
-      <div class="tile-demo-topbar">
-        <button id="tileDemoClose" class="tile-demo-text-button" type="button" aria-label="튜토리얼 닫기">건너뛰기</button>
-      </div>
       <div class="tile-demo-stage">
         <div id="tileDemoVisual" class="tile-demo-visual" aria-hidden="true"></div>
         <div class="tile-demo-copy" aria-live="polite">
-          <span id="tileDemoEyebrow" class="tile-demo-eyebrow"></span>
+          <div class="tile-demo-meta"><span id="tileDemoEyebrow" class="tile-demo-eyebrow"></span><span>자동 재생</span></div>
+          <div id="tileDemoProgress" class="tile-demo-progress" aria-hidden="true"></div>
           <h2 id="tileDemoTitle"></h2>
           <p id="tileDemoDescription"></p>
         </div>
       </div>
-      <div class="tile-demo-footer">
-        <div id="tileDemoProgress" class="tile-demo-progress" aria-label="Demo 진행률"></div>
-        <div class="tile-demo-controls">
+      <nav class="tile-demo-controls" aria-label="사용법 안내">
+          <button id="tileDemoClose" class="tile-demo-text-button" type="button" aria-label="튜토리얼 닫기">건너뛰기</button>
+          <button id="tileDemoPrevious" class="tile-demo-text-button" type="button" disabled>이전</button>
           <button id="tileDemoPlayback" class="tile-demo-text-button" type="button" aria-pressed="false">일시정지</button>
           <button id="tileDemoNext" class="tile-demo-next" type="button">다음</button>
-        </div>
-      </div>
+      </nav>
     </div>
   </div>
   <!-- Google tag (gtag.js) -->
