@@ -22,7 +22,7 @@
   <a class="skip-link" href="#timetable">시간표로 바로가기</a>
   <div class="startup-spotlight" aria-hidden="true"></div>
   <div id="toastRegion" class="toast-region" aria-live="polite" aria-atomic="true"></div>
-  <dialog id="feedbackDialog" class="feedback-dialog" aria-labelledby="feedbackTitle">
+  <dialog id="feedbackDialog" class="feedback-dialog tile-management-dialog" aria-labelledby="feedbackTitle">
     <form id="feedbackForm">
       <div class="setup-header">
         <div><span class="dialog-eyebrow">함께 만드는 Tile</span><h2 id="feedbackTitle">피드백 보내기</h2></div>
@@ -363,6 +363,8 @@
             <button id="shareBulkEditToggle" type="button"><span>시간표 일괄 편집</span><small>공유용 임시본 수정</small></button>
             <button id="mealToggle" type="button"><span>오늘 급식</span><small>조식·중식·석식</small></button>
             <span class="tool-menu-label">관리</span>
+            <button id="personalPresetsOpen" type="button"><span>개인 프리셋</span><small>이 브라우저에 저장·불러오기</small></button>
+            <button type="button" disabled aria-disabled="true"><span>창작마당</span><small>개발 중</small></button>
             <button id="accountSettingsToggle" type="button"><span>내 계정</span><small id="accountSettingsStatus">로그인 및 계정 관리</small></button>
             <button id="appSettingsToggle" type="button"><span>Tile 설정</span><small>개인화와 데이터</small></button>
             <button id="memoToggle" type="button"><span>메모</span><small>과제와 준비물 기록</small></button>
@@ -586,6 +588,23 @@
       </table>
     </div>
 
+    <div class="after-school-toolbar"><button id="afterSchoolOpen" class="secondary-action" type="button">방과후 관리</button><span>시간대를 추가하고, 과목은 시간표에서 편집하세요.</span></div>
+    <dialog id="afterSchoolDialog" class="after-school-dialog tile-management-dialog" aria-labelledby="afterSchoolTitle">
+      <div class="setup-header"><div><span class="dialog-eyebrow">시간표 관리</span><h2 id="afterSchoolTitle">방과후</h2></div><button id="afterSchoolClose" class="dialog-close" type="button" aria-label="방과후 관리 닫기">×</button></div>
+      <p class="after-school-description">최대 20개 시간대 · 삭제한 항목은 마지막 변경 되돌리기로 복원할 수 있어요.</p>
+      <div id="afterSchoolList" class="after-school-list"></div>
+      <form id="afterSchoolForm">
+        <div class="after-school-inputs"><label class="setup-field"><span>시작</span><input id="afterSchoolStart" type="time" required></label><label class="setup-field"><span>종료</span><input id="afterSchoolEnd" type="time" required></label><button id="afterSchoolAdd" class="primary-action" type="submit">시간대 추가</button></div>
+        <p id="afterSchoolMessage" class="form-message" role="status"></p>
+      </form>
+    </dialog>
+    <dialog id="personalPresetsDialog" class="after-school-dialog tile-management-dialog" aria-labelledby="personalPresetsTitle">
+      <div class="setup-header"><div><span class="dialog-eyebrow">나만의 시간표</span><h2 id="personalPresetsTitle">개인 프리셋</h2></div><button id="personalPresetsClose" class="dialog-close" type="button" aria-label="개인 프리셋 닫기">×</button></div>
+      <p class="after-school-description">현재 시간표·방과후·메모·설정을 이 브라우저에 저장해요. 로그인 정보는 저장하지 않으며, 공개되지 않아요. 브라우저 데이터를 삭제하면 프리셋도 사라집니다.</p>
+      <form id="personalPresetsForm" class="preset-save-form"><label for="personalPresetName">프리셋 이름</label><input id="personalPresetName" maxlength="40" required placeholder="예: 2학기 방과후 시간표"><button class="primary-action" type="submit">현재 구성 저장</button></form>
+      <p id="personalPresetsStatus" class="form-message" role="status"></p>
+      <div id="personalPresetsList" class="after-school-list"></div>
+    </dialog>
     <div class="site-footer">
       <div><strong>Tile 2.0 Alpha</strong> · HTML, CSS, JavaScript, TypeScript, JSON</div>
       <div><strong>개발자</strong> · 미림마이스터고등학교 1203 권율 | Instagram @justcallmelight_ | Github @justcallmelightt </div>
@@ -640,6 +659,7 @@
         </div>
         <div class="subject-actions">
           <button id="subjectEditNeis" class="secondary-action" type="button">NEIS로 복원</button>
+          <button id="subjectEditClear" class="secondary-action" type="button">이 칸 비우기</button>
           <button id="subjectEditReset" class="secondary-action" type="button">같은 과목 일괄 수정</button>
           <button id="subjectEditSave" class="primary-action" type="button">이 칸 저장</button>
         </div>
@@ -686,9 +706,11 @@
   <script src="./config.public.js?v=20260703-script-fix"></script>
   <script src="./config.js?v=20260703-script-fix" onerror="this.remove()"></script>
   <script src="./neis.js?v=20260727-review-fixes"></script>
+  <script src="./after-school.js?v=20260911"></script>
   <script src="./script.js?v=20260907-tile-demo"></script>
   <script src="./auth.js?v=20260906-lightframe-account"></script>
   <script src="./share.js?v=20260904-share-preview-ux"></script>
   <script src="./feedback.js?v=20260909"></script>
+  <script src="./personal-presets.js?v=20260911"></script>
 </body>
 </html>

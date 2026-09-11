@@ -186,6 +186,7 @@ const APP_SETTINGS_STORAGE_KEY = "tile-app-settings";
 const UNDO_STORAGE_KEY = "tile-last-undo";
 const LAST_SYNC_STORAGE_KEY = "tile-neis-last-sync";
 const TIMETABLE_SHARE_STORAGE_KEYS = [
+  "tile-after-school",
   CELL_EDIT_STORAGE_KEY,
   SCHEDULE_EDIT_STORAGE_KEY,
   SUBJECT_INFO_EDIT_STORAGE_KEY,
@@ -199,6 +200,7 @@ const TIMETABLE_SHARE_TYPE = "tile-timetable";
 const TIMETABLE_SHARE_VERSION = 1;
 const MAX_TIMETABLE_SHARE_LENGTH = 18000;
 const USER_DATA_STORAGE_KEYS = [
+  "tile-after-school",
   CELL_EDIT_STORAGE_KEY,
   SCHEDULE_EDIT_STORAGE_KEY,
   SUBJECT_MEMO_STORAGE_KEY,
@@ -540,7 +542,11 @@ function getCellMemoKey(row, index) {
 
 function readJsonStorage(key, fallback = {}) {
   try {
-    return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback));
+    const value = JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback));
+    if (fallback && typeof fallback === "object" && !Array.isArray(fallback)) {
+      return value && typeof value === "object" && !Array.isArray(value) ? value : fallback;
+    }
+    return value;
   } catch (error) {
     console.error(error);
     return fallback;
@@ -1574,6 +1580,39 @@ subjectEditSave?.addEventListener("click", () => {
   });
 });
 
+document.getElementById("subjectEditClear")?.addEventListener("click", () => {
+  if (!selectedSubjectCell || !selectedSubjectRow) return;
+  let snapshot;
+  try {
+    snapshot = pushUndoSnapshot("수업 한 칸 비우기");
+    const edits = readJsonStorage(CELL_EDIT_STORAGE_KEY);
+    const key = getCellMemoKey(selectedSubjectRow, selectedSubjectIndex);
+    // An explicit empty value overrides the default/NEIS subject after reload.
+    edits[key] = "";
+    const memos = readJsonStorage(SUBJECT_MEMO_STORAGE_KEY);
+    const info = readJsonStorage(CELL_INFO_EDIT_STORAGE_KEY);
+    delete memos[key];
+    delete info[key];
+    writeJsonStorage(SUBJECT_MEMO_STORAGE_KEY, memos);
+    writeJsonStorage(CELL_INFO_EDIT_STORAGE_KEY, info);
+    writeJsonStorage(CELL_EDIT_STORAGE_KEY, edits);
+    renderSubjectCell(selectedSubjectCell, "");
+    delete selectedSubjectCell.dataset.neisRoom;
+    delete selectedSubjectCell.dataset.neisTeacher;
+    selectedSubjectCell.dataset.source = "local";
+    updateCurrentStatus();
+    closeSubjectModal();
+    showToast("이 칸을 비웠습니다", "다른 요일의 수업은 유지됩니다. 빈칸을 누르면 다시 추가할 수 있어요.", {
+      actionLabel: "되돌리기", onAction: () => restoreSnapshot(snapshot)
+    });
+  } catch (error) {
+    if (snapshot) {
+      try { applySnapshotValues(snapshot.values); } catch (restoreError) { console.error(restoreError); }
+    }
+    showToast("수업을 비우지 못했습니다", "브라우저 저장 공간과 설정을 확인해 주세요.", { tone: "error" });
+  }
+});
+
 subjectEditReset?.addEventListener("click", () => {
   openSubjectBulkEditor();
 });
@@ -1904,16 +1943,6 @@ function getDayScheduleEnd(dayOfWeek) {
     return null;
   }
 
-  const forcedDayEndMap = {
-    1: "16:30",
-    3: "16:30",
-    5: "16:30"
-  };
-
-  if (forcedDayEndMap[dayOfWeek]) {
-    return forcedDayEndMap[dayOfWeek];
-  }
-
   const headerCells = document.querySelectorAll("thead th[data-day]");
   const tableDayIndex = Array.from(headerCells).findIndex(
     (cell) => Number(cell.dataset.day) === dayOfWeek
@@ -1932,7 +1961,8 @@ function getDayScheduleEnd(dayOfWeek) {
 
     const cells = row.querySelectorAll("td");
     if (cells.length === 1 && cells[0].hasAttribute("colspan")) {
-      latestEnd = scheduleItem.end;
+      // Dinner alone does not extend a day with no after-school lesson.
+      if (periodName !== "석식" && (!latestEnd || scheduleItem.end > latestEnd)) latestEnd = scheduleItem.end;
       return;
     }
 
@@ -1942,7 +1972,7 @@ function getDayScheduleEnd(dayOfWeek) {
 
       const hasSubject = Boolean(targetCell.dataset.subject);
       if (hasSubject) {
-        latestEnd = scheduleItem.end;
+        if (!latestEnd || scheduleItem.end > latestEnd) latestEnd = scheduleItem.end;
       }
     }
   });
@@ -1990,7 +2020,7 @@ function applyRoomBadges() {
 
 function saveCellEdit(period, index, subject) {
   if (!period || index == null) return;
-  const edits = JSON.parse(localStorage.getItem(CELL_EDIT_STORAGE_KEY) || "{}");
+  const edits = readJsonStorage(CELL_EDIT_STORAGE_KEY);
   const key = `${period}_${index}`;
   if (subject) edits[key] = subject;
   else delete edits[key];
@@ -1998,7 +2028,7 @@ function saveCellEdit(period, index, subject) {
 }
 
 function saveScheduleEdit(period, start, end) {
-  const edits = JSON.parse(localStorage.getItem(SCHEDULE_EDIT_STORAGE_KEY) || "{}");
+  const edits = readJsonStorage(SCHEDULE_EDIT_STORAGE_KEY);
   edits[period] = { start, end };
   localStorage.setItem(SCHEDULE_EDIT_STORAGE_KEY, JSON.stringify(edits));
 }
@@ -2009,6 +2039,7 @@ function parseTimeRange(input) {
   if (!match) return null;
   const [_, h1, m1, h2, m2] = match.map(Number);
   if (h1 > 23 || m1 > 59 || h2 > 23 || m2 > 59) return null;
+  if (h2 * 60 + m2 <= h1 * 60 + m1) return null;
   const start = `${String(h1).padStart(2, "0")}:${String(m1).padStart(2, "0")}`;
   const end = `${String(h2).padStart(2, "0")}:${String(m2).padStart(2, "0")}`;
   return { start, end };
@@ -2104,7 +2135,7 @@ function loadScheduleEdits() {
     const edits = JSON.parse(saved);
     Object.entries(edits).forEach(([period, range]) => {
       const item = scheduleRanges.find((entry) => entry.name === period);
-      if (!item || !range?.start || !range?.end) return;
+      if (!item || !parseTimeRange(`${range?.start} - ${range?.end}`)) return;
       item.start = range.start;
       item.end = range.end;
       const row = document.querySelector(`tbody tr[data-period="${period}"]`);
@@ -2121,7 +2152,7 @@ function loadCellEdits() {
   try {
     const edits = JSON.parse(saved);
     Object.entries(edits).forEach(([key, subject]) => {
-      if (!subject) return;
+      if (typeof subject !== "string") return;
       const [period, day] = key.split("_");
       const row = document.querySelector(`tbody tr[data-period="${period}"]`);
       if (!row) return;
@@ -2171,7 +2202,14 @@ periodEditSave?.addEventListener("click", () => {
   }
 
   const period = selectedPeriodRow.dataset.period || "교시";
-  const undoSnapshot = pushUndoSnapshot("교시 시간 수정");
+  let undoSnapshot;
+  try {
+    undoSnapshot = pushUndoSnapshot("교시 시간 수정");
+    saveScheduleEdit(period, start, end);
+  } catch (error) {
+    if (periodFormMessage) periodFormMessage.textContent = "저장하지 못했습니다. 브라우저 저장 공간과 설정을 확인해 주세요.";
+    return;
+  }
   if (selectedPeriodItem) {
     selectedPeriodItem.start = start;
     selectedPeriodItem.end = end;
@@ -2181,7 +2219,6 @@ periodEditSave?.addEventListener("click", () => {
   }
 
   updateRowTimeText(selectedPeriodRow, start, end);
-  saveScheduleEdit(period, start, end);
   updateCurrentStatus();
   closeSubjectModal();
   showToast(`${period} 시간을 저장했습니다`, `${format12Hour(start)}부터 ${format12Hour(end)}까지`, {
@@ -2193,11 +2230,18 @@ periodEditSave?.addEventListener("click", () => {
 
 function enableTileEditing() {
   document.querySelectorAll("tbody tr[data-period]").forEach((row) => {
+    if (row.dataset.editBound) return;
+    row.dataset.editBound = "true";
     const cells = row.querySelectorAll("td");
     const header = row.querySelector("th");
 
     if (header) {
       header.style.cursor = "pointer";
+      header.tabIndex = 0;
+      header.setAttribute("role", "button");
+      header.addEventListener("keydown", (event) => {
+        if (["Enter", " "].includes(event.key)) { event.preventDefault(); header.click(); }
+      });
       header.addEventListener("click", () => {
         const period = row.dataset.period;
         const scheduleItem = scheduleRanges.find((item) => item.name === period);
@@ -2207,6 +2251,12 @@ function enableTileEditing() {
 
     cells.forEach((cell, index) => {
       if (cell.hasAttribute("colspan")) return;
+      cell.tabIndex = 0;
+      cell.setAttribute("role", "button");
+      cell.setAttribute("aria-label", `${row.dataset.period} ${getSubjectDayLabel(index)}요일 과목 편집`);
+      cell.addEventListener("keydown", (event) => {
+        if (["Enter", " "].includes(event.key)) { event.preventDefault(); cell.click(); }
+      });
 
       cell.style.cursor = cell.classList.contains("empty-cell") ? "pointer" : "default";
 
@@ -2249,6 +2299,34 @@ function updateThemeButton() {
   themeToggle.classList.toggle("theme-target-light", isDark);
   themeToggle.classList.toggle("theme-target-dark", !isDark);
   themeToggle.setAttribute("aria-pressed", String(!isDark));
+}
+
+const themeTransitionReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+function commitTheme(nextIsLight) {
+  document.body.classList.toggle("light-mode", nextIsLight);
+  document.body.classList.toggle("dark-mode", !nextIsLight);
+  localStorage.setItem("mirim-theme", nextIsLight ? "light" : "dark");
+  updateThemeButton();
+}
+
+function switchTheme(nextIsLight) {
+  const body = document.body;
+  const applyTheme = () => commitTheme(nextIsLight);
+  body.classList.add("theme-switching");
+
+  if (!themeTransitionReducedMotion.matches && typeof document.startViewTransition === "function") {
+    const transition = document.startViewTransition(applyTheme);
+    transition.finished
+      .catch(() => {})
+      .finally(() => body.classList.remove("theme-switching"));
+    return;
+  }
+
+  applyTheme();
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => body.classList.remove("theme-switching"));
+  });
 }
 
 function initTheme() {
@@ -2639,11 +2717,7 @@ if (themeToggle) {
   themeToggle.addEventListener("click", () => {
     triggerButtonPop(themeToggle);
     const nextIsLight = !document.body.classList.contains("light-mode");
-    document.body.classList.toggle("light-mode", nextIsLight);
-    document.body.classList.toggle("dark-mode", !nextIsLight);
-    const isDark = !nextIsLight;
-    localStorage.setItem("mirim-theme", isDark ? "dark" : "light");
-    updateThemeButton();
+    switchTheme(nextIsLight);
   });
 }
 
@@ -2722,6 +2796,9 @@ function loadCustomConfig() {
 }
 
 migrateLegacyInfoStorage();
+window.initAfterSchool({ scheduleRanges, readJsonStorage, pushUndoSnapshot, restoreSnapshot,
+  showToast, openSubjectEditor, openPeriodEditor, updateRowTimeText, applyTodayOnlyMode,
+  updateCurrentStatus, loadCellEdits, applyRoomBadges, updateMemoIndicators });
 loadCustomConfig();
 loadSubjectInfoEdits();
 applyRoomBadges();
@@ -2807,6 +2884,43 @@ window.addEventListener("scroll", updateFloatingTopbar, { passive: true });
 window.addEventListener("resize", updateFloatingTopbar, { passive: true });
 
 window.TileApp = {
+  createPersonalPreset() {
+    const backup = createAccountBackup();
+    const edits = {};
+    const info = {};
+    document.querySelectorAll("#mainContent tbody tr[data-period]").forEach(row => {
+      row.querySelectorAll("td").forEach((cell, index) => {
+        if (cell.hasAttribute("colspan")) return;
+        const key = getCellMemoKey(row, index);
+        const subject = cell.dataset.subject || "";
+        edits[key] = subject;
+        const local = getCellInfo(row, index);
+        info[key] = {
+          room: local.room || cell.dataset.neisRoom || classroomMap[subject] || "",
+          teacher: local.teacher || cell.dataset.neisTeacher || teacherMap[subject] || ""
+        };
+      });
+    });
+    backup.values[CELL_EDIT_STORAGE_KEY] = JSON.stringify(edits);
+    backup.values[CELL_INFO_EDIT_STORAGE_KEY] = JSON.stringify(info);
+    backup.values[SCHEDULE_EDIT_STORAGE_KEY] = JSON.stringify(Object.fromEntries(scheduleRanges.map(item => [item.name, { start: item.start, end: item.end }])));
+    return backup;
+  },
+  applyPersonalPreset(backup) {
+    if (backup?.version !== 1 || !backup.values || USER_DATA_STORAGE_KEYS.some(key =>
+      !Object.prototype.hasOwnProperty.call(backup.values, key) || (backup.values[key] !== null && typeof backup.values[key] !== "string"))) {
+      throw new Error("프리셋 형식을 읽을 수 없습니다.");
+    }
+    const previous = captureUserDataSnapshot("프리셋 적용 전");
+    try {
+      applySnapshotValues(backup.values);
+      localStorage.setItem(UNDO_STORAGE_KEY, JSON.stringify(previous));
+    } catch (error) {
+      try { applySnapshotValues(previous.values); } catch (restoreError) { console.error(restoreError); }
+      throw error;
+    }
+    window.location.reload();
+  },
   notify(title, detail = "", options = {}) {
     showToast(title, detail, options);
   },
@@ -2975,13 +3089,17 @@ if (memoSave && memoInput) {
 
 if (memoReset && memoInput) {
   memoReset.addEventListener("click", () => {
-    const undoSnapshot = pushUndoSnapshot("메모 초기화");
-    localStorage.removeItem("tile-memo-content");
-    memoInput.value = "";
-    showToast("메모를 비웠습니다", "", {
-      actionLabel: "되돌리기",
-      onAction: () => restoreSnapshot(undoSnapshot)
-    });
+    try {
+      const undoSnapshot = pushUndoSnapshot("메모 초기화");
+      localStorage.removeItem("tile-memo-content");
+      memoInput.value = "";
+      showToast("메모를 비웠습니다", "", {
+        actionLabel: "되돌리기",
+        onAction: () => restoreSnapshot(undoSnapshot)
+      });
+    } catch (error) {
+      showToast("메모를 비우지 못했습니다", "내용은 그대로 유지됩니다. 브라우저 저장 공간과 설정을 확인해 주세요.", { tone: "error" });
+    }
   });
 }
 

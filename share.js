@@ -18,7 +18,7 @@
   };
 
   const IMPORT_KEYS = [
-    "tile-cell-edits", "tile-schedule-edits", "tile-subject-info-edits", "tile-cell-info-edits",
+    "tile-after-school", "tile-cell-edits", "tile-schedule-edits", "tile-subject-info-edits", "tile-cell-info-edits",
     "tile-period-info-edits", "tile-custom-json", "tile_user", "tile-neis-sync-scope", "tile-subject-memos", "tile-memo-content"
   ];
   const USER_SNAPSHOT_KEYS = [...IMPORT_KEYS, "tile-meals", "tile-app-settings", "tile-neis-last-sync", "mirim-theme", "mirim-today-only"];
