@@ -94,7 +94,7 @@
     dialog.showModal();
   });
   byId('personalPresetsClose').addEventListener('click', () => dialog.close());
-  dialog.addEventListener('close', () => byId('toolMenuToggle').focus());
+  dialog.addEventListener('close', () => (byId('timetableManagementToggle') || byId('toolMenuToggle')).focus());
   dialog.addEventListener('keydown', event => event.stopPropagation());
   byId('personalPresetsForm').addEventListener('submit', event => {
     event.preventDefault();

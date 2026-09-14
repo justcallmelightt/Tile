@@ -10,7 +10,7 @@
   <link rel="icon" href="./assets/favicon/favicon-32x32.png" sizes="32x32" type="image/png" />
   <link rel="icon" href="./assets/favicon/favicon-96x96.png" sizes="96x96" type="image/png" />
   <link rel="apple-touch-icon" href="./assets/favicon/favicon-96x96.png" />
-  <link rel="stylesheet" href="./style.css?v=20260907-tile-demo" />
+  <link rel="stylesheet" href="./style.css?v=20260914-desktop-hierarchy" />
   <!-- Google AdSense: site ownership verification and ad delivery -->
   <script
     async
@@ -357,74 +357,48 @@
         <div class="tool-menu" id="toolMenu">
           <button class="theme-toggle" id="toolMenuToggle" type="button" aria-expanded="false" aria-controls="toolMenuPanel">도구</button>
           <div class="tool-menu-panel" id="toolMenuPanel" aria-hidden="true">
-            <span class="tool-menu-label">연결</span>
+            <span class="tool-menu-label">설정</span>
             <button id="schoolSettingsToggle" type="button"><span>학교 설정</span><small>학교와 학급 변경</small></button>
-            <button id="showcaseShareToggle" type="button"><span class="tool-menu-title">시간표 공유 <em class="tool-beta-badge">Beta</em></span><small>공유 프리셋 제작·배포</small></button>
-            <button id="shareBulkEditToggle" type="button"><span>시간표 일괄 편집</span><small>공유용 임시본 수정</small></button>
-            <button id="mealToggle" type="button"><span>오늘 급식</span><small>조식·중식·석식</small></button>
-            <span class="tool-menu-label">관리</span>
-            <button id="personalPresetsOpen" type="button"><span>개인 프리셋</span><small>이 브라우저에 저장·불러오기</small></button>
-            <button type="button" disabled aria-disabled="true"><span>창작마당</span><small>개발 중</small></button>
             <button id="accountSettingsToggle" type="button"><span>내 계정</span><small id="accountSettingsStatus">로그인 및 계정 관리</small></button>
             <button id="appSettingsToggle" type="button"><span>Tile 설정</span><small>개인화와 데이터</small></button>
-            <button id="memoToggle" type="button"><span>메모</span><small>과제와 준비물 기록</small></button>
-            <button id="customToggle" class="custom-toggle" type="button"><span>JSON 편집기</span><small>고급 시간표 설정</small></button>
+            <details class="tool-help-group"><summary>도움말</summary>
             <button id="tileDemoLaunch" type="button"><span>사용법 익히기</span><small>Tile 화면 안내 다시 보기</small></button>
             <button id="feedbackLaunch" type="button"><span>피드백 보내기</span><small>아이디어 제안 · 버그 신고</small></button>
+            </details>
+            <span class="tool-menu-label tool-menu-label-pending">준비 중</span>
+            <button class="tool-menu-unavailable" type="button" disabled aria-disabled="true"><span>창작마당</span><small>아직 사용할 수 없습니다</small></button>
           </div>
         </div>
       </div>
     </div>
     <div class="top-grid">
       <div class="status-card">
-        <div class="status-item">
+        <div class="status-item status-item-secondary status-item-time">
           <span class="status-label">현재 시간</span>
           <span class="status-value" id="currentTime">불러오는 중...</span>
         </div>
-        <div class="status-item">
+        <div class="status-item status-item-primary status-item-period">
           <span class="status-label">현재 진행</span>
           <span class="status-value" id="currentPeriod">확인 중...</span>
         </div>
-        <div class="status-item">
+        <div class="status-item status-item-primary status-item-remaining">
           <span class="status-label" id="remainingTimeLabel">교시 남은 시간</span>
           <span class="status-value" id="remainingTime">계산 중...</span>
         </div>
-        <div class="status-item">
+        <div class="status-item status-item-secondary status-item-day">
           <span class="status-label">일과 남은 시간</span>
           <span class="status-value" id="dayRemainingTime">계산 중...</span>
         </div>
-        <div class="status-item">
+        <div class="status-item status-item-primary status-item-room">
           <span class="status-label">현재 교실</span>
           <span class="status-value" id="currentRoom">확인 중...</span>
         </div>
-        <div class="status-item">
+        <div class="status-item status-item-secondary status-item-neis">
           <span class="status-label">NEIS</span>
           <span class="status-value" id="neisStatus">대기 중</span>
         </div>
       </div>
     </div>
-
-    <section class="custom-panel" id="customPanel" aria-hidden="true">
-      <div class="custom-panel-header">
-        <div>
-          <h2>JSON으로 수정</h2>
-          <p>JSON으로 시간표, 교실, 선생님 정보를 수정할 수 있습니다.</p>
-        </div>
-        <button class="custom-close" id="customClose" type="button" aria-label="닫기">&times;</button>
-      </div>
-
-      <textarea id="customTimetableInput" spellcheck="false"></textarea>
-
-      <div class="custom-actions">
-        <button class="theme-toggle" id="customLoadExample" type="button">예시 불러오기</button>
-        <button class="theme-toggle" id="customSave" type="button">저장</button>
-        <button class="theme-toggle" id="customReset" type="button">초기화</button>
-      </div>
-
-      <p class="custom-help">
-        저장된 설정은 이 기기의 브라우저에만 저장됩니다. 문제가 생기면 초기화를 눌러 기본 시간표로 돌아갈 수 있습니다.
-      </p>
-    </section>
 
     <section class="custom-panel" id="memoPanel" aria-hidden="true">
       <div class="custom-panel-header">
@@ -473,6 +447,17 @@
       </div>
     </section>
 
+    <nav class="timetable-actions" aria-label="시간표 작업">
+      <div class="timetable-actions-primary">
+        <button id="timetableManagementToggle" class="secondary-action" type="button" aria-haspopup="dialog">시간표 관리</button>
+        <span class="timetable-actions-hint">편집 · 프리셋 · 방과후</span>
+      </div>
+      <div class="timetable-actions-secondary">
+        <button id="mealToggle" class="secondary-action" type="button" aria-expanded="false" aria-controls="mealPanel">급식</button>
+        <button id="memoToggle" class="secondary-action" type="button">메모</button>
+        <button id="showcaseShareToggle" class="secondary-action" type="button" aria-haspopup="dialog">시간표 공유</button>
+      </div>
+    </nav>
     <div class="table-shell" id="timetable" tabindex="0" aria-label="주간 시간표">
       <table>
         <caption class="sr-only">월요일부터 금요일까지의 주간 시간표</caption>
@@ -589,6 +574,18 @@
     </div>
 
     <div class="after-school-toolbar"><button id="afterSchoolOpen" class="secondary-action" type="button">방과후 관리</button><span>시간대를 추가하고, 과목은 시간표에서 편집하세요.</span></div>
+    <dialog id="timetableManagementDialog" class="timetable-management-dialog tile-management-dialog" aria-labelledby="timetableManagementTitle">
+      <div class="setup-header">
+        <div><span class="dialog-eyebrow">내 시간표</span><h2 id="timetableManagementTitle">시간표 관리 스튜디오</h2></div>
+        <button id="timetableManagementClose" class="dialog-close" type="button" aria-label="시간표 관리 스튜디오 닫기">&times;</button>
+      </div>
+      <p class="after-school-description">실제로 사용하는 시간표와 저장된 구성을 한곳에서 관리합니다. 공유용 임시본에는 영향을 주지 않습니다.</p>
+      <div class="management-studio-grid">
+        <button id="managementEditTimetable" class="management-studio-action" type="button"><span>시간표 편집</span><small>한 칸을 선택하거나 같은 과목을 일괄 수정</small></button>
+        <button id="personalPresetsOpen" class="management-studio-action" type="button"><span>개인 프리셋</span><small>현재 구성을 저장하고 다시 불러오기</small></button>
+        <button id="managementAfterSchool" class="management-studio-action" type="button"><span>방과후 관리</span><small>방과후 시간대를 추가하거나 정리</small></button>
+      </div>
+    </dialog>
     <dialog id="afterSchoolDialog" class="after-school-dialog tile-management-dialog" aria-labelledby="afterSchoolTitle">
       <div class="setup-header"><div><span class="dialog-eyebrow">시간표 관리</span><h2 id="afterSchoolTitle">방과후</h2></div><button id="afterSchoolClose" class="dialog-close" type="button" aria-label="방과후 관리 닫기">×</button></div>
       <p class="after-school-description">최대 20개 시간대 · 삭제한 항목은 마지막 변경 되돌리기로 복원할 수 있어요.</p>
@@ -707,10 +704,11 @@
   <script src="./config.js?v=20260703-script-fix" onerror="this.remove()"></script>
   <script src="./neis.js?v=20260727-review-fixes"></script>
   <script src="./after-school.js?v=20260911"></script>
-  <script src="./script.js?v=20260907-tile-demo"></script>
+  <script src="./script.js?v=20260914-desktop-hierarchy"></script>
   <script src="./auth.js?v=20260906-lightframe-account"></script>
   <script src="./share.js?v=20260904-share-preview-ux"></script>
   <script src="./feedback.js?v=20260909"></script>
   <script src="./personal-presets.js?v=20260911"></script>
+  <script src="./management-studio.js?v=20260911"></script>
 </body>
 </html>

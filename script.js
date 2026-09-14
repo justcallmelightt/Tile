@@ -2749,9 +2749,11 @@ mealToggle?.addEventListener("click", () => {
   triggerButtonPop(mealToggle);
   mealPanel?.classList.toggle("is-open");
   mealPanel?.setAttribute("aria-hidden", mealPanel.classList.contains("is-open") ? "false" : "true");
+  mealToggle.setAttribute("aria-expanded", String(mealPanel?.classList.contains("is-open") || false));
 });
 
 mealClose?.addEventListener("click", () => {
+  mealToggle?.setAttribute("aria-expanded", "false");
   mealPanel?.classList.remove("is-open");
   mealPanel?.setAttribute("aria-hidden", "true");
 });
@@ -3949,6 +3951,8 @@ function openTileDemo() {
 
 function closeTileDemo(options = {}) {
   const shouldPlayWelcome = document.documentElement.classList.contains('tile-tour-pending');
+  const shouldOpenSchoolSettings = Boolean(options.openSchoolSettings && tileTourNeedsSchoolSetup);
+  window.clearTimeout(tileTourAutoTimer);
   tileFinaleTimers.forEach(window.clearTimeout);
   tileFinaleTimers = [];
   window.clearTimeout(tileDemoTimer);
@@ -3963,10 +3967,9 @@ function closeTileDemo(options = {}) {
   }
   window.scrollTo({ top: tileTourScroll, behavior: 'instant' });
   tileDemoPreviousFocus?.focus?.({ preventScroll: true });
-  if (tileTourNeedsSchoolSetup) {
-    tileTourNeedsSchoolSetup = false;
-    if (options.startup) window.setTimeout(openSchoolSettings, 3200);
-    else openSchoolSettings();
+  tileTourNeedsSchoolSetup = false;
+  if (shouldOpenSchoolSettings) {
+    window.setTimeout(openSchoolSettings, startupSpotlightReduceMotion.matches ? 150 : 900);
   }
 }
 
@@ -3975,6 +3978,12 @@ function showTileTourFinale() {
   cancelAnimationFrame(tileTourFrame);
   tileDemo.classList.add('is-finale');
   const begin = document.getElementById('tileDemoBegin');
+  const beginLabel = begin?.querySelector('span');
+  const beginHint = begin?.querySelector('small');
+  if (beginLabel) beginLabel.textContent = tileTourNeedsSchoolSetup ? '학교 설정하기' : 'Tile 시작하기';
+  if (beginHint) beginHint.textContent = tileTourNeedsSchoolSetup
+    ? '학교와 학급을 연결하고 시작하세요'
+    : '눌러서 시작하세요';
   begin.hidden = false;
   begin.focus();
 }
@@ -3994,7 +4003,7 @@ tileFinaleButton?.addEventListener('click', () => {
     tileDemo.classList.add('is-start-revealing');
   }, reduced ? 150 : 650));
   tileFinaleTimers.push(window.setTimeout(() => {
-    closeTileDemo({ startup: true });
+    closeTileDemo({ startup: true, openSchoolSettings: tileTourNeedsSchoolSetup });
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, reduced ? 300 : 1550));
 });
