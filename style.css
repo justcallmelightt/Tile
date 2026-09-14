@@ -1810,17 +1810,11 @@ thead th.current-day-column-header {
 
 .floating-time-line {
   position: absolute;
-  height: 2px;
-  background: color-mix(in srgb, var(--current-bar) 42%, transparent);
+  height: 3px;
+  background: var(--current-bar);
   border-radius: 999px;
-  z-index: 1;
+  z-index: 6;
   pointer-events: none;
-}
-
-tbody tr.current-row > th > *,
-tbody tr.current-row > td > * {
-  position: relative;
-  z-index: 2;
 }
 
 .floating-time-label {
