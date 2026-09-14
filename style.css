@@ -376,12 +376,7 @@ h1 {
 .timetable-actions button { min-height: 44px; }
 .timetable-actions-hint { color: var(--text-soft); font-size: .875rem; }
 .timetable-actions button:active { transform: scale(.97); }
-.timetable-actions button:focus-visible, .tool-help-group summary:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
-.tool-help-group summary { padding: 12px; min-height: 44px; box-sizing: border-box; font-size: .875rem; color: var(--text-soft); cursor: pointer; border-radius: 12px; }
-.tool-help-group summary:hover { background: var(--accent-soft); color: var(--text); }
-.tool-help-group summary:active { opacity: .65; }
-.tool-help-group[open] { padding-bottom: 4px; }
-.tool-help-group button { width: 100%; }
+.timetable-actions button:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
 @media (max-width: 600px) {
   .timetable-actions { gap: 8px; }
   .timetable-actions-primary, .timetable-actions-secondary { width: 100%; }
@@ -4023,6 +4018,7 @@ button, input, textarea, select, option {
   font-weight: 600;
 }
 
+.tool-menu-panel .tool-menu-label-help,
 .tool-menu-panel .tool-menu-label-pending {
   margin-top: 4px;
   border-top: 1px solid var(--border);
