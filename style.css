@@ -1813,8 +1813,13 @@ thead th.current-day-column-header {
   height: 3px;
   background: var(--current-bar);
   border-radius: 999px;
-  z-index: 6;
+  z-index: 1;
   pointer-events: none;
+}
+
+tbody tr.current-row > td > * {
+  position: relative;
+  z-index: 2;
 }
 
 .floating-time-label {
