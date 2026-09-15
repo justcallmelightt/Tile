@@ -254,6 +254,32 @@ body.has-iphone-safe-zone {
   filter: blur(0);
 }
 
+.floating-topbar .status-card {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 24px;
+  padding: 14px 18px;
+}
+
+.floating-topbar .status-item {
+  gap: 4px;
+}
+
+.floating-topbar .status-item + .status-item {
+  border-left: 1px solid var(--border);
+  padding-left: 24px;
+}
+
+.floating-status-detail {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-soft);
+  font-size: 0.76rem;
+  font-weight: 500;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .container {
   --container-radius: 28px;
   position: relative;
@@ -762,6 +788,74 @@ body.dark-mode .theme-toggle.theme-target-light:hover {
 #mainContent .status-card {
   grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: 10px 16px;
+}
+
+#mainContent .status-card-prioritized {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.status-card-prioritized > .status-item {
+  min-height: 104px;
+  justify-content: center;
+  padding: 20px 22px;
+}
+
+.status-card-prioritized > .status-item + .status-item {
+  border-left: 1px solid var(--border);
+}
+
+.status-card-prioritized .status-focus-current .status-value {
+  font-size: clamp(1.18rem, 1.8vw, 1.48rem);
+}
+
+.status-card-prioritized .status-context {
+  overflow: hidden;
+  color: var(--text-soft);
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status-utilities {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface-soft) 56%, transparent);
+}
+
+.status-utilities > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px 22px;
+}
+
+.status-utilities > div + div {
+  border-left: 1px solid var(--border);
+}
+
+.status-utilities span {
+  flex: 0 0 auto;
+  color: var(--text-soft);
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.status-utilities strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 #mainContent .status-item-primary {
@@ -2229,7 +2323,8 @@ body.mobile-today-mode col.day-col {
 #topbarRemaining,
 #topbarDayRemaining,
 #topbarRoom,
-#topbarNeis {
+#topbarNeis,
+#topbarNext {
   display: inline-flex;
   align-items: center;
   gap: 0;
@@ -2260,6 +2355,15 @@ body.mobile-today-mode col.day-col {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.timetable-edit-action {
+  background: var(--text);
+  color: var(--bg);
+}
+
+.timetable-edit-action:hover {
+  background: color-mix(in srgb, var(--text) 88%, var(--bg));
 }
 
 #mainContent .status-card .status-value {
@@ -4839,9 +4943,111 @@ body.light-mode .management-studio-action:hover { border-color: rgba(17,24,39,.1
 .management-studio-action:active { transform: scale(.985); }
 .management-studio-action:focus-visible { outline: 2px solid var(--text-soft); outline-offset: 3px; }
 #timetable.is-management-target { box-shadow: 0 0 0 3px var(--focus-glow-soft), 0 0 36px var(--focus-glow-soft); }
+
+/* Timetable actions read as one intentional control surface, not loose text. */
+.timetable-actions {
+  padding: 7px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface-soft) 82%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.timetable-actions-primary,
+.timetable-actions-secondary {
+  gap: 6px;
+}
+
+.timetable-actions .secondary-action {
+  min-height: 40px;
+  padding: 0 15px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-strong);
+  color: var(--text);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 120ms ease;
+}
+
+.timetable-actions .secondary-action:hover {
+  border-color: color-mix(in srgb, var(--text-soft) 40%, var(--border));
+  background: var(--toggle-bg);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 7px 18px rgba(0, 0, 0, 0.12);
+}
+
+.timetable-actions .timetable-edit-action {
+  border-color: transparent;
+  background: var(--text);
+  color: var(--bg);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.timetable-actions .timetable-edit-action:hover {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--text) 90%, var(--bg));
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+.timetable-menu-action span {
+  display: inline-block;
+  margin-left: 4px;
+  color: var(--text-soft);
+  font-size: 0.78em;
+  transform: translateY(-1px);
+}
+
 @media (max-width: 480px) {
   .tile-management-dialog { width: calc(100vw - 24px); max-height: calc(100dvh - 32px); padding: 20px; }
 }
+
+@media (max-width: 600px) {
+  #mainContent .status-card-prioritized {
+    grid-template-columns: 1fr;
+  }
+
+  .status-card-prioritized > .status-item {
+    min-height: 0;
+    padding: 16px;
+  }
+
+  .status-card-prioritized > .status-item + .status-item,
+  .status-card-prioritized .status-focus-remaining {
+    grid-column: auto;
+    border-top: 1px solid var(--border);
+    border-left: 0;
+  }
+
+  .status-utilities {
+    grid-template-columns: 1fr;
+  }
+
+  .status-utilities > div {
+    padding: 9px 16px;
+  }
+
+  .status-utilities > div + div {
+    border-top: 1px solid var(--border);
+    border-left: 0;
+  }
+
+  .timetable-actions-primary,
+  .timetable-actions-secondary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .timetable-actions-secondary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .timetable-actions .secondary-action {
+    width: 100%;
+    padding-inline: 10px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .tile-management-dialog[open] { animation: tileManagementFade 150ms ease both; }
   .tile-management-dialog button { transition: opacity 150ms ease; }

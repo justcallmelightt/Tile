@@ -30,7 +30,7 @@
   dialog?.addEventListener("close", () => openButton?.focus());
   dialog?.addEventListener("keydown", (event) => event.stopPropagation());
 
-  byId("managementEditTimetable")?.addEventListener("click", () => {
+  function startTimetableEditing() {
     closeStudio();
     const timetable = byId("timetable");
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -38,7 +38,9 @@
     timetable?.classList.add("is-management-target");
     window.setTimeout(() => timetable?.classList.remove("is-management-target"), 1400);
     window.TileApp?.notify?.("수정할 수업을 선택하세요", "한 칸을 수정하거나 같은 과목을 한 번에 바꿀 수 있습니다.");
-  });
+  }
+
+  byId("timetableEditToggle")?.addEventListener("click", startTimetableEditing);
 
   byId("personalPresetsOpen")?.addEventListener("click", closeStudio, { capture: true });
 

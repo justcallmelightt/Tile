@@ -10,7 +10,7 @@
   <link rel="icon" href="./assets/favicon/favicon-32x32.png" sizes="32x32" type="image/png" />
   <link rel="icon" href="./assets/favicon/favicon-96x96.png" sizes="96x96" type="image/png" />
   <link rel="apple-touch-icon" href="./assets/favicon/favicon-96x96.png" />
-  <link rel="stylesheet" href="./style.css?v=20260915-timeline-legibility" />
+  <link rel="stylesheet" href="./style.css?v=20260916-status-alignment" />
   <!-- Google AdSense: site ownership verification and ad delivery -->
   <script
     async
@@ -313,29 +313,15 @@
   <div class="iphone-safe-zone" aria-hidden="true"></div>
   <div class="floating-topbar" id="floatingTopbar" aria-hidden="true">
     <div class="status-card" id="floatingStatusCard">
-      <div class="status-item">
-        <span class="status-label">현재 시간</span>
-        <span class="status-value" id="topbarTime">불러오는 중...</span>
-      </div>
-      <div class="status-item">
-        <span class="status-label">현재 진행</span>
+      <div class="status-item floating-status-primary">
+        <span class="status-label">현재 수업</span>
         <span class="status-value" id="topbarPeriod">확인 중...</span>
+        <span class="floating-status-detail" id="topbarRemaining">남은 시간 계산 중...</span>
       </div>
-      <div class="status-item">
-        <span class="status-label" id="topbarRemainingLabel">교시 남은 시간</span>
-        <span class="status-value" id="topbarRemaining">계산 중...</span>
-      </div>
-      <div class="status-item">
-        <span class="status-label">일과 남은 시간</span>
-        <span class="status-value" id="topbarDayRemaining">계산 중...</span>
-      </div>
-      <div class="status-item">
-        <span class="status-label">현재 교실</span>
-        <span class="status-value" id="topbarRoom">확인 중...</span>
-      </div>
-      <div class="status-item">
-        <span class="status-label">NEIS</span>
-        <span class="status-value" id="topbarNeis">대기 중</span>
+      <div class="status-item floating-status-next">
+        <span class="status-label">다음 수업</span>
+        <span class="status-value" id="topbarNext">확인 중...</span>
+        <span class="floating-status-detail" id="topbarNextRoom">교실 확인 중...</span>
       </div>
     </div>
   </div>
@@ -371,30 +357,25 @@
       </div>
     </div>
     <div class="top-grid">
-      <div class="status-card">
-        <div class="status-item status-item-secondary status-item-time">
-          <span class="status-label">현재 시간</span>
-          <span class="status-value" id="currentTime">불러오는 중...</span>
-        </div>
-        <div class="status-item status-item-primary status-item-period">
-          <span class="status-label">현재 진행</span>
+      <div class="status-card status-card-prioritized">
+        <div class="status-item status-focus-current">
+          <span class="status-label">현재 수업</span>
           <span class="status-value" id="currentPeriod">확인 중...</span>
+          <span class="status-context" id="currentRoom">교실 확인 중...</span>
         </div>
-        <div class="status-item status-item-primary status-item-remaining">
+        <div class="status-item status-focus-next">
+          <span class="status-label">다음 수업</span>
+          <span class="status-value" id="nextPeriod">확인 중...</span>
+          <span class="status-context" id="nextRoom">교실 확인 중...</span>
+        </div>
+        <div class="status-item status-focus-remaining">
           <span class="status-label" id="remainingTimeLabel">교시 남은 시간</span>
           <span class="status-value" id="remainingTime">계산 중...</span>
         </div>
-        <div class="status-item status-item-secondary status-item-day">
-          <span class="status-label">일과 남은 시간</span>
-          <span class="status-value" id="dayRemainingTime">계산 중...</span>
-        </div>
-        <div class="status-item status-item-primary status-item-room">
-          <span class="status-label">현재 교실</span>
-          <span class="status-value" id="currentRoom">확인 중...</span>
-        </div>
-        <div class="status-item status-item-secondary status-item-neis">
-          <span class="status-label">NEIS</span>
-          <span class="status-value" id="neisStatus">대기 중</span>
+        <div class="status-utilities" aria-label="보조 상태">
+          <div><span>현재 시간</span><strong id="currentTime">불러오는 중...</strong></div>
+          <div><span>일과 남은 시간</span><strong id="dayRemainingTime">계산 중...</strong></div>
+          <div><span>NEIS</span><strong id="neisStatus">대기 중</strong></div>
         </div>
       </div>
     </div>
@@ -448,8 +429,8 @@
 
     <nav class="timetable-actions" aria-label="시간표 작업">
       <div class="timetable-actions-primary">
-        <button id="timetableManagementToggle" class="secondary-action" type="button" aria-haspopup="dialog">시간표 관리</button>
-        <span class="timetable-actions-hint">편집 · 프리셋 · 방과후</span>
+        <button id="timetableEditToggle" class="secondary-action timetable-edit-action" type="button">시간표 편집</button>
+        <button id="timetableManagementToggle" class="secondary-action timetable-menu-action" type="button" aria-haspopup="dialog">시간표 관리 <span aria-hidden="true">⌄</span></button>
       </div>
       <div class="timetable-actions-secondary">
         <button id="mealToggle" class="secondary-action" type="button" aria-expanded="false" aria-controls="mealPanel">급식</button>
@@ -575,12 +556,11 @@
     <div class="after-school-toolbar"><button id="afterSchoolOpen" class="secondary-action" type="button">방과후 관리</button><span>시간대를 추가하고, 과목은 시간표에서 편집하세요.</span></div>
     <dialog id="timetableManagementDialog" class="timetable-management-dialog tile-management-dialog" aria-labelledby="timetableManagementTitle">
       <div class="setup-header">
-        <div><span class="dialog-eyebrow">내 시간표</span><h2 id="timetableManagementTitle">시간표 관리 스튜디오</h2></div>
-        <button id="timetableManagementClose" class="dialog-close" type="button" aria-label="시간표 관리 스튜디오 닫기">&times;</button>
+        <div><span class="dialog-eyebrow">내 시간표</span><h2 id="timetableManagementTitle">시간표 관리</h2></div>
+        <button id="timetableManagementClose" class="dialog-close" type="button" aria-label="시간표 관리 닫기">&times;</button>
       </div>
-      <p class="after-school-description">실제로 사용하는 시간표와 저장된 구성을 한곳에서 관리합니다. 공유용 임시본에는 영향을 주지 않습니다.</p>
+      <p class="after-school-description">저장된 시간표 구성을 바꾸거나 방과후 시간대를 관리합니다. 공유용 임시본에는 영향을 주지 않습니다.</p>
       <div class="management-studio-grid">
-        <button id="managementEditTimetable" class="management-studio-action" type="button"><span>시간표 편집</span><small>한 칸을 선택하거나 같은 과목을 일괄 수정</small></button>
         <button id="personalPresetsOpen" class="management-studio-action" type="button"><span>개인 프리셋</span><small>현재 구성을 저장하고 다시 불러오기</small></button>
         <button id="managementAfterSchool" class="management-studio-action" type="button"><span>방과후 관리</span><small>방과후 시간대를 추가하거나 정리</small></button>
       </div>
@@ -703,11 +683,11 @@
   <script src="./config.js?v=20260703-script-fix" onerror="this.remove()"></script>
   <script src="./neis.js?v=20260727-review-fixes"></script>
   <script src="./after-school.js?v=20260911"></script>
-  <script src="./script.js?v=20260914-desktop-hierarchy"></script>
+  <script src="./script.js?v=20260916-navigation-hierarchy"></script>
   <script src="./auth.js?v=20260906-lightframe-account"></script>
   <script src="./share.js?v=20260904-share-preview-ux"></script>
   <script src="./feedback.js?v=20260909"></script>
   <script src="./personal-presets.js?v=20260911"></script>
-  <script src="./management-studio.js?v=20260911"></script>
+  <script src="./management-studio.js?v=20260916-navigation-hierarchy"></script>
 </body>
 </html>
