@@ -7,3 +7,6 @@ node_modules
 dist
 build
 .DS_Store
+
+# Local application document; never publish with Tile.
+모두의 창업 · 온라인 작업실.pdf

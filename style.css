@@ -254,32 +254,6 @@ body.has-iphone-safe-zone {
   filter: blur(0);
 }
 
-.floating-topbar .status-card {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px 24px;
-  padding: 14px 18px;
-}
-
-.floating-topbar .status-item {
-  gap: 4px;
-}
-
-.floating-topbar .status-item + .status-item {
-  border-left: 1px solid var(--border);
-  padding-left: 24px;
-}
-
-.floating-status-detail {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--text-soft);
-  font-size: 0.76rem;
-  font-weight: 500;
-  line-height: 1.35;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .container {
   --container-radius: 28px;
   position: relative;
@@ -377,6 +351,41 @@ h1 {
   font-size: 0.98rem;
   letter-spacing: -0.01em;
   text-align: left;
+}
+
+.school-meta-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px 10px;
+}
+
+.neis-connection {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-soft);
+  font-size: 0.7rem;
+  line-height: 1;
+}
+
+.neis-connection::before {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  content: "";
+  opacity: 0.62;
+}
+
+.neis-connection span {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.neis-connection strong {
+  color: var(--text);
+  font-weight: 600;
 }
 
 .controls {
@@ -790,90 +799,31 @@ body.dark-mode .theme-toggle.theme-target-light:hover {
   gap: 10px 16px;
 }
 
-#mainContent .status-card-prioritized {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0;
-  padding: 0;
-  overflow: hidden;
-}
-
-.status-card-prioritized > .status-item {
-  min-height: 104px;
-  justify-content: center;
-  padding: 20px 22px;
-}
-
-.status-card-prioritized > .status-item + .status-item {
-  border-left: 1px solid var(--border);
-}
-
-.status-card-prioritized .status-focus-current .status-value {
-  font-size: clamp(1.18rem, 1.8vw, 1.48rem);
-}
-
-.status-card-prioritized .status-context {
-  overflow: hidden;
-  color: var(--text-soft);
-  font-size: 0.8rem;
-  font-weight: 500;
-  line-height: 1.35;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.status-utilities {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  border-top: 1px solid var(--border);
-  background: color-mix(in srgb, var(--surface-soft) 56%, transparent);
-}
-
-.status-utilities > div {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-  padding: 10px 22px;
-}
-
-.status-utilities > div + div {
-  border-left: 1px solid var(--border);
-}
-
-.status-utilities span {
-  flex: 0 0 auto;
-  color: var(--text-soft);
-  font-size: 0.7rem;
-  font-weight: 500;
-}
-
-.status-utilities strong {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--text);
-  font-size: 0.78rem;
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+#mainContent .status-card-classic {
+  grid-template-columns:
+    minmax(0, 0.92fr)
+    minmax(0, 1.34fr)
+    minmax(0, 1.18fr)
+    minmax(0, 1.16fr)
+    minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
 }
 
 #mainContent .status-item-primary {
-  grid-column: span 4;
-  order: 1;
-  padding-bottom: 13px;
+  grid-column: auto;
+  padding: 0;
 }
 
 #mainContent .status-item-secondary {
-  grid-column: span 4;
-  order: 2;
-  padding-top: 12px;
+  grid-column: auto;
+  padding: 0;
 }
 
-#mainContent .status-item-period { order: 1; }
-#mainContent .status-item-room { order: 2; }
-#mainContent .status-item-remaining { order: 3; }
-#mainContent .status-item-time { order: 4; }
+#mainContent .status-item-time { order: 1; }
+#mainContent .status-item-period { order: 2; }
+#mainContent .status-item-room { order: 3; }
+#mainContent .status-item-remaining { order: 4; }
 #mainContent .status-item-day { order: 5; }
 #mainContent .status-item-neis { order: 6; }
 
@@ -2323,8 +2273,7 @@ body.mobile-today-mode col.day-col {
 #topbarRemaining,
 #topbarDayRemaining,
 #topbarRoom,
-#topbarNeis,
-#topbarNext {
+#topbarNeis {
   display: inline-flex;
   align-items: center;
   gap: 0;
@@ -2336,8 +2285,7 @@ body.mobile-today-mode col.day-col {
   font-variant-numeric: tabular-nums;
 }
 
-/* Keep the compact floating status bar inside its own grid cells. Long NEIS
-   messages remain available through the element title and aria-label. */
+/* Keep the compact floating status bar inside its own grid cells. */
 .floating-topbar .status-item {
   min-width: 0;
 }
@@ -5003,35 +4951,6 @@ body.light-mode .management-studio-action:hover { border-color: rgba(17,24,39,.1
 }
 
 @media (max-width: 600px) {
-  #mainContent .status-card-prioritized {
-    grid-template-columns: 1fr;
-  }
-
-  .status-card-prioritized > .status-item {
-    min-height: 0;
-    padding: 16px;
-  }
-
-  .status-card-prioritized > .status-item + .status-item,
-  .status-card-prioritized .status-focus-remaining {
-    grid-column: auto;
-    border-top: 1px solid var(--border);
-    border-left: 0;
-  }
-
-  .status-utilities {
-    grid-template-columns: 1fr;
-  }
-
-  .status-utilities > div {
-    padding: 9px 16px;
-  }
-
-  .status-utilities > div + div {
-    border-top: 1px solid var(--border);
-    border-left: 0;
-  }
-
   .timetable-actions-primary,
   .timetable-actions-secondary {
     display: grid;

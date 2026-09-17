@@ -64,13 +64,13 @@ const customSave = document.getElementById("customSave");
 const customLoadExample = document.getElementById("customLoadExample");
 const customReset = document.getElementById("customReset");
 const currentTimeEl = document.getElementById("currentTime");
-const nextPeriodEl = document.getElementById("nextPeriod");
-const nextRoomEl = document.getElementById("nextRoom");
 const floatingTopbar = document.getElementById("floatingTopbar");
+const topbarTime = document.getElementById("topbarTime");
 const topbarPeriod = document.getElementById("topbarPeriod");
+const topbarRemainingLabel = document.getElementById("topbarRemainingLabel");
 const topbarRemaining = document.getElementById("topbarRemaining");
-const topbarNext = document.getElementById("topbarNext");
-const topbarNextRoom = document.getElementById("topbarNextRoom");
+const topbarDayRemaining = document.getElementById("topbarDayRemaining");
+const topbarRoom = document.getElementById("topbarRoom");
 const toolMenu = document.getElementById("toolMenu");
 const toolMenuToggle = document.getElementById("toolMenuToggle");
 const toolMenuPanel = document.getElementById("toolMenuPanel");
@@ -2353,45 +2353,25 @@ function syncFloatingTopbar() {
   const remainingTimeLabelEl = document.getElementById("remainingTimeLabel");
   const remainingTimeEl = document.getElementById("remainingTime");
   const dayRemainingTimeEl = document.getElementById("dayRemainingTime");
+  const currentRoomEl = document.getElementById("currentRoom");
   const readDisplayText = (element, fallback) => (
     element?.dataset?.timeText
     || element?.dataset?.displayText
     || element?.textContent?.trim()
     || fallback
   );
-  const writeDisplayText = (element, value) => {
-    if (!element) return;
-    element.textContent = value;
-    element.dataset.displayText = value;
-  };
   const writeRollingText = (element, value, key) => {
     if (!element) return;
     element.dataset.displayText = value;
     renderRollingStyleText(element, value, key);
   };
 
+  writeRollingText(topbarTime, readDisplayText(currentTimeEl, "불러오는 중..."), "topbar-current-time");
   writeRollingText(topbarPeriod, readDisplayText(currentPeriodEl, "확인 중..."), "topbar-current-period");
-  writeDisplayText(topbarRemaining, `${remainingTimeLabelEl?.textContent?.trim() || "남은 시간"} · ${readDisplayText(remainingTimeEl, "계산 중...")}`);
-
-  const now = new Date();
-  const currentMinutes = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
-  const dayOfWeek = now.getDay();
-  const nextSchedule = dayOfWeek >= 1 && dayOfWeek <= 5
-    ? getNextScheduleAfter(currentMinutes)
-    : null;
-  const nextInfo = nextSchedule ? getCurrentSubjectAndRoom(nextSchedule, dayOfWeek) : null;
-  const nextSubject = nextInfo?.subject || "일정 없음";
-  const nextTitle = nextSchedule
-    ? (nextSubject === nextSchedule.name ? nextSchedule.name : `${nextSchedule.name} · ${nextSubject}`)
-    : "오늘 수업 종료";
-  const nextRoom = nextSchedule
-    ? `${format12Hour(nextSchedule.start)} · ${nextInfo?.room || "교실 미지정"}`
-    : readDisplayText(dayRemainingTimeEl, "다음 등교 일정 확인");
-
-  writeRollingText(topbarNext, nextTitle, "topbar-next-period");
-  writeDisplayText(topbarNextRoom, nextRoom);
-  writeRollingText(nextPeriodEl, nextTitle, "next-period");
-  writeDisplayText(nextRoomEl, nextRoom);
+  if (topbarRemainingLabel) topbarRemainingLabel.textContent = remainingTimeLabelEl?.textContent?.trim() || "교시 남은 시간";
+  writeRollingText(topbarRemaining, readDisplayText(remainingTimeEl, "계산 중..."), "topbar-period-remaining-time");
+  writeRollingText(topbarDayRemaining, readDisplayText(dayRemainingTimeEl, "계산 중..."), "topbar-day-remaining-time");
+  writeRollingText(topbarRoom, readDisplayText(currentRoomEl, "확인 중..."), "topbar-current-room");
 }
 
 function updateFloatingTopbar() {

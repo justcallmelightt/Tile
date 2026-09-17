@@ -10,7 +10,7 @@
   <link rel="icon" href="./assets/favicon/favicon-32x32.png" sizes="32x32" type="image/png" />
   <link rel="icon" href="./assets/favicon/favicon-96x96.png" sizes="96x96" type="image/png" />
   <link rel="apple-touch-icon" href="./assets/favicon/favicon-96x96.png" />
-  <link rel="stylesheet" href="./style.css?v=20260916-status-alignment" />
+  <link rel="stylesheet" href="./style.css?v=20260916-counter-restore" />
   <!-- Google AdSense: site ownership verification and ad delivery -->
   <script
     async
@@ -313,15 +313,25 @@
   <div class="iphone-safe-zone" aria-hidden="true"></div>
   <div class="floating-topbar" id="floatingTopbar" aria-hidden="true">
     <div class="status-card" id="floatingStatusCard">
-      <div class="status-item floating-status-primary">
-        <span class="status-label">현재 수업</span>
-        <span class="status-value" id="topbarPeriod">확인 중...</span>
-        <span class="floating-status-detail" id="topbarRemaining">남은 시간 계산 중...</span>
+      <div class="status-item">
+        <span class="status-label">현재 시간</span>
+        <span class="status-value" id="topbarTime">불러오는 중...</span>
       </div>
-      <div class="status-item floating-status-next">
-        <span class="status-label">다음 수업</span>
-        <span class="status-value" id="topbarNext">확인 중...</span>
-        <span class="floating-status-detail" id="topbarNextRoom">교실 확인 중...</span>
+      <div class="status-item">
+        <span class="status-label">현재 진행</span>
+        <span class="status-value" id="topbarPeriod">확인 중...</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label" id="topbarRemainingLabel">교시 남은 시간</span>
+        <span class="status-value" id="topbarRemaining">계산 중...</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">일과 남은 시간</span>
+        <span class="status-value" id="topbarDayRemaining">계산 중...</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">현재 교실</span>
+        <span class="status-value" id="topbarRoom">확인 중...</span>
       </div>
     </div>
   </div>
@@ -335,7 +345,10 @@
           <span class="welcome-title-char" aria-hidden="true"><span class="welcome-title-char-inner"><span>&nbsp;</span><span>l</span></span></span>
           <span class="welcome-title-char" aria-hidden="true"><span class="welcome-title-char-inner"><span>&nbsp;</span><span>e</span></span></span>
         </h1>
-        <p class="subtitle" id="schoolSubtitle">미림마이스터고등학교 | 1학년 2반</p>
+        <div class="school-meta-line">
+          <p class="subtitle" id="schoolSubtitle">미림마이스터고등학교 | 1학년 2반</p>
+          <span class="neis-connection" aria-label="NEIS 연결 상태"><span>NEIS</span><strong id="neisStatus">대기 중</strong></span>
+        </div>
       </div>
       <div class="controls">
         <button class="theme-toggle" id="themeToggle" type="button" aria-pressed="false">다크 모드</button>
@@ -357,25 +370,26 @@
       </div>
     </div>
     <div class="top-grid">
-      <div class="status-card status-card-prioritized">
-        <div class="status-item status-focus-current">
-          <span class="status-label">현재 수업</span>
+      <div class="status-card status-card-classic">
+        <div class="status-item status-item-secondary status-item-time">
+          <span class="status-label">현재 시간</span>
+          <span class="status-value" id="currentTime">불러오는 중...</span>
+        </div>
+        <div class="status-item status-item-primary status-item-period">
+          <span class="status-label">현재 진행</span>
           <span class="status-value" id="currentPeriod">확인 중...</span>
-          <span class="status-context" id="currentRoom">교실 확인 중...</span>
         </div>
-        <div class="status-item status-focus-next">
-          <span class="status-label">다음 수업</span>
-          <span class="status-value" id="nextPeriod">확인 중...</span>
-          <span class="status-context" id="nextRoom">교실 확인 중...</span>
-        </div>
-        <div class="status-item status-focus-remaining">
+        <div class="status-item status-item-primary status-item-remaining">
           <span class="status-label" id="remainingTimeLabel">교시 남은 시간</span>
           <span class="status-value" id="remainingTime">계산 중...</span>
         </div>
-        <div class="status-utilities" aria-label="보조 상태">
-          <div><span>현재 시간</span><strong id="currentTime">불러오는 중...</strong></div>
-          <div><span>일과 남은 시간</span><strong id="dayRemainingTime">계산 중...</strong></div>
-          <div><span>NEIS</span><strong id="neisStatus">대기 중</strong></div>
+        <div class="status-item status-item-secondary status-item-day">
+          <span class="status-label">일과 남은 시간</span>
+          <span class="status-value" id="dayRemainingTime">계산 중...</span>
+        </div>
+        <div class="status-item status-item-primary status-item-room">
+          <span class="status-label">현재 교실</span>
+          <span class="status-value" id="currentRoom">확인 중...</span>
         </div>
       </div>
     </div>
