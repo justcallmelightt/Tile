@@ -65,13 +65,16 @@ test('Monday end follows actual lessons, not the former 16:30 constant', () => {
       : Array.from({ length: 5 }, () => ({ dataset: { subject }, hasAttribute: () => false })),
   });
   const rows = [row('종례', '', true), row('석식', '', true), row('방과후 3', '수학')];
+  const getScheduleItemForDay = (item, day) => ({ ...item, ...(item?.dayRanges?.[String(day)] || {}) });
   const end = helper('getDayScheduleEnd', {
-    scheduleRanges: [{ name: '종례', end: '16:30' }, { name: '석식', end: '18:20' }, { name: '방과후 3', end: '20:50' }],
+    scheduleRanges: [{ name: '종례', end: '16:30', dayRanges: { 1: { start: '15:40', end: '16:10' } } }, { name: '석식', end: '18:20' }, { name: '방과후 3', end: '20:50' }],
+    getScheduleItemForDay,
     document: { querySelectorAll: selector => selector.startsWith('thead')
       ? Array.from({ length: 5 }, (_, i) => ({ dataset: { day: i + 1 } })) : rows },
   });
   assert.equal(end(1), '20:50');
   rows.pop();
-  assert.equal(end(1), '16:30');
+  assert.equal(end(1), '16:10');
+  assert.equal(end(2), '16:30');
   assert.equal(end(0), null);
 });

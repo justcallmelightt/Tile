@@ -56,15 +56,26 @@
   }
 
   function displaySchoolType(school = {}) {
-    const name = safeText(school?.name, 120).replace(/\s+/g, "");
     const type = safeText(school?.highSchoolType, 60).replace(/\s+/g, "");
     const purpose = safeText(school?.specialPurpose, 60).replace(/\s+/g, "");
+    const generalType = safeText(school?.generalType, 60).replace(/\s+/g, "");
+    const foundation = safeText(school?.foundation, 20);
     if (type.includes("특목") || type.includes("특수목적")) {
-      return ["특목고", purpose.includes("산업수요") || name.includes("마이스터") ? "마이스터고" : ""].filter(Boolean).join(" · ");
+      if (purpose.includes("산업수요")) return "마이스터";
+      if (purpose.includes("과학")) return "과학";
+      if (purpose.includes("외국어")) return "외국어";
+      if (purpose.includes("국제")) return "국제";
+      if (purpose.includes("예술")) return "예술";
+      if (purpose.includes("체육")) return "체육";
+      return "특목";
     }
-    if (type.includes("특성화")) return "특성화고";
-    if (type.includes("자율")) return "자율고";
-    if (type.includes("일반")) return "일반고";
+    if (type.includes("특성화")) return generalType.includes("대안") ? "대안" : "특성화";
+    if (type.includes("자율")) {
+      if (foundation === "사립") return "자사";
+      if (foundation === "공립") return "자공";
+      return "자율";
+    }
+    if (type.includes("일반")) return "일반";
     return safeText(school?.kind, 40);
   }
 

@@ -10,7 +10,7 @@
   <link rel="icon" href="./assets/favicon/favicon-32x32.png" sizes="32x32" type="image/png" />
   <link rel="icon" href="./assets/favicon/favicon-96x96.png" sizes="96x96" type="image/png" />
   <link rel="apple-touch-icon" href="./assets/favicon/favicon-96x96.png" />
-  <link rel="stylesheet" href="./style.css?v=20260916-counter-restore" />
+  <link rel="stylesheet" href="./style.css?v=20260921-daily-homeroom" />
   <!-- Google AdSense: site ownership verification and ad delivery -->
   <script
     async
@@ -155,10 +155,30 @@
         <button id="closeAppSettings" class="dialog-close" type="button" aria-label="닫기">&times;</button>
       </div>
       <nav class="settings-nav" aria-label="Tile 설정 항목">
+        <button type="button" data-settings-target="displaySettings">화면</button>
         <button class="is-active" type="button" data-settings-target="mealSettings">급식</button>
         <button type="button" data-settings-target="dataSettings">데이터</button>
         <button type="button" data-settings-target="accountSettings">계정</button>
       </nav>
+      <section class="settings-section" id="displaySettings" aria-labelledby="displaySettingsTitle" hidden>
+        <div class="settings-section-header">
+          <h3 id="displaySettingsTitle">탑바 디자인</h3>
+          <p>아직 기본 디자인을 결정하는 중입니다. 실제로 사용해보고 더 편한 구성을 선택해주세요.</p>
+        </div>
+        <div class="status-layout-options" role="radiogroup" aria-label="탑바 디자인 선택">
+          <button type="button" data-status-layout="aligned" role="radio">
+            <span class="status-layout-preview status-layout-preview-aligned" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+            <strong>한 줄 정렬형</strong>
+            <small>모든 현재 정보를 같은 기준선에서 빠르게 비교합니다.</small>
+          </button>
+          <button type="button" data-status-layout="focused" role="radio">
+            <span class="status-layout-preview status-layout-preview-focused" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+            <strong>카운터 강조형</strong>
+            <small>수업 상태와 남은 시간을 먼저 보여주고 보조 정보는 아래에 둡니다.</small>
+          </button>
+        </div>
+        <p class="settings-help status-layout-note">이 선택은 이 기기에만 저장되며, 최종 디자인 확정 전까지 언제든 바꿀 수 있습니다.</p>
+      </section>
       <section class="settings-section is-active" id="mealSettings" aria-labelledby="allergySettingsTitle">
         <div class="settings-section-header">
           <h3 id="allergySettingsTitle">급식 알레르기</h3>
@@ -541,7 +561,11 @@
           </tr>
           <tr data-period="종례">
             <th>종례<br /><span class="time">오후 3:50 ~ 오후 4:30</span></th>
-            <td class="homeroom" colspan="5">종례</td>
+            <td class="empty-cell"></td>
+            <td class="empty-cell"></td>
+            <td class="empty-cell"></td>
+            <td class="empty-cell"></td>
+            <td class="empty-cell"></td>
           </tr>
           <tr data-period="방과후 A">
             <th>방과후 A<br /><span class="time">오후 4:30 ~ 오후 5:20</span></th>
@@ -566,7 +590,6 @@
         </tbody>
       </table>
     </div>
-
     <div class="after-school-toolbar"><button id="afterSchoolOpen" class="secondary-action" type="button">방과후 관리</button><span>시간대를 추가하고, 과목은 시간표에서 편집하세요.</span></div>
     <dialog id="timetableManagementDialog" class="timetable-management-dialog tile-management-dialog" aria-labelledby="timetableManagementTitle">
       <div class="setup-header">
@@ -681,6 +704,13 @@
         <span class="dialog-eyebrow">일과 시간 편집</span>
         <h2 id="periodEditTitle">교시 수정</h2>
         <p id="periodEditDescription" class="subject-edit-context">선택한 교시의 시작과 종료 시간을 수정합니다.</p>
+        <label class="subject-form-field" for="periodDaySelect"><span>적용 요일</span>
+          <select id="periodDaySelect">
+            <option value="all">월요일부터 금요일</option>
+            <option value="1">월요일</option><option value="2">화요일</option><option value="3">수요일</option>
+            <option value="4">목요일</option><option value="5">금요일</option>
+          </select>
+        </label>
         <div class="period-time-grid">
           <label class="subject-form-field" for="periodStartInput"><span>시작</span><input id="periodStartInput" type="time" /></label>
           <label class="subject-form-field" for="periodEndInput"><span>종료</span><input id="periodEndInput" type="time" /></label>
@@ -697,9 +727,9 @@
   <script src="./config.js?v=20260703-script-fix" onerror="this.remove()"></script>
   <script src="./neis.js?v=20260727-review-fixes"></script>
   <script src="./after-school.js?v=20260911"></script>
-  <script src="./script.js?v=20260916-navigation-hierarchy"></script>
+  <script src="./script.js?v=20260921-daily-homeroom"></script>
   <script src="./auth.js?v=20260906-lightframe-account"></script>
-  <script src="./share.js?v=20260904-share-preview-ux"></script>
+  <script src="./share.js?v=20260918-school-type-labels"></script>
   <script src="./feedback.js?v=20260909"></script>
   <script src="./personal-presets.js?v=20260911"></script>
   <script src="./management-studio.js?v=20260916-navigation-hierarchy"></script>

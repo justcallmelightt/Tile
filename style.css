@@ -827,23 +827,45 @@ body.dark-mode .theme-toggle.theme-target-light:hover {
 #mainContent .status-item-day { order: 5; }
 #mainContent .status-item-neis { order: 6; }
 
+html[data-status-layout="focused"] #mainContent .status-card-classic {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0 18px;
+}
+
+html[data-status-layout="focused"] #mainContent .status-item-primary {
+  grid-column: span 2;
+  padding: 3px 0 17px;
+}
+
+html[data-status-layout="focused"] #mainContent .status-item-secondary {
+  grid-column: span 3;
+  padding: 13px 0 1px;
+  border-top: 1px solid var(--border);
+}
+
+html[data-status-layout="focused"] #mainContent .status-item-period { order: 1; }
+html[data-status-layout="focused"] #mainContent .status-item-room { order: 2; }
+html[data-status-layout="focused"] #mainContent .status-item-remaining { order: 3; }
+html[data-status-layout="focused"] #mainContent .status-item-time { order: 4; }
+html[data-status-layout="focused"] #mainContent .status-item-day { order: 5; }
+
 #mainContent .status-item-primary .status-label {
   color: var(--text-soft);
 }
 
 #mainContent .status-item-primary .status-value {
-  font-size: clamp(1.04rem, 1.55vw, 1.28rem);
-  line-height: 1.3;
+  font-size: 1rem;
+  line-height: 1.4;
 }
 
 #mainContent .status-item-secondary .status-label {
-  font-size: 0.73rem;
+  font-size: 0.8rem;
 }
 
 #mainContent .status-item-secondary .status-value {
-  color: color-mix(in srgb, var(--text) 82%, var(--text-soft));
-  font-size: 0.9rem;
-  font-weight: 600;
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 700;
 }
 
 .summary-card {
@@ -1660,6 +1682,33 @@ tbody th:hover {
   letter-spacing: -0.01em;
 }
 
+.daily-homeroom {
+  min-height: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.daily-homeroom strong {
+  font-size: 0.96rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.daily-homeroom span {
+  color: var(--text-soft);
+  font-size: 0.7rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.daily-homeroom-cell {
+  cursor: pointer;
+  background: color-mix(in srgb, var(--surface-soft) 42%, transparent);
+}
+
 tbody tr.today-row > th,
 tbody tr.today-row > td.today-cell {
   background: var(--today);
@@ -2040,6 +2089,11 @@ body.mobile-today-mode col.day-col {
     font-size: 0.92rem;
   }
 
+  #mainContent .status-item-primary .status-value,
+  #mainContent .status-item-secondary .status-value {
+    font-size: 0.92rem;
+  }
+
   .table-shell {
     padding: 8px;
     border-radius: 18px;
@@ -2252,6 +2306,11 @@ body.mobile-today-mode col.day-col {
   }
 
   .status-value {
+    font-size: 14px;
+  }
+
+  #mainContent .status-item-primary .status-value,
+  #mainContent .status-item-secondary .status-value {
     font-size: 14px;
   }
 
@@ -3441,11 +3500,93 @@ body.light-mode .subject-modal {
 
 .settings-nav {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 6px;
   padding: 5px;
   border-radius: 14px;
   background: var(--surface-soft);
+}
+
+.status-layout-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.status-layout-options > button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  padding: 15px;
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  background: var(--surface-soft);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 160ms ease, border-color 220ms ease, background 220ms ease, box-shadow 220ms ease;
+}
+
+.status-layout-options > button:hover {
+  border-color: color-mix(in srgb, var(--text) 24%, var(--border));
+  background: var(--toggle-bg);
+}
+
+.status-layout-options > button:active {
+  transform: scale(0.985);
+}
+
+.status-layout-options > button.is-selected {
+  border-color: color-mix(in srgb, var(--text) 38%, var(--border));
+  background: var(--toggle-bg);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09), 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.status-layout-options strong {
+  margin-top: 12px;
+  font-size: 0.88rem;
+  font-weight: 650;
+}
+
+.status-layout-options small {
+  margin-top: 5px;
+  color: var(--text-soft);
+  font-size: 0.74rem;
+  line-height: 1.5;
+}
+
+.status-layout-preview {
+  display: grid;
+  width: 100%;
+  height: 45px;
+  gap: 4px;
+  padding: 7px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--surface-strong) 84%, transparent);
+}
+
+.status-layout-preview i {
+  display: block;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--text) 18%, transparent);
+}
+
+.status-layout-preview-aligned {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.status-layout-preview-focused {
+  grid-template: 2fr 1fr / repeat(6, minmax(0, 1fr));
+}
+
+.status-layout-preview-focused i:nth-child(-n + 3) { grid-column: span 2; }
+.status-layout-preview-focused i:nth-child(n + 4) { grid-column: span 3; opacity: 0.62; }
+
+.status-layout-note {
+  margin-top: 12px;
 }
 
 .settings-nav button,
@@ -4197,6 +4338,7 @@ button, input, textarea, select, option {
 }
 
 .subject-form-field input,
+.subject-form-field select,
 .subject-form-field textarea,
 .period-time-grid input {
   width: 100%;
@@ -4219,6 +4361,7 @@ button, input, textarea, select, option {
 }
 
 .subject-form-field input:focus,
+.subject-form-field select:focus,
 .subject-form-field textarea:focus,
 .period-time-grid input:focus {
   border-color: var(--focus-glow);
@@ -4661,7 +4804,8 @@ body.tile-demo-open { overflow: hidden; }
   .sync-preview-grid,
   .share-preview,
   .settings-data-summary,
-  .settings-secondary-actions {
+  .settings-secondary-actions,
+  .status-layout-options {
     grid-template-columns: 1fr;
   }
 
