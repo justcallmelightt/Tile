@@ -1,7 +1,16 @@
 # Tile
 ![Tile Banner](./assets/TileBanner.png)
 
+> 학교 일과 관리를 위한 리얼타임 시스템 기반 통합형 크로스플랫폼 TimeTable<br>
 
+![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)
+![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![Swift](https://img.shields.io/badge/Swift-F05138?style=for-the-badge&logo=swift&logoColor=white)
+![SwiftUI](https://img.shields.io/badge/SwiftUI-007ACC?style=for-the-badge&logo=swift&logoColor=white)
+![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)
 
 > [!CAUTION]
 > `© 2026 Lightframe. All Rights Reserved.` <br>
@@ -9,11 +18,6 @@
 > **This repository is NOT open source.** <br>
 > 
 > Tile 서비스는 개인정보 보호와 보안을 기본 원칙으로 다룹니다. <br> 자세한 내용은 [개인정보 보호 및 보안](./SECURITY.md)을 참고하시거나, 상단 Repository 해더에서, `Security` 탭을 확인하세요.
-
-> 학교 일과 관리를 위한 리얼타임 시스템 기반 통합형 크로스플랫폼 TimeTable<br>
-> <img src="https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white"> <img src="https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white"> <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black"> <img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white"> <img src="https://img.shields.io/badge/JSON-5E5C5C?style=for-the-badge&logo=json&logoColor=white"> <img src="https://img.shields.io/badge/Swift-F05138?style=for-the-badge&logo=swift&logoColor=white"> <br>
-> <img src="https://img.shields.io/badge/iOS-Pre_Alpha-orange?style=for-the-badge&logo=apple&logoColor=white&labelColor=000000"> <img src="https://img.shields.io/badge/Android-Planned-3178C6?style=for-the-badge&logo=android&logoColor=white&labelColor=3DDC84"> <img src="https://img.shields.io/badge/Web-Alpha-red?style=for-the-badge&logo=googlechrome&logoColor=white&labelColor=4285F4"> <br>
-> **Web: [Tile](https://tile0.vercel.app/) | App: Coming Soon**
 
 ## 기여자
 
