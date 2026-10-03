@@ -2487,6 +2487,48 @@ function updateThemeButton() {
 }
 
 const themeTransitionReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+let themeSequence = 0;
+let requestedThemeIsLight = null;
+let activeThemeTransition = null;
+let activeThemeSpotlightAnimation = null;
+
+function stopThemeSpotlightAnimation() {
+  const animation = activeThemeSpotlightAnimation;
+  activeThemeSpotlightAnimation = null;
+  animation?.cancel();
+}
+
+async function moveThemeSpotlight({ darken = false, enter = false, stationary = false, duration = 320 } = {}) {
+  if (!startupSpotlight) return;
+  const current = getComputedStyle(startupSpotlight);
+  const from = { opacity: current.opacity, transform: current.transform };
+  stopThemeSpotlightAnimation();
+  startupSpotlight.classList.add("is-settled");
+  document.body.classList.remove("welcome-active");
+  if (darken) {
+    startupSpotlight.style.setProperty("--spotlight-rgb", "0, 0, 0");
+  } else if (enter) {
+    startupSpotlight.style.removeProperty("--spotlight-rgb");
+  }
+  const reduced = themeTransitionReducedMotion.matches;
+  const to = {
+    opacity: enter ? "1" : "0",
+    transform: reduced || stationary ? "translate3d(0, 0, 0)" : `translate3d(0, ${enter ? "0" : "-20vh"}, 0)`
+  };
+  const animation = startupSpotlight.animate([from, to], {
+    duration: reduced ? 150 : duration,
+    easing: enter ? "cubic-bezier(.22,.61,.36,1)" : "cubic-bezier(.4,0,.2,1)",
+    fill: "forwards"
+  });
+  activeThemeSpotlightAnimation = animation;
+  await animation.finished.catch(() => {});
+  if (activeThemeSpotlightAnimation !== animation) return;
+  startupSpotlight.style.opacity = to.opacity;
+  startupSpotlight.style.transform = to.transform;
+  if (!enter) startupSpotlight.style.removeProperty("--spotlight-rgb");
+  animation.cancel();
+  activeThemeSpotlightAnimation = null;
+}
 
 function commitTheme(nextIsLight) {
   document.body.classList.toggle("light-mode", nextIsLight);
@@ -2495,29 +2537,70 @@ function commitTheme(nextIsLight) {
   updateThemeButton();
 }
 
-function switchTheme(nextIsLight) {
+async function switchTheme(nextIsLight) {
   const body = document.body;
-  const applyTheme = () => commitTheme(nextIsLight);
+  const sequence = ++themeSequence;
+  requestedThemeIsLight = nextIsLight;
+  activeThemeTransition?.skipTransition?.();
+  if (nextIsLight === body.classList.contains("light-mode")) {
+    body.classList.remove("theme-switching");
+    if (nextIsLight) await moveThemeSpotlight({ duration: 150 });
+    else if (startupSpotlight) {
+      stopThemeSpotlightAnimation();
+      startupSpotlight.style.removeProperty("--spotlight-rgb");
+      startupSpotlight.style.opacity = "1";
+      startupSpotlight.style.transform = "translate3d(0, 0, 0)";
+    }
+    return;
+  }
+
+  if (!nextIsLight && startupSpotlight) {
+    // Hold the white beam above the screen until the dark theme has settled.
+    stopThemeSpotlightAnimation();
+    startupSpotlight.classList.add("is-settled");
+    startupSpotlight.style.removeProperty("--spotlight-rgb");
+    startupSpotlight.style.opacity = "0";
+    startupSpotlight.style.transform = themeTransitionReducedMotion.matches
+      ? "translate3d(0, 0, 0)" : "translate3d(0, -20vh, 0)";
+  }
+  const applyTheme = () => {
+    commitTheme(nextIsLight);
+    if (nextIsLight && startupSpotlight) {
+      // Include the inverted, already-lit beam in the light theme's first frame.
+      stopThemeSpotlightAnimation();
+      startupSpotlight.classList.add("is-settled");
+      startupSpotlight.style.setProperty("--spotlight-rgb", "0, 0, 0");
+      startupSpotlight.style.opacity = "1";
+      startupSpotlight.style.transform = "translate3d(0, 0, 0)";
+    }
+  };
   body.classList.add("theme-switching");
 
   if (!themeTransitionReducedMotion.matches && typeof document.startViewTransition === "function") {
     const transition = document.startViewTransition(applyTheme);
-    transition.finished
-      .catch(() => {})
-      .finally(() => body.classList.remove("theme-switching"));
-    return;
+    activeThemeTransition = transition;
+    await transition.finished.catch(() => {});
+    if (activeThemeTransition === transition) activeThemeTransition = null;
+  } else {
+    applyTheme();
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   }
-
-  applyTheme();
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => body.classList.remove("theme-switching"));
-  });
+  if (sequence !== themeSequence) return;
+  body.classList.remove("theme-switching");
+  if (nextIsLight && startupSpotlight) {
+    // Its black state is already present in the transition; now only fade it away.
+    await moveThemeSpotlight({ darken: true, stationary: true, duration: 650 });
+  } else if (startupSpotlight) {
+    // Dark is fully visible; reveal the white beam from the upper left.
+    await moveThemeSpotlight({ enter: true, duration: 1300 });
+  }
 }
 
 function initTheme() {
   const savedTheme = localStorage.getItem("mirim-theme");
   document.body.classList.toggle("light-mode", savedTheme === "light");
   document.body.classList.toggle("dark-mode", savedTheme !== "light");
+  requestedThemeIsLight = savedTheme === "light";
   updateThemeButton();
 }
 
@@ -2894,7 +2977,7 @@ if (currentTimeEl) {
 if (themeToggle) {
   themeToggle.addEventListener("click", () => {
     triggerButtonPop(themeToggle);
-    const nextIsLight = !document.body.classList.contains("light-mode");
+    const nextIsLight = !requestedThemeIsLight;
     switchTheme(nextIsLight);
   });
 }
@@ -4126,7 +4209,9 @@ function setTileDemoScene(index) {
   }
   if (tileDemoEyebrow) tileDemoEyebrow.textContent = `${tileDemoIndex + 1} / ${tileTourSteps.length} · 실제 화면 안내`;
   if (tileDemoTitle) tileDemoTitle.textContent = scene.title;
-  if (tileDemoDescription) tileDemoDescription.textContent = scene.description;
+  if (tileDemoDescription) tileDemoDescription.textContent = tileTourNeedsSchoolSetup && tileDemoIndex === tileTourSteps.length - 1
+    ? '학교와 학급을 연결하면 내 시간표가 완성돼요. 다음 화면에서 설정을 마치고 Tile을 시작해 보세요.'
+    : scene.description;
   const copyFrames = startupSpotlightReduceMotion.matches
     ? [{ opacity: 0 }, { opacity: 1 }]
     : [{ opacity: 0, transform: 'translateY(7px)', filter: 'blur(4px)' }, { opacity: 1, transform: 'translateY(0)', filter: 'blur(0)' }];
@@ -4201,9 +4286,9 @@ function showTileTourFinale() {
   const begin = document.getElementById('tileDemoBegin');
   const beginLabel = begin?.querySelector('span');
   const beginHint = begin?.querySelector('small');
-  if (beginLabel) beginLabel.textContent = tileTourNeedsSchoolSetup ? '학교 설정하기' : 'Tile 시작하기';
+  if (beginLabel) beginLabel.textContent = 'Tile 시작하기';
   if (beginHint) beginHint.textContent = tileTourNeedsSchoolSetup
-    ? '학교와 학급을 연결하고 시작하세요'
+    ? '다음으로 학교와 학급을 연결해요'
     : '눌러서 시작하세요';
   begin.hidden = false;
   begin.focus();
