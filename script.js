@@ -68,6 +68,7 @@ const floatingTopbar = document.getElementById("floatingTopbar");
 const topbarTime = document.getElementById("topbarTime");
 const topbarPeriod = document.getElementById("topbarPeriod");
 const topbarRemainingLabel = document.getElementById("topbarRemainingLabel");
+const topbarDayRemainingLabel = document.getElementById("topbarDayRemainingLabel");
 const topbarRemaining = document.getElementById("topbarRemaining");
 const topbarDayRemaining = document.getElementById("topbarDayRemaining");
 const topbarRoom = document.getElementById("topbarRoom");
@@ -2638,6 +2639,10 @@ function syncFloatingTopbar() {
   writeRollingText(topbarTime, readDisplayText(currentTimeEl, "불러오는 중..."), "topbar-current-time");
   writeRollingText(topbarPeriod, readDisplayText(currentPeriodEl, "확인 중..."), "topbar-current-period");
   if (topbarRemainingLabel) topbarRemainingLabel.textContent = remainingTimeLabelEl?.textContent?.trim() || "교시 남은 시간";
+  const dayRemainingTimeLabelEl = document.getElementById("dayRemainingTimeLabel");
+  if (topbarDayRemainingLabel) {
+    topbarDayRemainingLabel.textContent = dayRemainingTimeLabelEl?.textContent?.trim() || "일과 남은 시간";
+  }
   writeRollingText(topbarRemaining, readDisplayText(remainingTimeEl, "계산 중..."), "topbar-period-remaining-time");
   writeRollingText(topbarDayRemaining, readDisplayText(dayRemainingTimeEl, "계산 중..."), "topbar-day-remaining-time");
   writeRollingText(topbarRoom, readDisplayText(currentRoomEl, "확인 중..."), "topbar-current-room");
@@ -2896,6 +2901,7 @@ function updateCurrentStatus() {
   const currentPeriodEl = document.getElementById("currentPeriod");
   const remainingTimeLabelEl = document.getElementById("remainingTimeLabel");
   const remainingTimeEl = document.getElementById("remainingTime");
+  const dayRemainingTimeLabelEl = document.getElementById("dayRemainingTimeLabel");
   const dayRemainingTimeEl = document.getElementById("dayRemainingTime");
   const currentRoomEl = document.getElementById("currentRoom");
   const todayLabelEl = document.getElementById("todayLabel");
@@ -2917,10 +2923,19 @@ if (currentTimeEl) {
 
   const dayScheduleEnd = getDayScheduleEnd(dayOfWeek);
   const dayScheduleEndMinutes = dayScheduleEnd ? toMinutes(dayScheduleEnd) : null;
+  const dayStartMinutes = toMinutes(getScheduleRangesForDay(dayOfWeek)[0].start);
+  if (dayRemainingTimeLabelEl) {
+    const dayRemainingLabel = isSchoolWeekday && dayScheduleEndMinutes !== null
+      ? currentMinutes < dayStartMinutes
+        ? "일과 시작까지 남은 시간"
+        : currentMinutes < dayScheduleEndMinutes
+          ? "일과 종료까지 남은 시간"
+          : "다음 일과 시작까지 남은 시간"
+      : "다음 일과 시작까지 남은 시간";
+    dayRemainingTimeLabelEl.textContent = dayRemainingLabel;
+  }
 
   if (dayRemainingTimeEl) {
-    const dayStartMinutes = toMinutes(getScheduleRangesForDay(dayOfWeek)[0].start);
-
     if (isSchoolWeekday && dayScheduleEndMinutes !== null) {
       if (currentMinutes < dayStartMinutes) {
         renderRollingStyleText(dayRemainingTimeEl, formatBeforeSchoolTime(dayStartMinutes - currentMinutes), "day-remaining-time");
@@ -3447,11 +3462,12 @@ function updateSchoolSubtitle(user = getSavedTileUser()) {
     const classNum = user?.classNum || "2";
     const schoolType = getDisplaySchoolType(user?.school);
     const department = normalizeDepartment(user?.department);
-    const parts = [schoolName, schoolType, `${grade}학년 ${classNum}반`, department].filter(Boolean);
+    const schoolDescriptor = department || schoolType;
+    const parts = [schoolName, schoolDescriptor, `${grade}학년 ${classNum}반`].filter(Boolean);
     schoolSubtitle.replaceChildren();
     parts.forEach((part, index) => {
         if (index) schoolSubtitle.append(document.createTextNode(" | "));
-        if (part === schoolType && schoolType) {
+        if (!department && part === schoolType && schoolType) {
             const typeLabel = document.createElement("span");
             typeLabel.textContent = schoolType;
             typeLabel.setAttribute("aria-label", getAccessibleSchoolType(user?.school));
