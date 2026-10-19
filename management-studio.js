@@ -13,12 +13,12 @@
   }
 
   function closeStudio() {
-    if (dialog?.open) dialog.close();
+    window.TileApp?.setNativeDialogVisible(dialog, false);
   }
 
   openButton?.addEventListener("click", () => {
     closeToolMenu();
-    dialog?.showModal();
+    window.TileApp?.setNativeDialogVisible(dialog, true);
   });
 
   closeButton?.addEventListener("click", closeStudio);
@@ -44,8 +44,5 @@
 
   byId("personalPresetsOpen")?.addEventListener("click", closeStudio, { capture: true });
 
-  byId("managementAfterSchool")?.addEventListener("click", () => {
-    closeStudio();
-    byId("afterSchoolOpen")?.click();
-  });
+  byId("managementAfterSchool")?.addEventListener("click", closeStudio, { capture: true });
 })();

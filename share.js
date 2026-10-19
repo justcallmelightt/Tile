@@ -230,21 +230,64 @@
   function makeImportValues(scopes) {
     const values = {};
     IMPORT_KEYS.forEach((key) => { values[key] = localStorage.getItem(key); });
-    if (!scopes.school) values.tile_user = null;
-    if (!scopes.subjectMemos) values["tile-subject-memos"] = null;
-    if (!scopes.tileMemo) values["tile-memo-content"] = null;
+    const afterSchool = readJson("tile-after-school");
+    values["tile-after-school"] = Array.isArray(afterSchool?.items)
+      ? JSON.stringify({ items: afterSchool.items.map((item) => ({
+        name: safeText(item?.name, 40), start: safeText(item?.start, 5), end: safeText(item?.end, 5)
+      })), nextId: Number.isSafeInteger(afterSchool.nextId) ? afterSchool.nextId : 3 }) : null;
+    // Share the effective timetable times, not potentially stale storage values.
+    const scheduleEdits = typeof window !== "undefined" && window.TileApp?.getShareableScheduleEdits
+      ? window.TileApp.getShareableScheduleEdits()
+      : readJson("tile-schedule-edits");
+    const allowedPeriods = new Set(draft.rows.map((row) => row.period));
+    const sharedScheduleEdits = {};
+    if (scheduleEdits && typeof scheduleEdits === "object" && !Array.isArray(scheduleEdits)) {
+      Object.entries(scheduleEdits).forEach(([period, range]) => {
+        if (!allowedPeriods.has(period) || !range || typeof range !== "object") return;
+        const days = {};
+        if (range.days && typeof range.days === "object" && !Array.isArray(range.days)) {
+          Object.entries(range.days).forEach(([day, value]) => {
+            if (/^[1-5]$/.test(day)) days[day] = { start: safeText(value?.start, 5), end: safeText(value?.end, 5) };
+          });
+        }
+        sharedScheduleEdits[period] = { start: safeText(range.start, 5), end: safeText(range.end, 5), days };
+      });
+    }
+    values["tile-schedule-edits"] = JSON.stringify(sharedScheduleEdits);
+    const user = readJson("tile_user", null);
+    const school = user?.school;
+    values.tile_user = scopes.school && school && typeof school === "object"
+      ? JSON.stringify({ school: Object.fromEntries(
+        ["name", "office", "officeName", "code", "kind", "foundation", "highSchoolType", "specialPurpose", "generalType"]
+          .map((key) => [key, safeText(school[key], 120)])
+      ), grade: safeText(user.grade, 8), classNum: safeText(user.classNum, 8), department: safeText(user.department, 80) })
+      : null;
+    if (!scopes.school) values["tile-neis-sync-scope"] = null;
+    values["tile-subject-info-edits"] = null;
+    values["tile-period-info-edits"] = null;
+    const custom = readJson("tile-custom-json");
+    values["tile-custom-json"] = Array.isArray(custom?.scheduleRanges)
+      ? JSON.stringify({ scheduleRanges: custom.scheduleRanges.map((item) => {
+        const dayRanges = {};
+        if (item?.dayRanges && typeof item.dayRanges === "object" && !Array.isArray(item.dayRanges)) {
+          Object.entries(item.dayRanges).forEach(([day, range]) => {
+            if (/^[1-5]$/.test(day)) dayRanges[day] = { start: safeText(range?.start, 5), end: safeText(range?.end, 5) };
+          });
+        }
+        return { name: safeText(item?.name, 40), start: safeText(item?.start, 5),
+          end: safeText(item?.end, 5), dayRanges };
+      }) }) : null;
+    values["tile-memo-content"] = scopes.tileMemo ? safeText(localStorage.getItem("tile-memo-content"), 4000) : null;
 
-    const cellEdits = readJson("tile-cell-edits");
-    const cellInfo = readJson("tile-cell-info-edits");
-    const subjectMemos = readJson("tile-subject-memos");
+    const cellEdits = {};
+    const cellInfo = {};
+    const subjectMemos = {};
     draft.rows.filter((row) => !row.spanning).forEach((row) => {
       row.cells.forEach((cell, index) => {
         const key = `${row.period}_${index}`;
         cellEdits[key] = safeText(cell.subject, 100);
         if (scopes.details && (cell.room || cell.teacher)) cellInfo[key] = { room: safeText(cell.room, 80), teacher: safeText(cell.teacher, 80) };
-        else delete cellInfo[key];
         if (scopes.subjectMemos && cell.memo) subjectMemos[key] = safeText(cell.memo, 500);
-        else delete subjectMemos[key];
       });
     });
     values["tile-cell-edits"] = JSON.stringify(cellEdits);
@@ -282,15 +325,13 @@
     if (!nodes.modal) return;
     lastTrigger = document.activeElement;
     showPanel(panel);
-    nodes.modal.classList.remove("hidden");
-    nodes.modal.setAttribute("aria-hidden", "false");
+    window.TileApp?.setDialogVisible(nodes.modal, true);
     document.body.classList.add("modal-open");
     window.setTimeout(() => (panel === nodes.creator ? nodes.title : nodes.close)?.focus(), 80);
   }
 
   function closeModal() {
-    nodes.modal?.classList.add("hidden");
-    nodes.modal?.setAttribute("aria-hidden", "true");
+    window.TileApp?.setDialogVisible(nodes.modal, false);
     document.body.classList.remove("modal-open");
     lastTrigger?.focus?.();
   }
@@ -541,19 +582,38 @@
   }
 
   function saveSharedTimetable() {
+    let snapshot = null;
+    let applying = false;
+    let previousUndo = null;
     try {
       const values = validatedImportValues(currentShare?.payload?.importValues);
-      const snapshot = { label: "공유 시간표 적용 전", createdAt: new Date().toISOString(), values: {} };
+      snapshot = { label: "공유 시간표 적용 전", createdAt: new Date().toISOString(), values: {} };
       USER_SNAPSHOT_KEYS.forEach((key) => { snapshot.values[key] = localStorage.getItem(key); });
+      previousUndo = localStorage.getItem("tile-last-undo");
       localStorage.setItem("tile-last-undo", JSON.stringify(snapshot));
+      applying = true;
       IMPORT_KEYS.forEach((key) => { const value = values[key]; if (value === null) localStorage.removeItem(key); else localStorage.setItem(key, value); });
+      applying = false;
       sessionStorage.setItem("tile-session-toast", JSON.stringify({ title: "공유 시간표를 저장했습니다", detail: "내 Tile에 적용했어요. 설정에서 되돌릴 수 있습니다." }));
       const url = new URL(window.location.href);
       url.searchParams.delete("share");
       const hashParams = new URLSearchParams(url.hash.slice(1));
       if (hashParams.has(PORTABLE_SHARE_HASH_KEY)) url.hash = "";
       window.location.replace(url.toString());
-    } catch (error) { notify("시간표를 저장하지 못했습니다", error instanceof Error ? error.message : "공유 데이터를 확인해주세요.", "error"); }
+    } catch (error) {
+      if (applying && snapshot) {
+        try {
+          IMPORT_KEYS.forEach((key) => localStorage.removeItem(key));
+          localStorage.removeItem("tile-last-undo");
+          IMPORT_KEYS.forEach((key) => {
+            const previous = snapshot.values[key];
+            if (previous !== null) localStorage.setItem(key, previous);
+          });
+          if (previousUndo !== null) localStorage.setItem("tile-last-undo", previousUndo);
+        } catch (restoreError) { console.error("공유 시간표 복원 실패:", restoreError); }
+      }
+      notify("시간표를 저장하지 못했습니다", error instanceof Error ? error.message : "공유 데이터를 확인해주세요.", "error");
+    }
   }
 
   async function loadIncomingShare() {

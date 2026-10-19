@@ -99,17 +99,23 @@ window.initAfterSchool = function (app) {
     for (const item of items) {
       const line = document.createElement('div');
       line.className = 'after-school-item';
-      const text = document.createElement('span');
-      text.textContent = `${item.name} · ${item.start}–${item.end}`;
+      const text = document.createElement('div');
+      text.className = 'after-school-item-copy';
+      const name = document.createElement('strong');
+      name.textContent = item.name;
+      const time = document.createElement('span');
+      time.textContent = `${item.start}–${item.end}`;
+      text.append(name, time);
       const remove = document.createElement('button');
       remove.type = 'button';
-      remove.className = 'secondary-action';
+      remove.className = 'secondary-action after-school-remove';
       remove.textContent = '삭제';
       remove.setAttribute('aria-label', `${item.name} 삭제`);
       remove.addEventListener('click', () => {
         if (remove.dataset.confirm !== 'yes') {
           remove.dataset.confirm = 'yes';
           remove.textContent = '삭제 확인';
+          remove.classList.add('is-confirming');
           return;
         }
         if (commit(items.filter(entry => entry.name !== item.name), `${item.name} 삭제`)) add.focus();
@@ -121,15 +127,15 @@ window.initAfterSchool = function (app) {
     add.textContent = items.length >= LIMIT ? '20개까지 추가 가능' : '시간대 추가';
   }
 
-  document.getElementById('afterSchoolOpen').addEventListener('click', () => {
+  document.getElementById('managementAfterSchool').addEventListener('click', () => {
     // Time edits made in the timetable remain the source of truth.
     items = items.map(item => ({ ...item, ...app.scheduleRanges.find(entry => entry.name === item.name) }));
     renderList();
     message.textContent = '';
-    dialog.showModal();
+    window.TileApp?.setNativeDialogVisible(dialog, true);
   });
-  document.getElementById('afterSchoolClose').addEventListener('click', () => dialog.close());
-  dialog.addEventListener('close', () => document.getElementById('afterSchoolOpen').focus());
+  document.getElementById('afterSchoolClose').addEventListener('click', () => window.TileApp?.setNativeDialogVisible(dialog, false));
+  dialog.addEventListener('close', () => document.getElementById('timetableManagementToggle')?.focus());
   dialog.addEventListener('keydown', event => event.stopPropagation());
   document.getElementById('afterSchoolForm').addEventListener('submit', event => {
     event.preventDefault();

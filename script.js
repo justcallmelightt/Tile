@@ -103,6 +103,133 @@ const importTileData = document.getElementById("importTileData");
 const importTileDataInput = document.getElementById("importTileDataInput");
 const undoTileChange = document.getElementById("undoTileChange");
 const toastRegion = document.getElementById("toastRegion");
+const dialogMotionState = new WeakMap();
+const dialogReduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+const nativeDialogMotionState = new WeakMap();
+const nativeDialogCancelBound = new WeakSet();
+const inlinePanelMotionState = new WeakMap();
+
+function setInlinePanelVisible(panel, visible) {
+  if (!panel) return;
+  const previous = inlinePanelMotionState.get(panel);
+  const wasOpen = panel.classList.contains("is-open");
+  if (!visible && !wasOpen && !previous) return;
+  const fromOpacity = wasOpen ? getComputedStyle(panel).opacity : "0";
+  const fromTransform = wasOpen ? getComputedStyle(panel).transform : "translateY(8px) scale(.99)";
+  previous?.cancel();
+  panel.dataset.motionTarget = visible ? "open" : "closed";
+  panel.setAttribute("aria-hidden", String(!visible));
+  if (visible) panel.classList.add("is-open");
+  if (!panel.animate) {
+    panel.classList.toggle("is-open", visible);
+    delete panel.dataset.motionTarget;
+    return;
+  }
+  const reduced = dialogReduceMotion.matches;
+  const animation = panel.animate([
+    { opacity: fromOpacity, transform: reduced ? "none" : fromTransform },
+    { opacity: visible ? 1 : 0, transform: reduced ? "none" : visible ? "translateY(0) scale(1)" : "translateY(5px) scale(.995)" }
+  ], { duration: reduced ? 150 : visible ? 270 : 190,
+    easing: visible ? "cubic-bezier(.22,1,.36,1)" : "cubic-bezier(.4,0,1,1)", fill: "forwards" });
+  inlinePanelMotionState.set(panel, animation);
+  animation.finished.then(() => {
+    if (inlinePanelMotionState.get(panel) !== animation) return;
+    if (!visible) panel.classList.remove("is-open");
+    inlinePanelMotionState.delete(panel);
+    delete panel.dataset.motionTarget;
+    animation.cancel();
+  }).catch(() => {});
+}
+
+function toggleInlinePanel(panel) {
+  const isOpen = panel?.dataset.motionTarget === "open"
+    || (!panel?.dataset.motionTarget && panel?.classList.contains("is-open"));
+  setInlinePanelVisible(panel, !isOpen);
+  return !isOpen;
+}
+
+function setNativeDialogVisible(dialog, visible) {
+  if (!dialog || (!dialog.open && !visible)) return;
+  if (!nativeDialogCancelBound.has(dialog)) {
+    dialog.addEventListener("cancel", (event) => {
+      event.preventDefault();
+      setNativeDialogVisible(dialog, false);
+    });
+    nativeDialogCancelBound.add(dialog);
+  }
+  const previous = nativeDialogMotionState.get(dialog);
+  if (dialog.open && visible && !previous) return;
+  const wasOpen = dialog.open;
+  const from = wasOpen ? getComputedStyle(dialog) : null;
+  const fromOpacity = from?.opacity || "0";
+  const fromTransform = from?.transform === "none" ? "translateY(0) scale(1)" : from?.transform || "translateY(12px) scale(.985)";
+  const fromFilter = from?.filter || "none";
+  previous?.forEach((animation) => animation.cancel());
+  if (visible && !wasOpen) dialog.showModal();
+  if (!dialog.animate) {
+    if (!visible) dialog.close();
+    return;
+  }
+  const reduced = dialogReduceMotion.matches;
+  const duration = reduced ? 150 : visible ? 300 : 210;
+  const options = { duration, easing: visible ? "cubic-bezier(.22,1,.36,1)" : "cubic-bezier(.4,0,1,1)", fill: "forwards" };
+  const surface = dialog.animate([
+    { opacity: fromOpacity, transform: reduced ? "none" : fromTransform, filter: reduced ? "none" : wasOpen ? fromFilter : "blur(3px)" },
+    { opacity: visible ? 1 : 0, transform: reduced ? "none" : visible ? "translateY(0) scale(1)" : "translateY(7px) scale(.99)", filter: reduced ? "none" : visible ? "blur(0px)" : "blur(2px)" }
+  ], options);
+  const animations = [surface];
+  try {
+    animations.push(dialog.animate([{ opacity: wasOpen ? 1 : 0 }, { opacity: visible ? 1 : 0 }], { ...options, pseudoElement: "::backdrop" }));
+  } catch { /* Older browsers still animate the dialog surface. */ }
+  nativeDialogMotionState.set(dialog, animations);
+  surface.finished.then(() => {
+    if (nativeDialogMotionState.get(dialog)?.[0] !== surface) return;
+    if (!visible) dialog.close();
+    nativeDialogMotionState.delete(dialog);
+    animations.forEach((animation) => animation.cancel());
+  }).catch(() => {});
+}
+
+function setSetupDialogVisible(dialog, visible) {
+  if (!dialog) return Promise.resolve(false);
+  const card = dialog.querySelector(".setup-card");
+  const isSchoolSetup = dialog.id === "setupModal";
+  const previous = dialogMotionState.get(dialog);
+  const wasHidden = dialog.classList.contains("hidden");
+  const fromOpacity = wasHidden ? "0" : getComputedStyle(dialog).opacity;
+  const fromTransform = wasHidden
+    ? isSchoolSetup ? "translateY(20px) scale(.972)" : "translateY(12px) scale(.985)"
+    : card ? getComputedStyle(card).transform : "none";
+  const fromCardOpacity = wasHidden ? 0 : card ? getComputedStyle(card).opacity : 1;
+  const fromCardFilter = wasHidden ? isSchoolSetup ? "blur(4px)" : "blur(2px)" : card ? getComputedStyle(card).filter : "none";
+  previous?.forEach((animation) => animation.cancel());
+  if (visible) dialog.classList.remove("hidden");
+  dialog.classList.toggle("is-closing", !visible);
+  dialog.setAttribute("aria-hidden", String(!visible));
+  if (!dialog.animate || !card) {
+    dialog.classList.toggle("hidden", !visible);
+    return Promise.resolve(true);
+  }
+  const reduced = dialogReduceMotion.matches;
+  const duration = reduced ? 150 : visible ? isSchoolSetup ? 410 : 360 : 230;
+  const backdrop = dialog.animate([{ opacity: fromOpacity }, { opacity: visible ? 1 : 0 }], {
+    duration, easing: visible ? "cubic-bezier(.22,1,.36,1)" : "cubic-bezier(.4,0,1,1)", fill: "forwards"
+  });
+  const surface = card.animate([
+    { transform: reduced ? "none" : fromTransform, opacity: fromCardOpacity, filter: reduced ? "none" : fromCardFilter },
+    { transform: reduced ? "none" : visible ? "translateY(0) scale(1)" : "translateY(6px) scale(.99)", opacity: visible ? 1 : 0, filter: reduced ? "none" : visible ? "blur(0px)" : "blur(2px)" }
+  ], { duration, easing: visible ? "cubic-bezier(.22,1,.36,1)" : "cubic-bezier(.4,0,1,1)", fill: "forwards" });
+  dialogMotionState.set(dialog, [backdrop, surface]);
+  return backdrop.finished.then(() => {
+    if (dialogMotionState.get(dialog)?.[0] !== backdrop) return false;
+    if (!visible) dialog.classList.add("hidden");
+    dialog.classList.remove("is-closing");
+    dialogMotionState.delete(dialog);
+    backdrop.cancel();
+    surface.cancel();
+    return true;
+  }).catch(() => false);
+}
 const tileDemo = document.getElementById("tileDemo");
 const tileDemoLaunch = document.getElementById("tileDemoLaunch");
 const tileDemoClose = document.getElementById("tileDemoClose");
@@ -120,6 +247,8 @@ const mealClose = document.getElementById("mealClose");
 const breakfastMenu = document.getElementById("breakfastMenu");
 const lunchMenu = document.getElementById("lunchMenu");
 const dinnerMenu = document.getElementById("dinnerMenu");
+const mealDateStatus = document.getElementById("mealDateStatus");
+const mealSchoolSettings = document.getElementById("mealSchoolSettings");
 const breakfastWarning = document.getElementById("breakfastWarning");
 const lunchWarning = document.getElementById("lunchWarning");
 const dinnerWarning = document.getElementById("dinnerWarning");
@@ -175,6 +304,7 @@ const schoolSyncPreviewTitle = document.getElementById("schoolSyncPreviewTitle")
 const schoolSyncPreviewCount = document.getElementById("schoolSyncPreviewCount");
 const schoolSyncPreviewMeals = document.getElementById("schoolSyncPreviewMeals");
 const schoolSyncPreviewDepartment = document.getElementById("schoolSyncPreviewDepartment");
+const schoolSyncPreviewDescription = document.getElementById("schoolSyncPreviewDescription");
 const schoolFormMessage = document.getElementById("schoolFormMessage");
 const CELL_EDIT_STORAGE_KEY = "tile-cell-edits";
 const SCHEDULE_EDIT_STORAGE_KEY = "tile-schedule-edits";
@@ -325,8 +455,9 @@ function clearRollingCharacterAnimation(element) {
   const animation = rollingCharacterAnimations.get(element);
   if (!animation) return;
 
-  animation.inner.removeEventListener("animationend", animation.finish);
-  animation.inner.removeEventListener("animationcancel", animation.finish);
+  animation.inner.removeEventListener("transitionend", animation.finish);
+  animation.inner.removeEventListener("transitioncancel", animation.finish);
+  if (animation.frame) cancelAnimationFrame(animation.frame);
   rollingCharacterAnimations.delete(element);
 }
 
@@ -360,18 +491,29 @@ function renderRollingCharacter(element, oldChar, newChar) {
   inner.append(oldSpan, newSpan);
   element.appendChild(inner);
 
-  const animation = { inner, finish: null };
+  const animation = { inner, finish: null, frame: 0 };
   const finish = (event) => {
-    if (event && (event.target !== inner || event.animationName !== "rollUp")) return;
+    if (event && (event.target !== inner || event.propertyName !== "transform")) return;
     finishRollingCharacter(element, newChar, animation);
   };
   animation.finish = finish;
   rollingCharacterAnimations.set(element, animation);
-  inner.addEventListener("animationend", finish);
-  inner.addEventListener("animationcancel", finish);
+  inner.addEventListener("transitionend", finish);
+  inner.addEventListener("transitioncancel", finish);
   element.classList.add("animate", "rolling");
 
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) finish();
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    finish();
+    return;
+  }
+
+  animation.frame = requestAnimationFrame(() => {
+    animation.frame = requestAnimationFrame(() => {
+      animation.frame = 0;
+      if (rollingCharacterAnimations.get(element) !== animation) return;
+      inner.style.transform = "translate3d(0, -1em, 0)";
+    });
+  });
 }
 
 function finishRollingCharacter(element, char, expectedAnimation = null) {
@@ -814,8 +956,7 @@ function openTimetableShare(payload, url, mode = "create") {
   if (timetableSharePrimary) {
     timetableSharePrimary.textContent = mode === "receive" ? "이 시간표 적용" : "공유하기";
   }
-  timetableShareModal.classList.remove("hidden");
-  timetableShareModal.setAttribute("aria-hidden", "false");
+  setSetupDialogVisible(timetableShareModal, true);
   document.body.classList.add("modal-open");
   window.setTimeout(() => timetableSharePrimary?.focus(), 80);
 }
@@ -827,8 +968,7 @@ function clearTimetableShareHash() {
 
 function closeTimetableShareModal({ clearIncoming = false } = {}) {
   if (!timetableShareModal) return;
-  timetableShareModal.classList.add("hidden");
-  timetableShareModal.setAttribute("aria-hidden", "true");
+  setSetupDialogVisible(timetableShareModal, false);
   document.body.classList.remove("modal-open");
   if (clearIncoming && timetableShareMode === "receive") clearTimetableShareHash();
   activeTimetableShare = null;
@@ -1316,32 +1456,44 @@ function showSingleSubjectEditor() {
   }
 }
 
+let subjectDialogMotion = null;
+let subjectDialogGeneration = 0;
+
 function showSubjectOverlay() {
   if (!subjectOverlay) return;
+  const modal = document.getElementById("subjectModal");
+  const wasHidden = subjectOverlay.classList.contains("hidden");
+  const fromTransform = wasHidden ? "translateY(10px) scale(.985)" : modal ? getComputedStyle(modal).transform : "none";
+  const fromOpacity = wasHidden ? 0 : modal ? getComputedStyle(modal).opacity : 1;
+  subjectDialogGeneration++;
+  subjectDialogMotion?.cancel();
   if (subjectOverlay.classList.contains("hidden")) rememberDialogTrigger();
   subjectOverlay.classList.remove("hidden");
   subjectOverlay.setAttribute("aria-hidden", "false");
   document.body.classList.add("modal-open");
   overlayDismissBlockUntil = Date.now() + 360;
-
-  const modal = document.getElementById("subjectModal");
-  modal?.classList.remove("modal-animate-out");
-  void (modal && modal.offsetWidth);
-  modal?.classList.add("modal-animate-in");
+  if (modal?.animate) {
+    subjectDialogMotion = modal.animate([
+      { transform: dialogReduceMotion.matches ? "none" : fromTransform, opacity: fromOpacity },
+      { transform: dialogReduceMotion.matches ? "none" : "translateY(0) scale(1)", opacity: 1 }
+    ], { duration: dialogReduceMotion.matches ? 150 : 340, easing: "cubic-bezier(.22,1,.36,1)" });
+  }
 }
 
 function closeSubjectModal() {
   if (!subjectOverlay) return;
   const modal = document.getElementById("subjectModal");
-  modal?.classList.remove("modal-animate-in");
-  modal?.classList.add("modal-animate-out");
-
-  const hideDelay = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 150 : 320;
-  setTimeout(() => {
+  const generation = ++subjectDialogGeneration;
+  const fromTransform = modal ? getComputedStyle(modal).transform : "none";
+  const fromOpacity = modal ? getComputedStyle(modal).opacity : 1;
+  subjectDialogMotion?.cancel();
+  const finish = () => {
+    if (generation !== subjectDialogGeneration) return;
     subjectOverlay.classList.add("hidden");
     subjectOverlay.setAttribute("aria-hidden", "true");
     document.body.classList.remove("modal-open");
-    modal?.classList.remove("modal-animate-out");
+    subjectDialogMotion?.cancel();
+    subjectDialogMotion = null;
     if (subjectBulkRows) subjectBulkRows.textContent = "";
     hideSubjectModes();
     modalCallback = null;
@@ -1353,7 +1505,13 @@ function closeSubjectModal() {
     selectedPeriodItem = null;
     subjectBulkTargets = [];
     restoreDialogTrigger();
-  }, hideDelay);
+  };
+  if (!modal?.animate) return finish();
+  subjectDialogMotion = modal.animate([
+    { transform: dialogReduceMotion.matches ? "none" : fromTransform, opacity: fromOpacity },
+    { transform: dialogReduceMotion.matches ? "none" : "translateY(7px) scale(.99)", opacity: 0 }
+  ], { duration: dialogReduceMotion.matches ? 150 : 220, easing: "cubic-bezier(.4,0,1,1)", fill: "forwards" });
+  subjectDialogMotion.finished.then(finish).catch(() => {});
 }
 
 modalConfirm?.addEventListener("click", () => {
@@ -1700,31 +1858,105 @@ function setToolMenuOpen(isOpen) {
   toolMenuPanel.setAttribute("aria-hidden", String(!isOpen));
 }
 
-function renderMeal(type, menu) {
+const mealPeriods = ["조식", "중식", "석식"];
+
+function getSeoulDateKey(date = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+  return `${values.year}${values.month}${values.day}`;
+}
+
+function formatMealDate(value) {
+  const match = String(value || "").match(/^(\d{4})(\d{2})(\d{2})$/);
+  if (!match) return "";
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12);
+  const weekday = new Intl.DateTimeFormat("ko-KR", { weekday: "long" }).format(date);
+  return `${Number(match[2])}월 ${Number(match[3])}일 ${weekday}`;
+}
+
+function updateMealDateStatus() {
+  if (!mealDateStatus) return;
+  const meals = readJsonStorage(MEAL_STORAGE_KEY);
+  const today = getSeoulDateKey();
+  const storedDates = mealPeriods
+    .map((type) => meals[type]?.serviceDate || "")
+    .filter((date) => /^\d{8}$/.test(date));
+  const storedDate = storedDates.find((date) => date !== today) || storedDates[0] || "";
+
+  if (storedDates.length === mealPeriods.length && storedDates.every((date) => date === today)) {
+    const hasMenu = mealPeriods.some((type) => Boolean(meals[type]?.menu));
+    mealDateStatus.textContent = hasMenu
+      ? `${formatMealDate(today)} 급식이에요. 메뉴가 없는 식사 시간은 비어 있어요.`
+      : `${formatMealDate(today)}에는 등록된 급식 정보가 없어요.`;
+    if (mealSchoolSettings) mealSchoolSettings.hidden = true;
+    return;
+  }
+
+  if (storedDate) {
+    mealDateStatus.textContent = `마지막으로 확인한 급식은 ${formatMealDate(storedDate)} 기준이에요. 오늘 메뉴는 다시 확인해 주세요.`;
+  } else if (mealPeriods.some((type) => meals[type])) {
+    mealDateStatus.textContent = "저장된 메뉴의 날짜를 확인할 수 없어요. 날짜를 정확히 보려면 다시 연결해 주세요.";
+  } else {
+    mealDateStatus.textContent = "오늘 급식 날짜를 아직 확인하지 않았어요. 학교를 연결하면 메뉴를 불러올 수 있어요.";
+  }
+  if (mealSchoolSettings) mealSchoolSettings.hidden = false;
+}
+
+function renderMeal(type, menu, serviceDate = "") {
   const targetMap = {
     "조식": breakfastMenu,
     "중식": lunchMenu,
     "석식": dinnerMenu
   };
   const target = targetMap[type];
-  if (target) target.textContent = menu || "아직 불러온 급식 정보가 없습니다.";
+  const isToday = serviceDate === getSeoulDateKey();
+  if (target) target.textContent = isToday ? (menu || "") : "";
   renderMealWarning(type);
 }
 
-function saveMeal(type, menu, rawMenu = "") {
+function saveMeal(type, menu, rawMenu = "", serviceDate = getSeoulDateKey()) {
   const meals = readJsonStorage(MEAL_STORAGE_KEY);
-  meals[type] = { menu, rawMenu };
+  meals[type] = { menu, rawMenu, serviceDate };
   writeJsonStorage(MEAL_STORAGE_KEY, meals);
-  renderMeal(type, menu);
+  renderMeal(type, menu, serviceDate);
+  updateMealDateStatus();
 }
 
 function loadMeals() {
   const meals = readJsonStorage(MEAL_STORAGE_KEY);
   ["조식", "중식", "석식"].forEach((type) => {
     const value = meals[type];
-    renderMeal(type, typeof value === "string" ? value : value?.menu);
+    renderMeal(
+      type,
+      typeof value === "string" ? value : value?.menu,
+      typeof value === "string" ? "" : value?.serviceDate
+    );
   });
+  updateMealDateStatus();
 }
+
+function resetMealsForDate(serviceDate) {
+  const meals = Object.fromEntries(mealPeriods.map((type) => [type, {
+    menu: "",
+    rawMenu: "",
+    serviceDate
+  }]));
+  writeJsonStorage(MEAL_STORAGE_KEY, meals);
+  mealPeriods.forEach((type) => renderMeal(type, "", serviceDate));
+  updateMealDateStatus();
+}
+
+mealSchoolSettings?.addEventListener("click", () => {
+  mealPanel?.classList.remove("is-open");
+  mealPanel?.setAttribute("aria-hidden", "true");
+  mealToggle?.setAttribute("aria-expanded", "false");
+  schoolSettingsToggle?.click();
+});
 
 function getAppSettings() {
   return readJsonStorage(APP_SETTINGS_STORAGE_KEY, { allergies: [] });
@@ -1767,6 +1999,8 @@ function findMealAllergyHits(type) {
   const value = meals[type];
   const menu = typeof value === "string" ? value : value?.menu || "";
   const rawMenu = typeof value === "string" ? value : value?.rawMenu || menu;
+  const serviceDate = typeof value === "string" ? "" : value?.serviceDate || "";
+  if (serviceDate !== getSeoulDateKey()) return [];
   const searchable = `${menu}\n${rawMenu}`.toLowerCase();
 
   return tokens.filter((token) => {
@@ -1868,6 +2102,18 @@ function getScheduleRangesForDay(dayOfWeek) {
   return scheduleRanges
     .map((item) => getScheduleItemForDay(item, dayOfWeek))
     .sort((a, b) => a.start.localeCompare(b.start));
+}
+
+function getShareableScheduleEdits() {
+  const visiblePeriods = new Set(Array.from(
+    document.querySelectorAll("#timetable tbody tr[data-period]"),
+    (row) => row.dataset.period
+  ));
+  return Object.fromEntries(scheduleRanges.filter((item) => visiblePeriods.has(item.name)).map((item) => [item.name, {
+    start: item.start,
+    end: item.end,
+    ...(item.dayRanges && Object.keys(item.dayRanges).length ? { days: item.dayRanges } : {})
+  }]));
 }
 
 function getNextSchoolStartDiffMinutes(now, includeToday = false) {
@@ -2383,7 +2629,11 @@ function renderDailyHomeroomSchedule() {
     }
     const content = document.createElement("div");
     content.className = "daily-homeroom";
-    content.innerHTML = `<strong>종례</strong><span>${format12Hour(start)} ~ ${format12Hour(end)}</span>`;
+    const label = document.createElement("strong");
+    label.textContent = "종례";
+    const time = document.createElement("span");
+    time.textContent = `${format12Hour(start)} ~ ${format12Hour(end)}`;
+    content.append(label, time);
     cell.appendChild(content);
   }
 
@@ -2593,7 +2843,7 @@ async function switchTheme(nextIsLight) {
     await moveThemeSpotlight({ darken: true, stationary: true, duration: 650 });
   } else if (startupSpotlight) {
     // Dark is fully visible; reveal the white beam from the upper left.
-    await moveThemeSpotlight({ enter: true, duration: 1300 });
+    await moveThemeSpotlight({ enter: true, duration: 900 });
   }
 }
 
@@ -2791,12 +3041,14 @@ function updateHighlights(currentSchedule, dayOfWeek, highlightSchedule) {
 }
 
 function renderFloatingTimeline(currentSchedule, highlightSchedule, dayOfWeek, progress) {
-  const table = document.querySelector("table");
+  const shell = document.getElementById("timetable");
+  const table = shell?.querySelector("table");
   if (!table || !highlightSchedule) return;
   if (!(dayOfWeek >= 1 && dayOfWeek <= 5)) return;
   if (!currentTimeEl) return;
 
-  const targetRow = document.querySelector(`tbody tr[data-period="${highlightSchedule.name}"]`);
+  const targetRow = Array.from(shell.querySelectorAll("tbody tr[data-period]"))
+    .find((row) => row.dataset.period === highlightSchedule.name);
   if (!targetRow) return;
 
   const rowHeader = targetRow.querySelector("th");
@@ -2806,9 +3058,13 @@ function renderFloatingTimeline(currentSchedule, highlightSchedule, dayOfWeek, p
   const lastCell = cells[cells.length - 1];
   const isBreakTarget = currentSchedule && currentSchedule.type === "break";
   const clampedProgress = Math.max(0, Math.min(100, progress));
+  const shellRect = shell.getBoundingClientRect();
+  const rowRect = targetRow.getBoundingClientRect();
+  const headerRect = rowHeader.getBoundingClientRect();
+  const rowTop = rowRect.top - shellRect.top + shell.scrollTop;
   const rawLineTop = isBreakTarget
-    ? targetRow.offsetTop
-    : targetRow.offsetTop + ((targetRow.offsetHeight - 3) * clampedProgress / 100);
+    ? rowTop
+    : rowTop + ((rowRect.height - 3) * clampedProgress / 100);
 
   const label = document.createElement("span");
   label.className = "floating-time-label";
@@ -2816,10 +3072,10 @@ function renderFloatingTimeline(currentSchedule, highlightSchedule, dayOfWeek, p
     disableTextSwap: true
   });
   label.style.visibility = "hidden";
-  table.appendChild(label);
+  shell.appendChild(label);
 
-  const safeLeft = rowHeader.offsetLeft + 4;
-  const syncedTop = isBreakTarget ? targetRow.offsetTop : rawLineTop;
+  const safeLeft = headerRect.left - shellRect.left + shell.scrollLeft + 4;
+  const syncedTop = rawLineTop;
 
   label.style.left = `${safeLeft}px`;
   label.style.top = `${syncedTop}px`;
@@ -2829,13 +3085,13 @@ function renderFloatingTimeline(currentSchedule, highlightSchedule, dayOfWeek, p
   line.className = "floating-time-line";
   const labelWidth = Number.parseFloat(getComputedStyle(label).width) || label.offsetWidth;
   const lineLeft = safeLeft + labelWidth - 6;
-  const tableRight = table.clientWidth - 12;
-  const lastCellRight = lastCell.offsetLeft + lastCell.offsetWidth - 12;
+  const tableRight = table.getBoundingClientRect().right - shellRect.left + shell.scrollLeft - 12;
+  const lastCellRight = lastCell.getBoundingClientRect().right - shellRect.left + shell.scrollLeft - 12;
   const lineRight = Math.max(tableRight, lastCellRight);
   line.style.left = `${lineLeft}px`;
   line.style.width = `${Math.max(0, lineRight - lineLeft)}px`;
   line.style.top = `${syncedTop}px`;
-  table.appendChild(line);
+  shell.appendChild(line);
 }
 
 function getCurrentSubjectAndRoom(currentSchedule, dayOfWeek) {
@@ -2929,7 +3185,7 @@ if (currentTimeEl) {
       ? currentMinutes < dayStartMinutes
         ? "일과 시작까지 남은 시간"
         : currentMinutes < dayScheduleEndMinutes
-          ? "일과 종료까지 남은 시간"
+          ? "일과 남은 시간"
           : "다음 일과 시작까지 남은 시간"
       : "다음 일과 시작까지 남은 시간";
     dayRemainingTimeLabelEl.textContent = dayRemainingLabel;
@@ -3020,18 +3276,23 @@ document.addEventListener("click", (event) => {
   setToolMenuOpen(false);
 });
 
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape" || !toolMenu?.classList.contains("is-open") || tileDemo?.classList.contains("is-open")) return;
+  event.preventDefault();
+  setToolMenuOpen(false);
+  toolMenuToggle?.focus({ preventScroll: true });
+});
+
 mealToggle?.addEventListener("click", () => {
+  loadMeals();
   setToolMenuOpen(false);
   triggerButtonPop(mealToggle);
-  mealPanel?.classList.toggle("is-open");
-  mealPanel?.setAttribute("aria-hidden", mealPanel.classList.contains("is-open") ? "false" : "true");
-  mealToggle.setAttribute("aria-expanded", String(mealPanel?.classList.contains("is-open") || false));
+  mealToggle.setAttribute("aria-expanded", String(toggleInlinePanel(mealPanel)));
 });
 
 mealClose?.addEventListener("click", () => {
   mealToggle?.setAttribute("aria-expanded", "false");
-  mealPanel?.classList.remove("is-open");
-  mealPanel?.setAttribute("aria-hidden", "true");
+  setInlinePanelVisible(mealPanel, false);
 });
 
 function loadCustomConfig() {
@@ -3059,10 +3320,20 @@ function loadCustomConfig() {
     // Update schedule ranges (periods)
     if (config.scheduleRanges && Array.isArray(config.scheduleRanges)) {
       config.scheduleRanges.forEach(newPeriod => {
-        if (!newPeriod.name || !newPeriod.start || !newPeriod.end) return;
+        if (!newPeriod || typeof newPeriod.name !== "string") return;
+        const range = parseTimeRange(`${newPeriod.start} - ${newPeriod.end}`);
+        if (!range) return;
         const existingIndex = scheduleRanges.findIndex(p => p.name === newPeriod.name);
         if (existingIndex >= 0) {
-          scheduleRanges[existingIndex] = { ...scheduleRanges[existingIndex], ...newPeriod };
+          const dayRanges = {};
+          if (newPeriod.dayRanges && typeof newPeriod.dayRanges === "object" && !Array.isArray(newPeriod.dayRanges)) {
+            Object.entries(newPeriod.dayRanges).forEach(([day, value]) => {
+              if (!/^[1-5]$/.test(day)) return;
+              const dayRange = parseTimeRange(`${value?.start} - ${value?.end}`);
+              if (dayRange) dayRanges[day] = dayRange;
+            });
+          }
+          scheduleRanges[existingIndex] = { ...scheduleRanges[existingIndex], ...range, dayRanges };
         }
       });
     }
@@ -3163,6 +3434,9 @@ window.addEventListener("scroll", updateFloatingTopbar, { passive: true });
 window.addEventListener("resize", updateFloatingTopbar, { passive: true });
 
 window.TileApp = {
+  getShareableScheduleEdits,
+  setDialogVisible: setSetupDialogVisible,
+  setNativeDialogVisible,
   createPersonalPreset() {
     const backup = createAccountBackup();
     const edits = {};
@@ -3236,8 +3510,13 @@ window.TileApp = {
   },
   createAccountBackup,
   restoreAccountBackup,
-  setMeal(period, text, rawText = "") {
-    if (period === "조식" || period === "중식" || period === "석식") saveMeal(period, text, rawText);
+  setMeal(period, text, rawText = "", serviceDate = getSeoulDateKey()) {
+    if (period === "조식" || period === "중식" || period === "석식") {
+      saveMeal(period, text, rawText, serviceDate);
+    }
+  },
+  setMealDate(serviceDate) {
+    if (/^\d{8}$/.test(String(serviceDate || ""))) resetMealsForDate(serviceDate);
   },
   refresh() {
     applyRoomBadges();
@@ -3251,15 +3530,13 @@ if (customToggle && customPanel) {
   customToggle.addEventListener("click", () => {
     triggerButtonPop(customToggle);
     setToolMenuOpen(false);
-    customPanel.classList.toggle("is-open");
-    customPanel.setAttribute("aria-hidden", String(!customPanel.classList.contains("is-open")));
+    toggleInlinePanel(customPanel);
   });
 }
 
 if (customClose && customPanel) {
   customClose.addEventListener("click", () => {
-    customPanel.classList.remove("is-open");
-    customPanel.setAttribute("aria-hidden", "true");
+    setInlinePanelVisible(customPanel, false);
   });
 }
 
@@ -3392,15 +3669,13 @@ if (memoToggle && memoPanel) {
   memoToggle.addEventListener("click", () => {
     triggerButtonPop(memoToggle);
     setToolMenuOpen(false);
-    memoPanel.classList.toggle("is-open");
-    memoPanel.setAttribute("aria-hidden", String(!memoPanel.classList.contains("is-open")));
+    toggleInlinePanel(memoPanel);
   });
 }
 
 if (memoClose && memoPanel) {
   memoClose.addEventListener("click", () => {
-    memoPanel.classList.remove("is-open");
-    memoPanel.setAttribute("aria-hidden", "true");
+    setInlinePanelVisible(memoPanel, false);
   });
 }
 
@@ -3429,20 +3704,31 @@ function openSchoolSettings() {
     if (!setupModal) return;
     rememberDialogTrigger();
     resetSchoolSyncPreview();
-    setupModal.classList.remove("hidden");
-    setupModal.setAttribute("aria-hidden", "false");
+    const opening = setSetupDialogVisible(setupModal, true);
     document.body.classList.add("modal-open");
-    setTimeout(() => schoolInput?.focus(), 80);
+    opening.then((completed) => {
+      if (completed && !setupModal.classList.contains("hidden")) {
+        schoolInput?.focus({ preventScroll: true });
+      }
+    });
 }
 
-function closeSchoolSettingsModal() {
+function closeSchoolSettingsModal({ restoreFocus = true } = {}) {
     if (!setupModal) return;
-    setupModal.classList.add("hidden");
-    setupModal.setAttribute("aria-hidden", "true");
-    document.body.classList.remove("modal-open");
-    if (schoolResults) schoolResults.innerHTML = "";
-    resetSchoolSyncPreview();
-    restoreDialogTrigger();
+    const closing = setSetupDialogVisible(setupModal, false);
+    const card = setupModal.querySelector(".setup-card");
+    const layoutMotion = card && schoolSetupLayoutMotion.get(card);
+    layoutMotion?.cancel();
+    if (layoutMotion) schoolSetupLayoutMotion.delete(card);
+    return closing.then((completed) => {
+      if (!completed || !setupModal.classList.contains("hidden")) return false;
+      document.body.classList.remove("modal-open");
+      schoolResults?.replaceChildren();
+      resetSchoolSyncPreview();
+      if (restoreFocus) restoreDialogTrigger();
+      else modalRestoreTarget = null;
+      return true;
+    });
 }
 
 function getSavedTileUser() {
@@ -3555,12 +3841,54 @@ function getAccessibleSchoolType(school = {}) {
     return labels[shortType] || shortType;
 }
 
+const schoolSetupLayoutMotion = new WeakMap();
+
+function animateSchoolSetupLayout(change, revealElement = null) {
+    const card = setupModal?.querySelector(".setup-card");
+    const canAnimate = card?.animate
+      && !setupModal.classList.contains("hidden")
+      && !setupModal.classList.contains("is-closing")
+      && !dialogMotionState.has(setupModal);
+    const previousTop = canAnimate ? card.getBoundingClientRect().top : 0;
+    const previousMotion = card ? schoolSetupLayoutMotion.get(card) : null;
+    if (previousMotion) {
+      previousMotion.cancel();
+      schoolSetupLayoutMotion.delete(card);
+    }
+
+    change();
+    if (!canAnimate) return;
+
+    const reduced = dialogReduceMotion.matches;
+    const offset = previousTop - card.getBoundingClientRect().top;
+    if (!reduced && Math.abs(offset) > 1) {
+      const motion = card.animate([
+        { transform: `translateY(${offset}px)` },
+        { transform: "translateY(0)" }
+      ], { duration: 320, easing: "cubic-bezier(.22,1,.36,1)", fill: "both" });
+      schoolSetupLayoutMotion.set(card, motion);
+      motion.finished.then(() => {
+        if (schoolSetupLayoutMotion.get(card) !== motion) return;
+        schoolSetupLayoutMotion.delete(card);
+        motion.cancel();
+      }).catch(() => {});
+    }
+    if (revealElement && !revealElement.hidden) {
+      revealElement.animate([
+        { opacity: 0, transform: reduced ? "none" : "translateY(8px)" },
+        { opacity: 1, transform: "translateY(0)" }
+      ], { duration: reduced ? 150 : 290, easing: "cubic-bezier(.22,1,.36,1)" });
+    }
+}
+
 function renderSelectedSchoolInfo(school = selectedSchool) {
     if (!selectedSchoolInfo) return;
 
     if (!school) {
-        selectedSchoolInfo.classList.remove("is-visible");
-        selectedSchoolInfo.replaceChildren();
+        animateSchoolSetupLayout(() => {
+          selectedSchoolInfo.classList.remove("is-visible");
+          selectedSchoolInfo.replaceChildren();
+        });
         return;
     }
 
@@ -3568,21 +3896,25 @@ function renderSelectedSchoolInfo(school = selectedSchool) {
         .filter(Boolean)
         .filter((value, index, array) => array.indexOf(value) === index)
         .join(" · ") || "학교 정보";
-    selectedSchoolInfo.classList.add("is-visible");
-    selectedSchoolInfo.replaceChildren();
-    [
-      ["설립 구분", school.foundation || "확인 중"],
-      ["학교 종류", typeText],
-      ["교육청", school.officeName || school.office || "확인 중"]
-    ].forEach(([labelText, valueText]) => {
-      const item = document.createElement("div");
-      const label = document.createElement("span");
-      const value = document.createElement("strong");
-      label.textContent = labelText;
-      value.textContent = valueText;
-      item.append(label, value);
-      selectedSchoolInfo.appendChild(item);
-    });
+    const wasVisible = selectedSchoolInfo.classList.contains("is-visible");
+    animateSchoolSetupLayout(() => {
+      selectedSchoolInfo.classList.add("is-visible");
+      selectedSchoolInfo.replaceChildren();
+      [
+        ["설립 구분", school.foundation || "확인 중"],
+        ["학교 종류", typeText],
+        ["교육청", school.officeName || school.office || "확인 중"]
+      ].forEach(([labelText, valueText]) => {
+        const item = document.createElement("div");
+        const label = document.createElement("span");
+        const value = document.createElement("strong");
+        label.textContent = labelText;
+        value.textContent = valueText;
+        value.title = valueText;
+        item.append(label, value);
+        selectedSchoolInfo.appendChild(item);
+      });
+    }, wasVisible ? null : selectedSchoolInfo);
 }
 
 function updateSavedTileUser(updates = {}) {
@@ -3653,7 +3985,9 @@ function setSchoolProgressStep(step = 1) {
 function resetSchoolSyncPreview() {
   preparedSchoolSync = null;
   preparedSchoolSignature = "";
-  if (schoolSyncPreview) schoolSyncPreview.hidden = true;
+  if (schoolSyncPreview && !schoolSyncPreview.hidden) {
+    animateSchoolSetupLayout(() => { schoolSyncPreview.hidden = true; });
+  }
   if (schoolFormMessage) schoolFormMessage.textContent = "";
   if (saveSchoolButton) {
     const label = saveSchoolButton.querySelector(".button-label");
@@ -3682,7 +4016,13 @@ function renderSchoolSyncPreview(prepared) {
   if (schoolSyncPreviewDepartment) {
     schoolSyncPreviewDepartment.textContent = normalizeDepartment(prepared.department) || "해당 없음";
   }
-  schoolSyncPreview.hidden = false;
+  if (schoolSyncPreviewDescription) {
+    const mealDate = formatMealDate(prepared.mealDate);
+    schoolSyncPreviewDescription.textContent = mealDate
+      ? `급식은 ${mealDate} 기준이에요. 적용하면 학교와 시간표가 새 정보로 바뀝니다. 이전 상태는 되돌릴 수 있습니다.`
+      : "적용하면 현재 학교 설정과 시간표가 새 정보로 바뀝니다. 이전 상태는 되돌릴 수 있습니다.";
+  }
+  animateSchoolSetupLayout(() => { schoolSyncPreview.hidden = false; }, schoolSyncPreview);
   setSchoolProgressStep(3);
   const label = saveSchoolButton?.querySelector(".button-label");
   if (label) label.textContent = "이 설정 적용";
@@ -3695,6 +4035,7 @@ schoolSettingsToggle?.addEventListener("click", () => {
     openSchoolSettings();
 });
 
+const settingsSectionMotion = new WeakMap();
 function setSettingsSection(sectionId = "mealSettings") {
   settingsNavButtons.forEach((button) => {
     const isActive = button.dataset.settingsTarget === sectionId;
@@ -3704,8 +4045,16 @@ function setSettingsSection(sectionId = "mealSettings") {
 
   document.querySelectorAll(".settings-section").forEach((section) => {
     const isActive = section.id === sectionId;
+    const wasHidden = section.hidden;
+    settingsSectionMotion.get(section)?.cancel();
     section.classList.toggle("is-active", isActive);
     section.hidden = !isActive;
+    if (isActive && wasHidden && section.animate && !appSettingsModal?.classList.contains("hidden")) {
+      settingsSectionMotion.set(section, section.animate([
+        { opacity: 0, transform: dialogReduceMotion.matches ? "none" : "translateY(6px)" },
+        { opacity: 1, transform: "none" }
+      ], { duration: dialogReduceMotion.matches ? 150 : 250, easing: "cubic-bezier(.22,1,.36,1)" }));
+    }
   });
 
   const settingsActions = saveAppSettings?.closest(".setup-actions");
@@ -3738,16 +4087,14 @@ function openAppSettings() {
   setSettingsSection("mealSettings");
   updateLastSyncValue();
   updateUndoAvailability();
-  appSettingsModal.classList.remove("hidden");
-  appSettingsModal.setAttribute("aria-hidden", "false");
+  setSetupDialogVisible(appSettingsModal, true);
   document.body.classList.add("modal-open");
   setTimeout(() => allergyInput?.focus(), 80);
 }
 
 function closeAppSettingsModal() {
   if (!appSettingsModal) return;
-  appSettingsModal.classList.add("hidden");
-  appSettingsModal.setAttribute("aria-hidden", "true");
+  setSetupDialogVisible(appSettingsModal, false);
   document.body.classList.remove("modal-open");
   restoreDialogTrigger();
 }
@@ -3852,6 +4199,66 @@ resetAppSettings?.addEventListener("click", () => {
   });
 });
 
+const tileResetPanel = document.getElementById("tileResetPanel");
+const tileResetConfirmation = document.getElementById("tileResetConfirmation");
+const confirmTileReset = document.getElementById("confirmTileReset");
+const tileResetMessage = document.getElementById("tileResetMessage");
+const showTileReset = document.getElementById("showTileReset");
+
+function closeTileResetPanel() {
+  if (!tileResetPanel) return;
+  tileResetPanel.hidden = true;
+  if (showTileReset) showTileReset.setAttribute("aria-expanded", "false");
+  if (tileResetConfirmation) tileResetConfirmation.value = "";
+  if (confirmTileReset) confirmTileReset.disabled = true;
+  if (tileResetMessage) tileResetMessage.textContent = "";
+}
+
+showTileReset?.addEventListener("click", () => {
+  if (!tileResetPanel?.hidden) return closeTileResetPanel();
+  tileResetPanel.hidden = false;
+  showTileReset.setAttribute("aria-expanded", "true");
+  tileResetPanel.animate?.([
+    { opacity: 0, transform: dialogReduceMotion.matches ? "none" : "translateY(-6px) scale(.99)" },
+    { opacity: 1, transform: "none" }
+  ], { duration: dialogReduceMotion.matches ? 150 : 250, easing: "cubic-bezier(.22,1,.36,1)" });
+  tileResetConfirmation?.focus();
+});
+document.getElementById("cancelTileReset")?.addEventListener("click", closeTileResetPanel);
+tileResetConfirmation?.addEventListener("input", () => {
+  if (confirmTileReset) confirmTileReset.disabled = tileResetConfirmation.value.trim() !== "초기화";
+});
+confirmTileReset?.addEventListener("click", async () => {
+  if (tileResetConfirmation?.value.trim() !== "초기화") return;
+  confirmTileReset.disabled = true;
+  if (tileResetMessage) tileResetMessage.textContent = "Tile 데이터를 삭제하고 있습니다…";
+  const session = window.TileAuth?.getSession?.();
+  const client = window.TileAuth?.getClient?.();
+  if (session?.user) {
+    if (!client) {
+      if (tileResetMessage) tileResetMessage.textContent = "계정 연결을 확인할 수 없어 초기화를 중단했습니다.";
+      return;
+    }
+    const { error: signOutError } = await client.auth.signOut({ scope: "local" });
+    if (signOutError) {
+      if (tileResetMessage) tileResetMessage.textContent = "로그아웃하지 못해 초기화를 중단했습니다. 잠시 후 다시 시도해주세요.";
+      return;
+    }
+  }
+  try {
+    for (const key of Object.keys(localStorage)) {
+      if (key.startsWith("tile-") || key.startsWith("tile_") || key.startsWith("mirim-")) localStorage.removeItem(key);
+    }
+    for (const key of Object.keys(sessionStorage)) {
+      if (key.startsWith("tile-")) sessionStorage.removeItem(key);
+    }
+    window.location.reload();
+  } catch (error) {
+    if (tileResetMessage) tileResetMessage.textContent = "브라우저 저장 공간을 지우지 못했습니다. 저장 권한을 확인해주세요.";
+    confirmTileReset.disabled = false;
+  }
+});
+
 settingsNavButtons.forEach((button) => {
   button.addEventListener("click", () => setSettingsSection(button.dataset.settingsTarget));
 });
@@ -3932,6 +4339,11 @@ undoTileChange?.addEventListener("click", restoreLastChange);
 closeSchoolSettings?.addEventListener("click", closeSchoolSettingsModal);
 
 bindBackdropDismiss(setupModal, closeSchoolSettingsModal);
+
+document.getElementById("setupAccountSignIn")?.addEventListener("click", async () => {
+  const closed = await closeSchoolSettingsModal({ restoreFocus: false });
+  if (closed && setupModal?.classList.contains("hidden")) window.TileAuth?.openAccountSettings?.();
+});
 
 saveSchoolButton?.addEventListener("click", async () => {
     const formUser = saveSchoolSettings({ persist: false });
@@ -4296,6 +4708,7 @@ function closeTileDemo(options = {}) {
 }
 
 function showTileTourFinale() {
+  if (!tileDemo?.classList.contains('is-open') || tileDemo.classList.contains('is-finale')) return;
   window.clearTimeout(tileDemoTimer);
   cancelAnimationFrame(tileTourFrame);
   tileDemo.classList.add('is-finale');
@@ -4308,6 +4721,10 @@ function showTileTourFinale() {
     : '눌러서 시작하세요';
   begin.hidden = false;
   begin.focus();
+}
+
+function skipTileTour() {
+  showTileTourFinale();
 }
 
 const tileFinaleButton = document.getElementById('tileDemoBegin');
@@ -4331,7 +4748,7 @@ tileFinaleButton?.addEventListener('click', () => {
 });
 
 tileDemoLaunch?.addEventListener("click", openTileDemo);
-tileDemoClose?.addEventListener("click", closeTileDemo);
+tileDemoClose?.addEventListener("click", skipTileTour);
 tileDemoPrevious?.addEventListener("click", () => {
   if (tileDemoIndex > 0) setTileDemoScene(tileDemoIndex - 1);
 });
@@ -4352,20 +4769,29 @@ tileDemoPlayback?.addEventListener("click", () => {
   }
 });
 tileDemo?.addEventListener("click", (event) => {
-  if (event.target === tileDemo && !tileDemo.classList.contains('is-finale')) closeTileDemo();
+  if (event.target === tileDemo && !tileDemo.classList.contains('is-finale')) skipTileTour();
 });
+
+function getTileTourFocusableButtons() {
+  return [...tileDemo.querySelectorAll('button')].filter(button =>
+    !button.disabled && !button.hidden && button.getClientRects().length && getComputedStyle(button).visibility !== 'hidden');
+}
+
 document.addEventListener("keydown", (event) => {
   if (!tileDemo?.classList.contains("is-open")) return;
   event.stopImmediatePropagation();
   if (event.key === 'Tab') {
-    const buttons = [...tileDemo.querySelectorAll('button')].filter(button => !button.disabled && button.getClientRects().length);
+    const buttons = getTileTourFocusableButtons();
     const first = buttons[0];
     const last = buttons[buttons.length - 1];
     if (event.shiftKey && (document.activeElement === first || !tileDemo.contains(document.activeElement))) { event.preventDefault(); last.focus(); }
     else if (!event.shiftKey && (document.activeElement === last || !tileDemo.contains(document.activeElement))) { event.preventDefault(); first.focus(); }
   }
   if (['Escape', 'ArrowRight', 'ArrowLeft'].includes(event.key)) event.preventDefault();
-  if (event.key === "Escape") closeTileDemo();
+  if (event.key === "Escape") {
+    if (!tileDemo.classList.contains('is-finale')) skipTileTour();
+    return;
+  }
   if (tileDemo.classList.contains('is-finale')) return;
   if (event.key === "ArrowRight") setTileDemoScene(tileDemoIndex + 1);
   if (event.key === "ArrowLeft") setTileDemoScene(tileDemoIndex - 1);

@@ -78,3 +78,127 @@ test('Monday end follows actual lessons, not the former 16:30 constant', () => {
   assert.equal(end(2), '16:30');
   assert.equal(end(0), null);
 });
+
+test('current-time overlay stays outside the table and follows its scrolled geometry', () => {
+  const appended = [];
+  const rect = (left, top, width, height) => ({ left, top, width, height, right: left + width });
+  const lastCell = { getBoundingClientRect: () => rect(500, 210, 100, 60) };
+  const row = {
+    getBoundingClientRect: () => rect(120, 210, 480, 60),
+    querySelector: () => ({ getBoundingClientRect: () => rect(120, 210, 100, 60) }),
+    querySelectorAll: () => [lastCell],
+  };
+  const table = { getBoundingClientRect: () => rect(120, 100, 480, 700) };
+  const shell = {
+    scrollLeft: 40, scrollTop: 0,
+    getBoundingClientRect: () => rect(100, 80, 400, 700),
+    querySelector: () => table,
+    querySelectorAll: () => [{ dataset: { period: '6교시' }, ...row }],
+    appendChild: (node) => appended.push(node),
+  };
+  const document = {
+    getElementById: () => shell,
+    querySelector: () => row,
+    createElement: () => ({ style: {}, offsetWidth: 84 }),
+  };
+  const render = helper('renderFloatingTimeline', {
+    document, currentTimeEl: { dataset: { timeText: '오후 2:41:00' } },
+    renderRollingStyleText() {}, getComputedStyle: () => ({ width: '84px' }),
+  });
+  render({ type: 'schedule' }, { name: '6교시' }, 4, 50);
+  assert.equal(appended.length, 2);
+  assert.equal(appended[0].style.top, '158.5px');
+  assert.equal(appended[0].style.left, '64px');
+  assert.equal(appended[1].style.width, '386px');
+});
+
+test('share exports the effective visible period times, including weekday overrides', () => {
+  const exportTimes = helper('getShareableScheduleEdits', {
+    scheduleRanges: [
+      { name: '6교시', start: '14:00', end: '14:50', dayRanges: { 4: { start: '14:10', end: '15:00' } } },
+      { name: '방과후 A', start: '16:30', end: '17:20' },
+    ],
+    document: { querySelectorAll: () => [{ dataset: { period: '6교시' } }] },
+  });
+  assert.equal(JSON.stringify(exportTimes()), JSON.stringify({
+    '6교시': { start: '14:00', end: '14:50', days: { 4: { start: '14:10', end: '15:00' } } },
+  }));
+});
+
+test('dialog motion reverses a pending close and reduced motion uses opacity only', async () => {
+  const frames = [];
+  const dialog = {
+    open: false,
+    addEventListener() {},
+    showModal() { this.open = true; },
+    close() { this.open = false; },
+    animate(keyframes, options) {
+      frames.push({ keyframes, options });
+      return { finished: Promise.resolve(), cancel() {} };
+    },
+  };
+  const move = helper('setNativeDialogVisible', {
+    nativeDialogCancelBound: new WeakSet(), nativeDialogMotionState: new WeakMap(),
+    dialogReduceMotion: { matches: true },
+    getComputedStyle: () => ({ opacity: '0.5', transform: 'matrix(1, 0, 0, 1, 0, 4)', filter: 'blur(2px)' }),
+  });
+  move(dialog, true);
+  move(dialog, false);
+  move(dialog, true);
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.equal(dialog.open, true);
+  assert.equal(frames[2].keyframes[0].opacity, '0.5');
+  assert.equal(frames[2].keyframes[0].transform, 'none');
+  assert.equal(frames[2].options.duration, 150);
+});
+
+test('setup dialog finishes its exit before the next screen opens', async () => {
+  const classes = new Set(['hidden']);
+  const frames = [];
+  const animate = (keyframes, options) => {
+    frames.push({ keyframes, options });
+    return { finished: Promise.resolve(), cancel() {} };
+  };
+  const card = { animate };
+  const dialog = {
+    classList: {
+      contains: name => classes.has(name),
+      add: name => classes.add(name),
+      remove: name => classes.delete(name),
+      toggle: (name, on) => on ? classes.add(name) : classes.delete(name),
+    },
+    querySelector: () => card, setAttribute() {}, animate,
+  };
+  const move = helper('setSetupDialogVisible', {
+    dialogMotionState: new WeakMap(), dialogReduceMotion: { matches: false },
+    getComputedStyle: () => ({ opacity: '1', transform: 'none', filter: 'none' }),
+  });
+  assert.equal(await move(dialog, true), true);
+  assert.equal(classes.has('hidden'), false);
+  assert.equal(frames[1].keyframes[0].opacity, 0);
+  assert.equal(await move(dialog, false), true);
+  assert.equal(classes.has('hidden'), true);
+  assert.equal(frames[3].keyframes[1].opacity, 0);
+});
+
+test('inline panel can reopen during its closing animation', async () => {
+  const classes = new Set();
+  const panel = {
+    dataset: {},
+    classList: { contains: name => classes.has(name), add: name => classes.add(name), remove: name => classes.delete(name), toggle: (name, on) => on ? classes.add(name) : classes.delete(name) },
+    setAttribute() {},
+    animate: () => ({ finished: Promise.resolve(), cancel() {} }),
+  };
+  const show = helper('setInlinePanelVisible', {
+    inlinePanelMotionState: new WeakMap(), dialogReduceMotion: { matches: false },
+    getComputedStyle: () => ({ opacity: '0.6', transform: 'matrix(1, 0, 0, 1, 0, 3)' }),
+  });
+  show(panel, true);
+  show(panel, false);
+  show(panel, true);
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.equal(classes.has('is-open'), true);
+  assert.equal(panel.dataset.motionTarget, undefined);
+});

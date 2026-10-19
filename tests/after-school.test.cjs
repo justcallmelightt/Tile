@@ -4,7 +4,7 @@ const vm = require('node:vm');
 const { readFileSync } = require('node:fs');
 
 class Element {
-  constructor() { this.children = []; this.dataset = {}; this.events = {}; this.value = ''; }
+  constructor() { this.children = []; this.dataset = {}; this.events = {}; this.value = ''; this.classList = { add() {}, remove() {} }; }
   get rows() { return this.children; }
   append(...children) { for (const child of children) { child.remove?.(); child.parent = this; this.children.push(child); } }
   remove() { if (this.parent) this.parent.children = this.parent.children.filter(child => child !== this); }
@@ -60,7 +60,7 @@ test('overlap and reversed times do not save', () => {
 });
 test('removal requires confirmation and remains removed after reload', () => {
   const app = setup();
-  app.node('afterSchoolOpen').fire('click');
+  app.node('managementAfterSchool').fire('click');
   const remove = app.node('afterSchoolList').children[0].children[1];
   remove.fire('click');
   assert.equal(app.stored(), undefined);

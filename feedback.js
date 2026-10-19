@@ -11,9 +11,9 @@
     document.getElementById('toolMenu').classList.remove('is-open');
     document.getElementById('toolMenuToggle').setAttribute('aria-expanded', 'false');
     document.getElementById('toolMenuPanel').setAttribute('aria-hidden', 'true');
-    dialog.showModal();
+    window.TileApp?.setNativeDialogVisible(dialog, true);
   });
-  document.getElementById('feedbackClose').addEventListener('click', () => dialog.close());
+  document.getElementById('feedbackClose').addEventListener('click', () => window.TileApp?.setNativeDialogVisible(dialog, false));
   dialog.addEventListener('close', () => document.getElementById('toolMenuToggle').focus());
   // Do not let the application's other modal handlers consume dialog keys.
   dialog.addEventListener('keydown', event => event.stopPropagation());

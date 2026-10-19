@@ -68,6 +68,7 @@ interface NeisTimetableRow {
 }
 
 interface NeisMealRow {
+  MLSV_YMD?: string;
   MMEAL_SC_NM?: string;
   DDISH_NM?: string;
 }
@@ -76,6 +77,7 @@ interface TileMeal {
   type: string;
   menu: string;
   rawMenu: string;
+  serviceDate: string;
 }
 
 interface PreparedNeisSync {
@@ -83,6 +85,7 @@ interface PreparedNeisSync {
   school: TileSchool;
   timetableRows: NeisTimetableRow[];
   meals: TileMeal[];
+  mealDate: string;
   department: string;
   partial: boolean;
   syncScope: string;
@@ -139,7 +142,8 @@ interface TileAppBridge {
     info: { room: string; teacher: string }
   ) => void;
   refresh?: () => void;
-  setMeal?: (type: string, menu: string, rawMenu: string) => void;
+  setMealDate?: (serviceDate: string) => void;
+  setMeal?: (type: string, menu: string, rawMenu: string, serviceDate: string) => void;
   setSchoolDetails?: (school: TileSchool) => void;
   setSchoolDepartment?: (department: string) => void;
   notify?: (

@@ -5,7 +5,7 @@
   const byId = (id) => document.getElementById(id);
   const nodes = {
     unavailable: byId("accountUnavailable"), signedOut: byId("accountSignedOut"), signedIn: byId("accountSignedIn"),
-    googleSignIn: byId("googleSignIn"), lightframeEmailToggle: byId("lightframeEmailToggle"), lightframeEmailForm: byId("lightframeEmailForm"),
+    googleSignIn: byId("googleSignIn"), setupGoogleSignIn: byId("setupGoogleSignIn"), lightframeEmailToggle: byId("lightframeEmailToggle"), lightframeEmailForm: byId("lightframeEmailForm"),
     lightframeEmail: byId("lightframeEmailInput"), lightframePassword: byId("lightframePasswordInput"),
     lightframeSignIn: byId("lightframePasswordSignIn"), lightframeSignUp: byId("lightframePasswordSignUp"), lightframeEmailMessage: byId("lightframeEmailMessage"),
     avatar: byId("accountAvatar"), displayName: byId("accountDisplayName"),
@@ -79,8 +79,9 @@
     // usable origin, so complete authentication on Tile's production site.
     const canReturnToCurrentOrigin = window.location.protocol === "https:"
       && window.location.origin === CANONICAL_AUTH_ORIGIN;
-    const origin = canReturnToCurrentOrigin ? window.location.origin : CANONICAL_AUTH_ORIGIN;
-    return `${origin}${window.location.pathname}`;
+    return canReturnToCurrentOrigin
+      ? `${window.location.origin}${window.location.pathname}`
+      : `${CANONICAL_AUTH_ORIGIN}/`;
   }
 
   function readAuthReturnLocation() {
@@ -158,17 +159,26 @@
   }
 
   async function signInWithGoogle() {
-    if (!client) return;
+    if (!client) {
+      window.TileApp?.notify?.("계정 연결을 준비하고 있습니다", "잠시 후 다시 시도해주세요.");
+      return;
+    }
+    if (nodes.googleSignIn?.disabled || nodes.setupGoogleSignIn?.disabled) return;
     setBusy(nodes.googleSignIn, true);
-    sessionStorage.setItem(AUTH_RETURN_KEY, currentReturnLocation());
-    const { error } = await client.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: getAuthRedirectUrl(), queryParams: { prompt: "select_account" } }
-    });
-    if (error) {
+    setBusy(nodes.setupGoogleSignIn, true);
+    try {
+      sessionStorage.setItem(AUTH_RETURN_KEY, currentReturnLocation());
+      const { error } = await client.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: getAuthRedirectUrl(), queryParams: { prompt: "select_account" } }
+      });
+      if (error) throw error;
+    } catch (error) {
       sessionStorage.removeItem(AUTH_RETURN_KEY);
+      window.TileApp?.notify?.("Google 로그인에 실패했습니다", error?.message || "잠시 후 다시 시도해주세요.", { tone: "error" });
+    } finally {
       setBusy(nodes.googleSignIn, false);
-      window.TileApp?.notify?.("Google 로그인에 실패했습니다", error.message, { tone: "error" });
+      setBusy(nodes.setupGoogleSignIn, false);
     }
   }
 
@@ -284,12 +294,17 @@
 
   function openAccountSettings() {
     byId("appSettingsToggle")?.click();
-    window.setTimeout(() => document.querySelector('[data-settings-target="accountSettings"]')?.click(), 0);
+    window.setTimeout(() => {
+      const accountTab = document.querySelector('[data-settings-target="accountSettings"]');
+      accountTab?.click();
+      accountTab?.focus({ preventScroll: true });
+    }, 100);
   }
 
   function bindEvents() {
     nodes.accountEntry?.addEventListener("click", openAccountSettings);
     nodes.googleSignIn?.addEventListener("click", signInWithGoogle);
+    nodes.setupGoogleSignIn?.addEventListener("click", signInWithGoogle);
     nodes.lightframeEmailToggle?.addEventListener("click", () => {
       const isOpen = !nodes.lightframeEmailForm?.hidden;
       setHidden(nodes.lightframeEmailForm, isOpen);

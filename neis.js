@@ -49,6 +49,16 @@
         const day = String(date.getDate()).padStart(2, "0");
         return `${year}${month}${day}`;
     }
+    function getSeoulYmd(date = new Date()) {
+        const parts = new Intl.DateTimeFormat("en-CA", {
+            timeZone: "Asia/Seoul",
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit"
+        }).formatToParts(date);
+        const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+        return `${values.year}${values.month}${values.day}`;
+    }
     function parseYmd(value) {
         const text = String(value || "");
         if (!/^\d{8}$/.test(text))
@@ -302,18 +312,19 @@
             user.classNum
         ].join("|");
     }
-    async function getMeal(user) {
+    async function getMeal(user, serviceDate = getSeoulYmd()) {
         const currentUser = getUserConfig(user);
         const school = await resolveSchool(currentUser);
         const rows = await request("mealServiceDietInfo", {
             ATPT_OFCDC_SC_CODE: school.office,
             SD_SCHUL_CODE: school.code,
-            MLSV_YMD: formatYmd()
+            MLSV_YMD: serviceDate
         }, "mealServiceDietInfo");
         return rows.map((row) => ({
             type: row.MMEAL_SC_NM || "",
             menu: formatMealMenu(row.DDISH_NM),
-            rawMenu: String(row.DDISH_NM || "")
+            rawMenu: String(row.DDISH_NM || ""),
+            serviceDate: row.MLSV_YMD || serviceDate
         }));
     }
     async function getTimetable(user) {
@@ -377,10 +388,11 @@
         window.TileApp?.refresh?.();
         return applied;
     }
-    function applyMeals(meals) {
+    function applyMeals(meals, serviceDate) {
+        window.TileApp?.setMealDate?.(serviceDate);
         meals.forEach((meal) => {
             if (["조식", "중식", "석식"].includes(meal.type)) {
-                window.TileApp?.setMeal?.(meal.type, meal.menu, meal.rawMenu);
+                window.TileApp?.setMeal?.(meal.type, meal.menu, meal.rawMenu, meal.serviceDate);
             }
         });
     }
@@ -390,9 +402,10 @@
         const syncedUser = { ...currentUser, school };
         const syncScope = getSyncScope(syncedUser);
         const previousSyncScope = localStorage.getItem(SYNC_SCOPE_STORAGE_KEY) || "";
+        const mealDate = getSeoulYmd();
         const [timetableRows, meals] = await Promise.all([
             getTimetable(syncedUser),
-            getMeal(syncedUser)
+            getMeal(syncedUser, mealDate)
         ]);
         const department = timetableRows.find((row) => row.DDDEP_NM)?.DDDEP_NM || "";
         return {
@@ -400,6 +413,7 @@
             school,
             timetableRows,
             meals,
+            mealDate,
             department,
             partial: timetableResponseWasPartial,
             syncScope,
@@ -414,7 +428,7 @@
         });
         window.TileApp?.setSchoolDetails?.(prepared.school);
         window.TileApp?.setSchoolDepartment?.(prepared.department);
-        applyMeals(prepared.meals);
+        applyMeals(prepared.meals, prepared.mealDate);
         setStatus(prepared.partial
             ? `일부 연결됨 · ${appliedCount}개 반영됨`
             : `연결됨 · ${appliedCount}개 반영됨`);

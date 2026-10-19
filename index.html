@@ -10,7 +10,7 @@
   <link rel="icon" href="./assets/favicon/favicon-32x32.png" sizes="32x32" type="image/png" />
   <link rel="icon" href="./assets/favicon/favicon-96x96.png" sizes="96x96" type="image/png" />
   <link rel="apple-touch-icon" href="./assets/favicon/favicon-96x96.png" />
-  <link rel="stylesheet" href="./style.css?v=20261010-version-label" />
+  <link rel="stylesheet" href="./style.css?v=20261019-setup-google" />
   <!-- Google AdSense: site ownership verification and ad delivery -->
   <script
     async
@@ -25,7 +25,7 @@
   <dialog id="feedbackDialog" class="feedback-dialog tile-management-dialog" aria-labelledby="feedbackTitle">
     <form id="feedbackForm">
       <div class="setup-header">
-        <div><span class="dialog-eyebrow">함께 만드는 Tile</span><h2 id="feedbackTitle">피드백 보내기</h2></div>
+        <div><span class="dialog-eyebrow">함께 만드는 Tile</span><h2 id="feedbackTitle">피드백 보내기 <span class="feature-stage-badge" aria-label="베타 기능">Beta</span></h2></div>
         <button id="feedbackClose" class="dialog-close" type="button" aria-label="피드백 닫기">×</button>
       </div>
       <fieldset class="feedback-types">
@@ -58,7 +58,7 @@
         </div>
       </div>
       <nav class="tile-demo-controls" aria-label="사용법 안내">
-          <button id="tileDemoClose" class="tile-demo-text-button" type="button" aria-label="튜토리얼 닫기">건너뛰기</button>
+          <button id="tileDemoClose" class="tile-demo-text-button" type="button" aria-label="안내 건너뛰고 Tile 시작하기">건너뛰기</button>
           <button id="tileDemoPrevious" class="tile-demo-text-button" type="button" disabled>이전</button>
           <button id="tileDemoPlayback" class="tile-demo-text-button" type="button" aria-pressed="false">일시정지</button>
           <button id="tileDemoNext" class="tile-demo-next" type="button">다음</button>
@@ -142,6 +142,19 @@
           <span class="button-progress" aria-hidden="true"></span>
         </button>
       </div>
+      <div class="setup-auth-options">
+        <div class="account-lightframe-action setup-account-action">
+          <button id="setupAccountSignIn" class="account-lightframe-toggle setup-account-entry" type="button">
+            <span class="account-lightframe-mark" aria-hidden="true">✨</span>
+            <span class="setup-account-copy"><strong>Lightframe. 이메일로 로그인</strong><small>백업한 시간표 불러오기</small></span>
+            <span class="setup-account-arrow" aria-hidden="true">↗</span>
+          </button>
+        </div>
+        <button id="setupGoogleSignIn" class="account-primary-action setup-google-entry" type="button">
+          <img class="google-mark" src="./assets/google-g-logo.png" alt="">
+          <span>Google로 시작하기</span>
+        </button>
+      </div>
     </div>
   </div>
   <div id="appSettingsModal" class="setup-modal hidden" aria-hidden="true">
@@ -214,10 +227,20 @@
           <input id="importTileDataInput" type="file" accept="application/json,.json" hidden>
           <button id="undoTileChange" class="secondary-action" type="button">마지막 변경 되돌리기</button>
         </div>
+        <div class="tile-reset-section">
+          <button id="showTileReset" class="account-text-action account-danger-action" type="button" aria-expanded="false" aria-controls="tileResetPanel">Tile 공장 초기화</button>
+          <div id="tileResetPanel" class="account-confirm-panel account-danger-panel" hidden>
+            <strong>처음 상태로 돌아갈까요?</strong>
+            <p>이 기기의 학교·시간표·메모·개인 프리셋·설정·튜토리얼 기록을 지우고 로그아웃합니다. 계정의 클라우드 백업과 공유 링크는 남아 있어 다시 로그인하면 불러올 수 있습니다.</p>
+            <label class="setup-field" for="tileResetConfirmation"><span>확인하려면 ‘초기화’를 입력하세요</span><input id="tileResetConfirmation" autocomplete="off" spellcheck="false" placeholder="초기화"></label>
+            <p id="tileResetMessage" class="form-message" role="status" aria-live="polite"></p>
+            <div><button id="cancelTileReset" class="secondary-action" type="button">취소</button><button id="confirmTileReset" class="danger-action" type="button" disabled>이 기기 초기화</button></div>
+          </div>
+        </div>
       </section>
       <section class="settings-section" id="accountSettings" aria-labelledby="accountSettingsTitle" hidden>
         <div class="settings-section-header">
-          <h3 id="accountSettingsTitle">Lightframe. 계정</h3>
+          <h3 id="accountSettingsTitle">Lightframe. 계정 <span class="feature-stage-badge" aria-label="알파 기능">Alpha</span></h3>
           <p>로그인하면 현재 시간표를 계정에 백업하고 다른 기기에서 복원할 수 있습니다.</p>
         </div>
         <div id="accountUnavailable" class="account-notice" role="status" hidden>
@@ -333,25 +356,25 @@
   <div class="iphone-safe-zone" aria-hidden="true"></div>
   <div class="floating-topbar" id="floatingTopbar" aria-hidden="true">
     <div class="status-card" id="floatingStatusCard">
-      <div class="status-item">
+      <div class="status-item status-item-time">
         <span class="status-label">현재 시간</span>
         <span class="status-value" id="topbarTime">불러오는 중...</span>
       </div>
-      <div class="status-item">
+      <div class="status-item status-item-period">
         <span class="status-label">현재 진행</span>
         <span class="status-value" id="topbarPeriod">확인 중...</span>
       </div>
-      <div class="status-item">
+      <div class="status-item status-item-room">
+        <span class="status-label">현재 교실</span>
+        <span class="status-value" id="topbarRoom">확인 중...</span>
+      </div>
+      <div class="status-item status-item-remaining">
         <span class="status-label" id="topbarRemainingLabel">교시 남은 시간</span>
         <span class="status-value" id="topbarRemaining">계산 중...</span>
       </div>
-      <div class="status-item">
+      <div class="status-item status-item-day">
         <span class="status-label" id="topbarDayRemainingLabel">일과 남은 시간</span>
         <span class="status-value" id="topbarDayRemaining">계산 중...</span>
-      </div>
-      <div class="status-item">
-        <span class="status-label">현재 교실</span>
-        <span class="status-value" id="topbarRoom">확인 중...</span>
       </div>
     </div>
   </div>
@@ -375,19 +398,19 @@
         <button class="theme-toggle today-toggle" id="todayOnlyToggle" type="button" aria-pressed="false">오늘 일과만 보기</button>
         <div class="tool-menu" id="toolMenu">
           <button class="theme-toggle" id="toolMenuToggle" type="button" aria-expanded="false" aria-controls="toolMenuPanel">도구</button>
-          <span class="tile-version-label">Tile 2.0 · Alpha 2</span>
           <div class="tool-menu-panel" id="toolMenuPanel" aria-hidden="true">
             <span class="tool-menu-label">설정</span>
             <button id="schoolSettingsToggle" type="button"><span>학교 설정</span><small>학교와 학급 변경</small></button>
-            <button id="accountSettingsToggle" type="button"><span>내 계정</span><small id="accountSettingsStatus">로그인 및 계정 관리</small></button>
+            <button id="accountSettingsToggle" type="button"><span class="tool-menu-title">내 계정 <em class="tool-beta-badge" aria-label="알파 기능">Alpha</em></span><small id="accountSettingsStatus">로그인 및 계정 관리</small></button>
             <button id="appSettingsToggle" type="button"><span>Tile 설정</span><small>개인화와 데이터</small></button>
             <span class="tool-menu-label tool-menu-label-help">도움말</span>
             <button id="tileDemoLaunch" type="button"><span>사용법 익히기</span><small>Tile 화면 안내 다시 보기</small></button>
-            <button id="feedbackLaunch" type="button"><span>피드백 보내기</span><small>아이디어 제안 · 버그 신고</small></button>
+            <button id="feedbackLaunch" type="button"><span class="tool-menu-title">피드백 보내기 <em class="tool-beta-badge" aria-label="베타 기능">Beta</em></span><small>아이디어 제안 · 버그 신고</small></button>
             <span class="tool-menu-label tool-menu-label-pending">준비 중</span>
             <button class="tool-menu-unavailable" type="button" disabled aria-disabled="true"><span>창작마당</span><small>아직 사용할 수 없습니다</small></button>
           </div>
         </div>
+        <span class="tile-version-label">Tile 2.0 · Alpha 2</span>
       </div>
     </div>
     <div class="top-grid">
@@ -439,24 +462,25 @@
       <div class="custom-panel-header">
         <div>
           <h2>오늘 급식</h2>
-          <p>NEIS에서 불러온 조식, 중식, 석식을 따로 확인할 수 있습니다.</p>
+          <p id="mealDateStatus" aria-live="polite">오늘 급식 날짜를 아직 확인하지 않았어요.</p>
+          <button id="mealSchoolSettings" class="meal-refresh-link" type="button">학교 설정 열기</button>
         </div>
         <button class="custom-close" id="mealClose" type="button" aria-label="닫기">&times;</button>
       </div>
       <div class="meal-list" id="mealList">
         <div class="meal-card">
           <span class="meal-type">조식</span>
-          <p id="breakfastMenu">아직 불러온 급식 정보가 없습니다.</p>
+          <p id="breakfastMenu"></p>
           <div class="meal-warning" id="breakfastWarning"></div>
         </div>
         <div class="meal-card">
           <span class="meal-type">중식</span>
-          <p id="lunchMenu">아직 불러온 급식 정보가 없습니다.</p>
+          <p id="lunchMenu"></p>
           <div class="meal-warning" id="lunchWarning"></div>
         </div>
         <div class="meal-card">
           <span class="meal-type">석식</span>
-          <p id="dinnerMenu">아직 불러온 급식 정보가 없습니다.</p>
+          <p id="dinnerMenu"></p>
           <div class="meal-warning" id="dinnerWarning"></div>
         </div>
       </div>
@@ -470,7 +494,7 @@
       <div class="timetable-actions-secondary">
         <button id="mealToggle" class="secondary-action" type="button" aria-expanded="false" aria-controls="mealPanel">급식</button>
         <button id="memoToggle" class="secondary-action" type="button">메모</button>
-        <button id="showcaseShareToggle" class="secondary-action" type="button" aria-haspopup="dialog">시간표 공유</button>
+        <button id="showcaseShareToggle" class="secondary-action" type="button" aria-haspopup="dialog">시간표 공유 <span class="feature-stage-badge" aria-label="베타 기능">Beta</span></button>
       </div>
     </nav>
     <div class="table-shell" id="timetable" tabindex="0" aria-label="주간 시간표">
@@ -591,7 +615,6 @@
         </tbody>
       </table>
     </div>
-    <div class="after-school-toolbar"><button id="afterSchoolOpen" class="secondary-action" type="button">방과후 관리</button><span>시간대를 추가하고, 과목은 시간표에서 편집하세요.</span></div>
     <dialog id="timetableManagementDialog" class="timetable-management-dialog tile-management-dialog" aria-labelledby="timetableManagementTitle">
       <div class="setup-header">
         <div><span class="dialog-eyebrow">내 시간표</span><h2 id="timetableManagementTitle">시간표 관리</h2></div>
@@ -599,7 +622,7 @@
       </div>
       <p class="after-school-description">저장된 시간표 구성을 바꾸거나 방과후 시간대를 관리합니다. 공유용 임시본에는 영향을 주지 않습니다.</p>
       <div class="management-studio-grid">
-        <button id="personalPresetsOpen" class="management-studio-action" type="button"><span>개인 프리셋</span><small>현재 구성을 저장하고 다시 불러오기</small></button>
+        <button id="personalPresetsOpen" class="management-studio-action" type="button"><span>개인 프리셋 <em class="feature-stage-badge" aria-label="베타 기능">Beta</em></span><small>현재 구성을 저장하고 다시 불러오기</small></button>
         <button id="managementAfterSchool" class="management-studio-action" type="button"><span>방과후 관리</span><small>방과후 시간대를 추가하거나 정리</small></button>
       </div>
     </dialog>
@@ -613,7 +636,7 @@
       </form>
     </dialog>
     <dialog id="personalPresetsDialog" class="after-school-dialog tile-management-dialog" aria-labelledby="personalPresetsTitle">
-      <div class="setup-header"><div><span class="dialog-eyebrow">나만의 시간표</span><h2 id="personalPresetsTitle">개인 프리셋</h2></div><button id="personalPresetsClose" class="dialog-close" type="button" aria-label="개인 프리셋 닫기">×</button></div>
+      <div class="setup-header"><div><span class="dialog-eyebrow">나만의 시간표</span><h2 id="personalPresetsTitle">개인 프리셋 <span class="feature-stage-badge" aria-label="베타 기능">Beta</span></h2></div><button id="personalPresetsClose" class="dialog-close" type="button" aria-label="개인 프리셋 닫기">×</button></div>
       <p class="after-school-description">현재 시간표·방과후·메모·설정을 이 브라우저에 저장해요. 로그인 정보는 저장하지 않으며, 공개되지 않아요. 브라우저 데이터를 삭제하면 프리셋도 사라집니다.</p>
       <form id="personalPresetsForm" class="preset-save-form"><label for="personalPresetName">프리셋 이름</label><input id="personalPresetName" maxlength="40" required placeholder="예: 2학기 방과후 시간표"><button class="primary-action" type="submit">현재 구성 저장</button></form>
       <p id="personalPresetsStatus" class="form-message" role="status"></p>
@@ -726,13 +749,13 @@
   </div>
   <script src="./config.public.js?v=20260703-script-fix"></script>
   <script src="./config.js?v=20260703-script-fix" onerror="this.remove()"></script>
-  <script src="./neis.js?v=20260727-review-fixes"></script>
-  <script src="./after-school.js?v=20260911"></script>
-  <script src="./script.js?v=20260921-daily-homeroom"></script>
-  <script src="./auth.js?v=20260906-lightframe-account"></script>
-  <script src="./share.js?v=20260918-school-type-labels"></script>
-  <script src="./feedback.js?v=20260909"></script>
-  <script src="./personal-presets.js?v=20260911"></script>
-  <script src="./management-studio.js?v=20260916-navigation-hierarchy"></script>
+  <script src="./neis.js?v=20261013-meal-date"></script>
+  <script src="./after-school.js?v=20261017-dialog-motion"></script>
+  <script src="./script.js?v=20261019-motion-refinement"></script>
+  <script src="./auth.js?v=20261019-setup-google"></script>
+  <script src="./share.js?v=20261017-dialog-motion"></script>
+  <script src="./feedback.js?v=20261017-dialog-motion"></script>
+  <script src="./personal-presets.js?v=20261017-dialog-motion"></script>
+  <script src="./management-studio.js?v=20261017-dialog-motion"></script>
 </body>
 </html>

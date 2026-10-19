@@ -91,9 +91,9 @@
       status.textContent = '기존 프리셋을 읽지 못했습니다. 데이터를 보호하기 위해 새 저장을 중단했습니다.';
     }
     render();
-    dialog.showModal();
+    window.TileApp?.setNativeDialogVisible(dialog, true);
   });
-  byId('personalPresetsClose').addEventListener('click', () => dialog.close());
+  byId('personalPresetsClose').addEventListener('click', () => window.TileApp?.setNativeDialogVisible(dialog, false));
   dialog.addEventListener('close', () => (byId('timetableManagementToggle') || byId('toolMenuToggle')).focus());
   dialog.addEventListener('keydown', event => event.stopPropagation());
   byId('personalPresetsForm').addEventListener('submit', event => {
