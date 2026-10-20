@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <script src="./tour-boot.js?v=20260910"></script>
+  <script src="./tour-boot.js?v=20261021-reset-reveal"></script>
   <link rel="preload" href="./assets/fonts/PretendardVariable.woff2" as="font" type="font/woff2" crossorigin />
   <title>Tile</title>
   <link rel="icon" href="./assets/favicon/favicon-16x16.png" sizes="16x16" type="image/png" />
   <link rel="icon" href="./assets/favicon/favicon-32x32.png" sizes="32x32" type="image/png" />
   <link rel="icon" href="./assets/favicon/favicon-96x96.png" sizes="96x96" type="image/png" />
   <link rel="apple-touch-icon" href="./assets/favicon/favicon-96x96.png" />
-  <link rel="stylesheet" href="./style.css?v=20261019-setup-login-divider" />
+  <link rel="stylesheet" href="./style.css?v=20261021-tour-handoff" />
   <!-- Google AdSense: site ownership verification and ad delivery -->
   <script
     async
@@ -19,6 +19,7 @@
   ></script>
 </head>
 <body class="welcome-active">
+  <div id="tileResetBlackout" class="tile-reset-blackout" aria-hidden="true"></div>
   <a class="skip-link" href="#timetable">시간표로 바로가기</a>
   <div class="startup-spotlight" aria-hidden="true"></div>
   <div id="toastRegion" class="toast-region" aria-live="polite" aria-atomic="true"></div>
@@ -752,7 +753,7 @@
   <script src="./config.js?v=20260703-script-fix" onerror="this.remove()"></script>
   <script src="./neis.js?v=20261013-meal-date"></script>
   <script src="./after-school.js?v=20261017-dialog-motion"></script>
-  <script src="./script.js?v=20261019-motion-refinement"></script>
+  <script src="./script.js?v=20261021-tour-handoff"></script>
   <script src="./auth.js?v=20261019-setup-google"></script>
   <script src="./share.js?v=20261017-dialog-motion"></script>
   <script src="./feedback.js?v=20261017-dialog-motion"></script>

@@ -102,6 +102,35 @@ body {
   transition: background 0.28s ease, color 0.28s ease;
 }
 
+.tile-reset-blackout {
+  position: fixed;
+  inset: 0;
+  z-index: 30000;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.tile-reset-blackout.is-blanking,
+html.tile-reset-returning .tile-reset-blackout {
+  pointer-events: auto;
+}
+
+html.tile-reset-returning .tile-reset-blackout {
+  animation: tileResetReveal 1050ms cubic-bezier(.22, 1, .36, 1) 1050ms both;
+}
+
+@keyframes tileResetReveal {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.tile-reset-returning .tile-reset-blackout {
+    animation: tileResetReveal 150ms ease-out both;
+  }
+}
+
 .startup-spotlight {
   --spotlight-rgb: 255, 255, 255;
   position: fixed;
@@ -571,6 +600,7 @@ h1 {
 }
 
 #schoolInput,
+#tileResetConfirmation,
 #gradeInput,
 #classInput,
 #allergyInput,
@@ -2469,6 +2499,44 @@ body.mobile-today-mode col.day-col {
   vertical-align: middle;
 }
 
+.tile-start-digit-track {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  flex: none;
+  font: inherit;
+  line-height: 1;
+}
+
+.clock-seconds-window {
+  position: relative;
+  display: inline-block;
+  height: 1em;
+  overflow: hidden;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.clock-seconds-sizer {
+  display: block;
+  line-height: 1;
+  visibility: hidden;
+}
+
+.clock-second-value {
+  position: absolute;
+  inset: 0;
+  display: block;
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+  will-change: transform, opacity;
+}
+
 .time-char.rolling {
   -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 18%, #000 82%, transparent 100%);
   mask-image: linear-gradient(to bottom, transparent 0%, #000 18%, #000 82%, transparent 100%);
@@ -2854,6 +2922,7 @@ body.light-mode .subject-modal {
 }
 
 #schoolInput,
+#tileResetConfirmation,
 #gradeInput,
 #classInput,
 #allergyInput,
@@ -2886,6 +2955,7 @@ body.light-mode .subject-modal {
 }
 
 #schoolInput:hover,
+#tileResetConfirmation:hover,
 #gradeInput:hover,
 #classInput:hover,
 #allergyInput:hover,
@@ -2904,6 +2974,7 @@ body.light-mode .subject-modal {
 }
 
 #schoolInput:focus,
+#tileResetConfirmation:focus,
 #gradeInput:focus,
 #classInput:focus,
 #allergyInput:focus,
@@ -4080,11 +4151,15 @@ button, input, textarea, select, option {
     filter: brightness(1.1) saturate(1.06);
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
   }
-  .account-lightframe-action:hover::before,
-  .account-lightframe-action:focus-within::before {
+  .account-lightframe-action:hover::before {
     opacity: 0.88;
     transform: scale(1);
   }
+}
+.account-lightframe-action:focus-within::before,
+.account-lightframe-action:active::before {
+  opacity: 0.88;
+  transform: scale(1);
 }
 .account-lightframe-toggle:active { transform: scale(0.985); filter: brightness(0.93); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18); transition: none; }
 .account-lightframe-toggle:focus-visible { outline: 3px solid #aa8fe7; outline-offset: 3px; }
@@ -4125,10 +4200,6 @@ button, input, textarea, select, option {
 body.light-mode .setup-auth-divider::before,
 body.light-mode .setup-auth-divider::after {
   background: rgba(17, 24, 39, 0.16);
-}
-
-.setup-account-action::before {
-  content: none;
 }
 
 .setup-account-entry {

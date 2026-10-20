@@ -22,12 +22,41 @@ test('tour finale says Tile 시작하기 even when school setup follows', () => 
   const finale = vm.runInNewContext(`(${source.slice(start, end)})`, { ...context, tileTourNeedsSchoolSetup: true });
   finale();
   assert.equal(label.textContent, 'Tile 시작하기');
-  assert.equal(hint.textContent, '다음으로 학교와 학급을 연결해요');
+  assert.equal(hint.textContent, '눌러서 시작하세요');
   assert.equal(begin.hidden, false);
   assert.equal(begin.focusCalled, true);
   assert.equal(classes.has('is-finale'), true);
   finale();
   assert.equal(classes.size, 2, 'the finale cannot restart once it is visible');
+});
+
+test('school handoff pairs the message with the status counter entrance', () => {
+  assert.match(source, /if \(shouldOpenSchoolSettings\) \{\s*revealTileStartCounters\(\);\s*showToast\('다음으로 학교와 학급을 연결해요'/);
+  const revealStart = source.indexOf('function revealTileStartCounters()');
+  const revealEnd = source.indexOf('\n}\n', revealStart) + 2;
+  let frames;
+  const digit = {
+    dataset: { value: '8' },
+    classList: { contains: () => false },
+    replaceChildren(track) { this.firstChild = track; },
+  };
+  const value = { querySelectorAll: () => [digit] };
+  const reveal = vm.runInNewContext(`(${source.slice(revealStart, revealEnd)})`, {
+    startupSpotlightReduceMotion: { matches: false },
+    document: {
+      querySelectorAll: () => [value],
+      createElement: () => ({ className: '', textContent: '', animate(nextFrames) {
+        frames = nextFrames;
+        return { finished: new Promise(() => {}) };
+      } }),
+    },
+  });
+  reveal();
+  assert.equal(digit.firstChild.textContent, '8', 'the real value is retained throughout the entrance');
+  assert.equal(frames[0].transform, 'translate3d(0, 100%, 0)');
+  assert.equal(frames[1].transform, 'translate3d(0, 0, 0)');
+  const css = readFileSync(`${__dirname}/../style.css`, 'utf8');
+  assert.match(css, /\.time-char\s*\{[^}]*overflow:\s*hidden/s);
 });
 
 test('skipping the guide leads to Tile 시작하기 instead of closing the tour', () => {

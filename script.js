@@ -366,10 +366,11 @@ let modalRestoreTarget = null;
 let overlayDismissBlockUntil = 0;
 const defaultCellSubjectMap = new Map();
 
-let previousTimeString = null;
 const rollingCharacterAnimations = new WeakMap();
 const rollingTextPreviousMap = new Map();
 const textSwapAnimationsMap = new Map();
+const clockTimeViews = new WeakMap();
+const clockSecondAnimations = new WeakMap();
 let cursorGlowFrame = null;
 let topbarFrame = null;
 let floatingTopbarVisible = false;
@@ -524,11 +525,6 @@ function finishRollingCharacter(element, char, expectedAnimation = null) {
   renderStaticRollingDigit(element, char);
 }
 
-function renderRollingTimeText(timeString) {
-  renderStaticTimeStyleText(currentTimeEl, timeString);
-  previousTimeString = timeString;
-}
-
 function renderRollingStyleText(element, text, key, options = {}) {
   if (!element) return;
 
@@ -621,41 +617,144 @@ function renderRollingStyleText(element, text, key, options = {}) {
   rollingTextPreviousMap.set(key, text);
 }
 
-function createRollingTime(timeString) {
-  if (!currentTimeEl) return;
-  currentTimeEl.dataset.timeText = timeString;
-  currentTimeEl.setAttribute("aria-label", timeString);
+// Light Intelligence's thinking-seconds spring: stiffness 420, damping 42, mass 1.
+function sampleClockSpring(start, velocity, target, elapsedSeconds) {
+  const slow = (-42 + Math.sqrt(42 * 42 - 4 * 420)) / 2;
+  const fast = (-42 - Math.sqrt(42 * 42 - 4 * 420)) / 2;
+  const displacement = start - target;
+  const slowAmplitude = (velocity - fast * displacement) / (slow - fast);
+  const fastAmplitude = displacement - slowAmplitude;
+  const slowTerm = slowAmplitude * Math.exp(slow * elapsedSeconds);
+  const fastTerm = fastAmplitude * Math.exp(fast * elapsedSeconds);
+  return {
+    value: target + slowTerm + fastTerm,
+    velocity: slow * slowTerm + fast * fastTerm
+  };
+}
 
-  if (previousTimeString === null || currentTimeEl.children.length === 0) {
-    renderRollingTimeText(timeString);
+function sampleClockSecondMotion(motion, elapsedSeconds, reducedMotion) {
+  if (reducedMotion) {
+    const progress = Math.min(1, elapsedSeconds / 0.15);
+    return {
+      y: 0,
+      velocityY: 0,
+      opacity: motion.opacity + (motion.targetOpacity - motion.opacity) * progress,
+      velocityOpacity: progress === 1 ? 0 : (motion.targetOpacity - motion.opacity) / 0.15
+    };
+  }
+  const y = sampleClockSpring(motion.y, motion.velocityY, motion.targetY, elapsedSeconds);
+  const opacity = sampleClockSpring(motion.opacity, motion.velocityOpacity, motion.targetOpacity, elapsedSeconds);
+  return { y: y.value, velocityY: y.velocity, opacity: opacity.value, velocityOpacity: opacity.velocity };
+}
+
+function applyClockSecondMotion(element, motion) {
+  element.style.transform = `translate3d(0, ${motion.y * 100}%, 0)`;
+  element.style.opacity = String(Math.max(0, Math.min(1, motion.opacity)));
+}
+
+function renderClockSeconds(windowElement, seconds) {
+  if (windowElement.dataset.seconds === seconds) return;
+
+  const previous = clockSecondAnimations.get(windowElement);
+  const now = performance.now();
+  let outgoing = windowElement.querySelector(".clock-second-value");
+  let outgoingStart = { y: 0, velocityY: 0, opacity: 1, velocityOpacity: 0 };
+  if (previous) {
+    cancelAnimationFrame(previous.frame);
+    previous.outgoing.remove();
+    outgoing = previous.incoming;
+    outgoingStart = sampleClockSecondMotion(previous.incomingMotion, (now - previous.startedAt) / 1000, previous.reducedMotion);
+    applyClockSecondMotion(outgoing, outgoingStart);
+  }
+
+  const incoming = document.createElement("span");
+  incoming.className = "clock-second-value";
+  incoming.textContent = seconds;
+  windowElement.appendChild(incoming);
+  windowElement.dataset.seconds = seconds;
+
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!outgoing || document.hidden) {
+    outgoing?.remove();
+    incoming.style.transform = "translate3d(0, 0, 0)";
+    incoming.style.opacity = "1";
+    clockSecondAnimations.delete(windowElement);
     return;
   }
 
-  const chars = currentTimeEl.children;
+  const outgoingMotion = { ...outgoingStart, targetY: reducedMotion ? 0 : -1, targetOpacity: 0 };
+  const incomingMotion = {
+    y: reducedMotion ? 0 : 1,
+    velocityY: 0,
+    opacity: 0,
+    velocityOpacity: 0,
+    targetY: 0,
+    targetOpacity: 1
+  };
+  const animation = { outgoing, incoming, outgoingMotion, incomingMotion, startedAt: now, reducedMotion, frame: 0 };
+  clockSecondAnimations.set(windowElement, animation);
+  applyClockSecondMotion(outgoing, outgoingStart);
+  applyClockSecondMotion(incoming, incomingMotion);
 
-  if (chars.length !== timeString.length) {
-    renderRollingTimeText(timeString);
-    return;
-  }
-
-  [...timeString].forEach((char, index) => {
-    const oldChar = previousTimeString[index];
-    if (char === oldChar) return;
-
-    const wrapper = chars[index];
-    if (!wrapper) return;
-
-    wrapper.className = getRollingTimeCharClass(char);
-    if (!canRollCharacterElement(wrapper)) {
-      wrapper.textContent = char;
-      wrapper.dataset.value = char;
+  const tick = (frameTime) => {
+    if (clockSecondAnimations.get(windowElement) !== animation) return;
+    const elapsedSeconds = (frameTime - now) / 1000;
+    applyClockSecondMotion(outgoing, sampleClockSecondMotion(outgoingMotion, elapsedSeconds, reducedMotion));
+    applyClockSecondMotion(incoming, sampleClockSecondMotion(incomingMotion, elapsedSeconds, reducedMotion));
+    if (elapsedSeconds >= (reducedMotion ? 0.15 : 0.65)) {
+      outgoing.remove();
+      incoming.style.transform = "translate3d(0, 0, 0)";
+      incoming.style.opacity = "1";
+      clockSecondAnimations.delete(windowElement);
       return;
     }
+    animation.frame = requestAnimationFrame(tick);
+  };
+  animation.frame = requestAnimationFrame(tick);
+}
 
-    renderRollingCharacter(wrapper, oldChar, char);
-  });
+function renderClockSecondDigits(windows, seconds) {
+  [...seconds].forEach((digit, index) => renderClockSeconds(windows[index], digit));
+}
 
-  previousTimeString = timeString;
+function renderRollingClockText(element, timeString, key) {
+  if (!element) return;
+  const match = /^(.*:)(\d{2})$/.exec(timeString);
+  if (!match) {
+    renderRollingStyleText(element, timeString, key);
+    return;
+  }
+
+  element.dataset.timeText = timeString;
+  element.setAttribute("aria-label", timeString);
+  element.title = timeString;
+  let view = clockTimeViews.get(element);
+  if (!view || view.prefix.parentNode !== element) {
+    cancelRollingCharacters(element);
+    const prefix = document.createElement("span");
+    prefix.className = "clock-time-prefix";
+    prefix.setAttribute("aria-hidden", "true");
+    const secondsWindows = Array.from({ length: 2 }, () => {
+      const secondsWindow = document.createElement("span");
+      secondsWindow.className = "clock-seconds-window";
+      secondsWindow.setAttribute("aria-hidden", "true");
+      const sizer = document.createElement("span");
+      sizer.className = "clock-seconds-sizer";
+      sizer.textContent = "0";
+      secondsWindow.appendChild(sizer);
+      return secondsWindow;
+    });
+    element.replaceChildren(prefix, ...secondsWindows);
+    view = { prefix, secondsWindows };
+    clockTimeViews.set(element, view);
+  }
+
+  renderRollingStyleText(view.prefix, match[1], `${key}-prefix`, { disableTextSwap: true });
+  renderClockSecondDigits(view.secondsWindows, match[2]);
+}
+
+function createRollingTime(timeString) {
+  renderRollingClockText(currentTimeEl, timeString, "current-clock");
 }
 
 function openSubjectModal(data = {}) {
@@ -2886,7 +2985,7 @@ function syncFloatingTopbar() {
     renderRollingStyleText(element, value, key);
   };
 
-  writeRollingText(topbarTime, readDisplayText(currentTimeEl, "불러오는 중..."), "topbar-current-time");
+  renderRollingClockText(topbarTime, readDisplayText(currentTimeEl, "불러오는 중..."), "topbar-current-time");
   writeRollingText(topbarPeriod, readDisplayText(currentPeriodEl, "확인 중..."), "topbar-current-period");
   if (topbarRemainingLabel) topbarRemainingLabel.textContent = remainingTimeLabelEl?.textContent?.trim() || "교시 남은 시간";
   const dayRemainingTimeLabelEl = document.getElementById("dayRemainingTimeLabel");
@@ -4204,6 +4303,38 @@ const tileResetConfirmation = document.getElementById("tileResetConfirmation");
 const confirmTileReset = document.getElementById("confirmTileReset");
 const tileResetMessage = document.getElementById("tileResetMessage");
 const showTileReset = document.getElementById("showTileReset");
+const tileResetBlackout = document.getElementById("tileResetBlackout");
+
+tileResetBlackout?.addEventListener("animationend", (event) => {
+  if (event.animationName === "tileResetReveal") document.documentElement.classList.remove("tile-reset-returning");
+});
+
+async function playTileResetBlackout() {
+  if (!tileResetBlackout) return;
+  tileResetBlackout.classList.add("is-blanking");
+  if (document.hidden) {
+    tileResetBlackout.style.opacity = "1";
+    return;
+  }
+  if (typeof tileResetBlackout.animate !== "function") {
+    tileResetBlackout.style.opacity = "1";
+    await new Promise((resolve) => window.setTimeout(resolve, 50));
+    return;
+  }
+  try {
+    await tileResetBlackout.animate([
+      { opacity: 0 },
+      { opacity: 1 }
+    ], {
+      duration: dialogReduceMotion.matches ? 150 : 800,
+      easing: "cubic-bezier(.4, 0, .6, 1)",
+      fill: "forwards"
+    }).finished;
+  } catch {
+    // If an animation is interrupted, the reset must still complete.
+  }
+  tileResetBlackout.style.opacity = "1";
+}
 
 function closeTileResetPanel() {
   if (!tileResetPanel) return;
@@ -4237,11 +4368,13 @@ confirmTileReset?.addEventListener("click", async () => {
   if (session?.user) {
     if (!client) {
       if (tileResetMessage) tileResetMessage.textContent = "계정 연결을 확인할 수 없어 초기화를 중단했습니다.";
+      confirmTileReset.disabled = false;
       return;
     }
     const { error: signOutError } = await client.auth.signOut({ scope: "local" });
     if (signOutError) {
       if (tileResetMessage) tileResetMessage.textContent = "로그아웃하지 못해 초기화를 중단했습니다. 잠시 후 다시 시도해주세요.";
+      confirmTileReset.disabled = false;
       return;
     }
   }
@@ -4252,8 +4385,16 @@ confirmTileReset?.addEventListener("click", async () => {
     for (const key of Object.keys(sessionStorage)) {
       if (key.startsWith("tile-")) sessionStorage.removeItem(key);
     }
+    sessionStorage.setItem("tile-reset-reveal", "1");
+    await playTileResetBlackout();
     window.location.reload();
   } catch (error) {
+    try { sessionStorage.removeItem("tile-reset-reveal"); } catch { /* Storage is already unavailable. */ }
+    tileResetBlackout?.getAnimations?.().forEach((animation) => animation.cancel());
+    if (tileResetBlackout) {
+      tileResetBlackout.classList.remove("is-blanking");
+      tileResetBlackout.style.opacity = "0";
+    }
     if (tileResetMessage) tileResetMessage.textContent = "브라우저 저장 공간을 지우지 못했습니다. 저장 권한을 확인해주세요.";
     confirmTileReset.disabled = false;
   }
@@ -4703,8 +4844,50 @@ function closeTileDemo(options = {}) {
   tileDemoPreviousFocus?.focus?.({ preventScroll: true });
   tileTourNeedsSchoolSetup = false;
   if (shouldOpenSchoolSettings) {
+    revealTileStartCounters();
+    showToast('다음으로 학교와 학급을 연결해요', '', { duration: 1050 });
     window.setTimeout(openSchoolSettings, startupSpotlightReduceMotion.matches ? 150 : 900);
   }
+}
+
+function revealTileStartCounters() {
+  const reduced = startupSpotlightReduceMotion.matches;
+  const values = document.querySelectorAll('#mainContent .status-card .status-value');
+  if (reduced) {
+    values.forEach((value) => value.animate?.([{ opacity: 0 }, { opacity: 1 }], {
+      duration: 150, easing: 'ease-out'
+    }));
+    return;
+  }
+
+  values.forEach((value) => {
+    const digitWindows = value.querySelectorAll('.time-char');
+    if (!digitWindows.length) {
+      value.animate?.([
+        { opacity: 0, transform: 'translate3d(0, 8px, 0)' },
+        { opacity: 1, transform: 'translate3d(0, 0, 0)' }
+      ], { duration: 520, easing: 'cubic-bezier(.22, 1, .36, 1)' });
+    }
+    digitWindows.forEach((windowElement) => {
+      if (windowElement.classList.contains('animate')) return;
+      const digit = windowElement.dataset.value;
+      if (!/^\d$/.test(digit)) return;
+      const track = document.createElement('span');
+      track.className = 'tile-start-digit-track';
+      track.textContent = digit;
+      windowElement.replaceChildren(track);
+      const animation = track.animate?.([
+        { transform: 'translate3d(0, 100%, 0)', opacity: 0 },
+        { transform: 'translate3d(0, 0, 0)', opacity: 1 }
+      ], { duration: 640, easing: 'cubic-bezier(.22, 1, .36, 1)', fill: 'both' });
+      if (!animation) return;
+      animation.finished.then(() => {
+        if (windowElement.firstChild === track && windowElement.dataset.value === digit) {
+          windowElement.textContent = digit;
+        }
+      }).catch(() => { /* A live counter update owns the digit after interruption. */ });
+    });
+  });
 }
 
 function showTileTourFinale() {
@@ -4716,9 +4899,7 @@ function showTileTourFinale() {
   const beginLabel = begin?.querySelector('span');
   const beginHint = begin?.querySelector('small');
   if (beginLabel) beginLabel.textContent = 'Tile 시작하기';
-  if (beginHint) beginHint.textContent = tileTourNeedsSchoolSetup
-    ? '다음으로 학교와 학급을 연결해요'
-    : '눌러서 시작하세요';
+  if (beginHint) beginHint.textContent = '눌러서 시작하세요';
   begin.hidden = false;
   begin.focus();
 }
