@@ -4173,7 +4173,8 @@ button, input, textarea, select, option {
 
 .setup-auth-options {
   display: grid;
-  gap: 14px;
+  gap: 16px;
+  margin-top: 22px;
   min-width: 0;
 }
 
@@ -4200,50 +4201,6 @@ button, input, textarea, select, option {
 body.light-mode .setup-auth-divider::before,
 body.light-mode .setup-auth-divider::after {
   background: rgba(17, 24, 39, 0.16);
-}
-
-.setup-account-entry {
-  justify-content: flex-start;
-  width: 100%;
-  min-height: 60px;
-  gap: 12px;
-  padding: 10px 16px;
-  text-align: left;
-}
-
-.setup-account-entry .account-lightframe-mark {
-  flex-basis: 28px;
-  width: 28px;
-  height: 28px;
-  margin-right: 0;
-  font-size: 21px;
-  filter: drop-shadow(0 1px 5px rgba(255, 255, 255, 0.36));
-}
-
-.setup-account-copy {
-  display: grid;
-  gap: 3px;
-  min-width: 0;
-}
-
-.setup-account-copy strong {
-  color: #fff;
-  font-size: 0.88rem;
-  font-weight: 650;
-  letter-spacing: -0.025em;
-}
-
-.setup-account-copy small {
-  color: rgba(255, 255, 255, 0.84);
-  font-size: 0.73rem;
-  font-weight: 500;
-}
-
-.setup-account-arrow {
-  margin-left: auto;
-  color: rgba(255, 255, 255, 0.88);
-  font-size: 1.1rem;
-  line-height: 1;
 }
 
 .account-email-form {
@@ -4376,43 +4333,40 @@ body.light-mode .setup-auth-divider::after {
 .account-actions button:disabled,
 .account-confirm-panel button:disabled { cursor: wait; opacity: 0.55; }
 
-.setup-google-entry {
-  width: 100%;
-  min-height: 46px;
-  border-radius: 14px;
-  border-color: rgba(255, 255, 255, 0.17);
+/* Keep school setup's primary confirmation distinct from optional sign-in. */
+#setupGoogleSignIn {
+  border-color: rgba(255, 255, 255, 0.2);
   background: #1b1b1e;
-  color: var(--text);
+  color: #f5f5f7;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
-body.light-mode .setup-google-entry {
-  border-color: rgba(17, 24, 39, 0.14);
-  background: #e9ebef;
-  color: #111827;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
-}
-
 @media (hover: hover) {
-  .setup-google-entry:hover:not(:disabled) {
-    border-color: rgba(255, 255, 255, 0.28);
-    background: #25252a;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.11);
-  }
-
-  body.light-mode .setup-google-entry:hover:not(:disabled) {
-    border-color: rgba(17, 24, 39, 0.22);
-    background: #e0e3e9;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  #setupGoogleSignIn:hover:not(:disabled) {
+    border-color: rgba(255, 255, 255, 0.32);
+    background: #29292e;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.13);
   }
 }
 
-.setup-google-entry:active:not(:disabled) {
-  transform: scale(0.985);
+#setupGoogleSignIn:active:not(:disabled) {
   background: #141417;
 }
 
-body.light-mode .setup-google-entry:active:not(:disabled) {
+body.light-mode #setupGoogleSignIn {
+  border-color: rgba(17, 24, 39, 0.16);
+  background: #e9ebef;
+  color: #111827;
+}
+
+@media (hover: hover) {
+  body.light-mode #setupGoogleSignIn:hover:not(:disabled) {
+    border-color: rgba(17, 24, 39, 0.24);
+    background: #e0e3e9;
+  }
+}
+
+body.light-mode #setupGoogleSignIn:active:not(:disabled) {
   background: #d6dae2;
 }
 
