@@ -30,8 +30,8 @@ test('tour finale says Tile 시작하기 even when school setup follows', () => 
   assert.equal(classes.size, 2, 'the finale cannot restart once it is visible');
 });
 
-test('school handoff pairs the message with the status counter entrance', () => {
-  assert.match(source, /if \(shouldOpenSchoolSettings\) \{\s*revealTileStartCounters\(\);\s*showToast\('다음으로 학교와 학급을 연결해요'/);
+test('start choice handoff pairs the message with the status counter entrance', () => {
+  assert.match(source, /if \(shouldOpenSchoolSettings\) \{\s*revealTileStartCounters\(\);\s*showToast\('내 시간표를 시작할 방법을 골라요'/);
   const revealStart = source.indexOf('function revealTileStartCounters()');
   const revealEnd = source.indexOf('\n}\n', revealStart) + 2;
   let frames;

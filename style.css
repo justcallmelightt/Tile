@@ -634,8 +634,7 @@ h1 {
 #schoolResults {
   display: grid;
   gap: 6px;
-  max-height: 180px;
-  overflow-y: auto;
+  flex: none;
 }
 
 #schoolResults > div {
@@ -974,6 +973,47 @@ html[data-status-layout="focused"] #mainContent .status-item-day { order: 5; }
   overflow-x: auto;
   overflow-y: visible;
   transition: background 0.28s ease, border-color 0.28s ease;
+}
+
+.setup-school-panel, .setup-choice-panel { display: grid; gap: 16px; flex: none; min-width: 0; }
+.setup-school-panel[hidden], .setup-choice-panel[hidden], .setup-back[hidden] { display: none; }
+.setup-choice-panel { gap: 10px; padding-top: 6px; }
+.setup-choice-panel .form-message:empty { display: none; }
+.setup-choice {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 16px;
+  align-items: center;
+  gap: 12px;
+  min-height: 76px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface-soft);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+.setup-choice strong, .setup-choice-login strong { display: block; font-size: .96rem; font-weight: 600; letter-spacing: -.02em; line-height: 1.3; }
+.setup-choice small, .setup-choice-login small { display: block; margin-top: 5px; font-size: .76rem; font-weight: 450; line-height: 1.5; }
+.setup-choice small { color: var(--text-soft); }
+.setup-choice-symbol { display: grid; place-items: center; width: 32px; height: 32px; color: var(--text); }
+.setup-choice-symbol svg { width: 25px; height: 25px; }
+.setup-choice-chevron { width: 16px; height: 16px; color: var(--text-soft); }
+.account-lightframe-toggle.setup-choice-login { min-height: 76px; padding: 14px 16px; text-align: left; justify-content: flex-start; gap: 12px; }
+.setup-choice-login .account-lightframe-mark { flex-basis: 32px; width: 32px; margin: 0; font-size: 26px; }
+.setup-back { justify-self: start; padding: 8px 0; background: none; border: 0; color: var(--text-soft); font: inherit; font-size: .78rem; cursor: pointer; }
+.setup-choice:focus-visible, .setup-back:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
+@media (hover: hover) {
+  .setup-choice:hover { background: var(--toggle-bg); border-color: var(--text-soft); }
+  .setup-back:hover { color: var(--text); }
+}
+.setup-choice:active, .setup-back:active { opacity: .75; transform: scale(.985); transition: none; }
+.setup-choice:disabled { opacity: .55; cursor: wait; }
+@media (prefers-reduced-motion: reduce) {
+  .setup-choice, .setup-back { transition: opacity 150ms ease; }
+  .setup-choice:active, .setup-back:active { transform: none; }
 }
 
 .after-school-toolbar {
@@ -4171,38 +4211,6 @@ button, input, textarea, select, option {
   .setup-progress b { transition: opacity 150ms ease; }
 }
 
-.setup-auth-options {
-  display: grid;
-  gap: 16px;
-  margin-top: 22px;
-  min-width: 0;
-}
-
-.setup-auth-divider {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 0;
-  color: var(--text-soft);
-  font-size: 0.72rem;
-  font-weight: 500;
-  letter-spacing: 0.015em;
-  line-height: 1.3;
-}
-
-.setup-auth-divider::before,
-.setup-auth-divider::after {
-  flex: 1;
-  height: 1px;
-  background: rgba(255, 255, 255, 0.18);
-  content: "";
-}
-
-body.light-mode .setup-auth-divider::before,
-body.light-mode .setup-auth-divider::after {
-  background: rgba(17, 24, 39, 0.16);
-}
-
 .account-email-form {
   display: grid;
   gap: 10px;
@@ -4332,43 +4340,6 @@ body.light-mode .setup-auth-divider::after {
 .account-primary-action:disabled,
 .account-actions button:disabled,
 .account-confirm-panel button:disabled { cursor: wait; opacity: 0.55; }
-
-/* Keep school setup's primary confirmation distinct from optional sign-in. */
-#setupGoogleSignIn {
-  border-color: rgba(255, 255, 255, 0.2);
-  background: #1b1b1e;
-  color: #f5f5f7;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
-}
-
-@media (hover: hover) {
-  #setupGoogleSignIn:hover:not(:disabled) {
-    border-color: rgba(255, 255, 255, 0.32);
-    background: #29292e;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.13);
-  }
-}
-
-#setupGoogleSignIn:active:not(:disabled) {
-  background: #141417;
-}
-
-body.light-mode #setupGoogleSignIn {
-  border-color: rgba(17, 24, 39, 0.16);
-  background: #e9ebef;
-  color: #111827;
-}
-
-@media (hover: hover) {
-  body.light-mode #setupGoogleSignIn:hover:not(:disabled) {
-    border-color: rgba(17, 24, 39, 0.24);
-    background: #e0e3e9;
-  }
-}
-
-body.light-mode #setupGoogleSignIn:active:not(:disabled) {
-  background: #d6dae2;
-}
 
 .account-notice {
   display: grid;

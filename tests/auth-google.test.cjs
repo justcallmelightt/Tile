@@ -33,9 +33,10 @@ function createGoogleSignIn({ error = null } = {}) {
   return { signIn: vm.runInNewContext(`(${source.slice(start, end)})`, context), calls, notices, storage, nodes };
 }
 
-test('school setup and account Google actions share the same OAuth flow', async () => {
+test('start choices lead to account login where Google OAuth remains available', async () => {
   const html = readFileSync(`${__dirname}/../index.html`, 'utf8');
-  assert.match(html, /id="setupGoogleSignIn"/);
+  assert.match(html, /id="setupAccountSignIn"/);
+  assert.match(html, /id="googleSignIn"/);
   assert.match(source, /nodes\.setupGoogleSignIn\?\.addEventListener\("click", signInWithGoogle\)/);
   const auth = createGoogleSignIn();
   await auth.signIn();

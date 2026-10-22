@@ -10,7 +10,7 @@
   <link rel="icon" href="./assets/favicon/favicon-32x32.png" sizes="32x32" type="image/png" />
   <link rel="icon" href="./assets/favicon/favicon-96x96.png" sizes="96x96" type="image/png" />
   <link rel="apple-touch-icon" href="./assets/favicon/favicon-96x96.png" />
-  <link rel="stylesheet" href="./style.css?v=20261021-setup-auth-spacing" />
+  <link rel="stylesheet" href="./style.css?v=20261022-start-navigation" />
   <!-- Google AdSense: site ownership verification and ad delivery -->
   <script
     async
@@ -80,18 +80,39 @@
     <div class="setup-card" role="dialog" aria-modal="true" aria-labelledby="setupTitle" aria-describedby="setupDescription">
       <div class="setup-header">
         <div>
-          <span class="dialog-eyebrow">NEIS 연결</span>
+          <span class="dialog-eyebrow" id="setupEyebrow">NEIS 연결</span>
           <h2 id="setupTitle">학교 설정</h2>
           <p class="setup-subtitle" id="setupDescription">학교와 학급을 확인한 뒤 변경될 시간표를 미리 살펴보고 적용합니다.</p>
         </div>
         <button id="closeSchoolSettings" class="dialog-close" type="button" aria-label="닫기">&times;</button>
       </div>
-      <div class="setup-progress" aria-label="학교 연결 단계">
+      <div id="setupChoicePanel" class="setup-choice-panel" hidden>
+        <button id="setupChooseSchool" class="setup-choice" type="button">
+          <span class="setup-choice-symbol" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m2.5 9 9.5-4.5L21.5 9 12 13.5 2.5 9Z"/><path d="M6.5 11v5.2c3.4 2.5 7.6 2.5 11 0V11M21.5 9v6.5"/><circle cx="21.5" cy="17" r="1" fill="currentColor" stroke="none"/></svg></span>
+          <span><strong>학교로 시작</strong><small>학교와 학급을 연결해 시간표를 불러와요.</small></span>
+          <svg class="setup-choice-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 3.5 4.5 4.5L6 12.5"/></svg>
+        </button>
+        <button id="setupChooseManual" class="setup-choice" type="button">
+          <span class="setup-choice-symbol" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5.5" width="17" height="15" rx="2"/><path d="M7.5 3.5v4m9-4v4m-13 3h17M12 13v5m-2.5-2.5h5"/></svg></span>
+          <span><strong>직접 시간표 만들기</strong><small>기본 시간대에 과목을 직접 채워요.</small></span>
+          <svg class="setup-choice-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 3.5 4.5 4.5L6 12.5"/></svg>
+        </button>
+        <div class="account-lightframe-action">
+          <button id="setupAccountSignIn" class="account-lightframe-toggle setup-choice-login" type="button">
+            <span class="account-lightframe-mark" aria-hidden="true">✨</span>
+            <span><strong>로그인해서 불러오기</strong><small>Lightframe. 계정에 로그인한 뒤 백업을 불러와요.</small></span>
+          </button>
+        </div>
+        <p id="setupChoiceMessage" class="form-message" role="status"></p>
+      </div>
+      <div id="setupSchoolPanel" class="setup-school-panel">
+        <button id="setupChooseBack" class="setup-back" type="button" hidden>‹ 시작 방식 선택</button>
+        <div class="setup-progress" aria-label="학교 연결 단계">
         <span class="is-active"><b>1</b> 학교</span>
         <span><b>2</b> 학급</span>
         <span><b>3</b> 확인</span>
-      </div>
-      <label class="setup-field setup-field-wide" for="schoolInput">
+        </div>
+        <label class="setup-field setup-field-wide" for="schoolInput">
         <span>학교</span>
         <input
             id="schoolInput"
@@ -143,18 +164,6 @@
           <span class="button-progress" aria-hidden="true"></span>
         </button>
       </div>
-      <div class="setup-auth-options">
-        <p class="setup-auth-divider"><span>로그인</span></p>
-        <div class="account-lightframe-action">
-          <button id="setupAccountSignIn" class="account-lightframe-toggle" type="button">
-            <span class="account-lightframe-mark" aria-hidden="true">✨</span>
-            <span class="account-lightframe-label"><strong>Lightframe.</strong><span>으로 로그인</span></span>
-          </button>
-        </div>
-        <button id="setupGoogleSignIn" class="account-primary-action" type="button">
-          <img class="google-mark" src="./assets/google-g-logo.png" alt="">
-          <span>Google로 시작하기</span>
-        </button>
       </div>
     </div>
   </div>
@@ -498,7 +507,7 @@
         <button id="showcaseShareToggle" class="secondary-action" type="button" aria-haspopup="dialog">시간표 공유 <span class="feature-stage-badge" aria-label="베타 기능">Beta</span></button>
       </div>
     </nav>
-    <div class="table-shell" id="timetable" tabindex="0" aria-label="주간 시간표">
+    <div class="table-shell" id="timetable">
       <table>
         <caption class="sr-only">월요일부터 금요일까지의 주간 시간표</caption>
         <colgroup>
@@ -752,7 +761,7 @@
   <script src="./config.js?v=20260703-script-fix" onerror="this.remove()"></script>
   <script src="./neis.js?v=20261013-meal-date"></script>
   <script src="./after-school.js?v=20261017-dialog-motion"></script>
-  <script src="./script.js?v=20261021-tour-handoff"></script>
+  <script src="./script.js?v=20261022-start-navigation"></script>
   <script src="./auth.js?v=20261019-setup-google"></script>
   <script src="./share.js?v=20261017-dialog-motion"></script>
   <script src="./feedback.js?v=20261017-dialog-motion"></script>

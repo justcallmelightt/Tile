@@ -333,6 +333,7 @@ const TIMETABLE_SHARE_TYPE = "tile-timetable";
 const TIMETABLE_SHARE_VERSION = 1;
 const MAX_TIMETABLE_SHARE_LENGTH = 18000;
 const USER_DATA_STORAGE_KEYS = [
+  "tile-start-mode",
   "tile-after-school",
   CELL_EDIT_STORAGE_KEY,
   SCHEDULE_EDIT_STORAGE_KEY,
@@ -3073,12 +3074,13 @@ function updateTodayOnlyButton(todayDay, isActive) {
 
 function applyTodayOnlyMode() {
   const isMobile = isMobileTimetableView();
-  const isTodayOnly = localStorage.getItem("mirim-today-only") === "on";
+  const savedView = localStorage.getItem("mirim-today-only");
+  const isTodayOnly = isMobile ? savedView !== "off" : savedView === "on";
   const activeDay = getTodayScheduleDay();
   const hasSchoolDay = Boolean(activeDay);
-  const shouldApply = hasSchoolDay && (isMobile || isTodayOnly);
+  const shouldApply = hasSchoolDay && isTodayOnly;
   document.body.classList.toggle("today-only-mode", shouldApply);
-  document.body.classList.toggle("mobile-today-mode", isMobile && hasSchoolDay);
+  document.body.classList.toggle("mobile-today-mode", isMobile && shouldApply);
 
   document.querySelectorAll(".today-only-hidden").forEach((node) => {
     node.classList.remove("today-only-hidden");
@@ -3355,10 +3357,7 @@ if (themeToggle) {
 if (todayOnlyToggle) {
   todayOnlyToggle.addEventListener("click", () => {
     triggerButtonPop(todayOnlyToggle);
-    if (!isMobileTimetableView()) {
-      const isTodayOnly = localStorage.getItem("mirim-today-only") === "on";
-      localStorage.setItem("mirim-today-only", isTodayOnly ? "off" : "on");
-    }
+    localStorage.setItem("mirim-today-only", todayOnlyToggle.getAttribute("aria-pressed") === "true" ? "off" : "on");
     applyTodayOnlyMode();
   });
 }
@@ -3799,15 +3798,40 @@ const classInput = document.getElementById("classInput");
 let selectedSchool = null;
 let schoolSearchRequestId = 0;
 
-function openSchoolSettings() {
+function setSetupStartView(view, animate = true) {
+    const choices = document.getElementById("setupChoicePanel");
+    const school = document.getElementById("setupSchoolPanel");
+    const choosing = view === "choose";
+    const change = () => {
+      choices.hidden = !choosing;
+      school.hidden = choosing;
+      document.getElementById("setupTitle").textContent = choosing ? "Tile 시작하기" : "학교 설정";
+      document.getElementById("setupEyebrow").textContent = choosing ? "Tile 시작하기" : "NEIS 연결";
+      document.getElementById("setupDescription").textContent = choosing
+        ? "내게 맞는 방식으로 시간표를 준비하세요."
+        : "학교와 학급을 확인한 뒤 변경될 시간표를 미리 살펴보고 적용합니다.";
+      document.getElementById("setupChooseBack").hidden = Boolean(getSavedTileUser());
+      setupModal.querySelector(".setup-card").scrollTop = 0;
+    };
+    if (animate) animateSchoolSetupLayout(change, choosing ? choices : school);
+    else change();
+    if (animate) (choosing ? document.getElementById("setupChooseSchool") : schoolInput)?.focus({ preventScroll: true });
+}
+
+function openStartChoices() {
+    openSchoolSettings({ choose: true });
+}
+
+function openSchoolSettings({ choose = false } = {}) {
     if (!setupModal) return;
     rememberDialogTrigger();
     resetSchoolSyncPreview();
+    setSetupStartView(choose ? "choose" : "school", false);
     const opening = setSetupDialogVisible(setupModal, true);
     document.body.classList.add("modal-open");
     opening.then((completed) => {
       if (completed && !setupModal.classList.contains("hidden")) {
-        schoolInput?.focus({ preventScroll: true });
+        (choose ? document.getElementById("setupChooseSchool") : schoolInput)?.focus({ preventScroll: true });
       }
     });
 }
@@ -3841,6 +3865,10 @@ function getSavedTileUser() {
 
 function updateSchoolSubtitle(user = getSavedTileUser()) {
     if (!schoolSubtitle) return;
+    if (!user && localStorage.getItem("tile-start-mode") === "manual") {
+      schoolSubtitle.textContent = "내 시간표 · 직접 만든 시간표";
+      return;
+    }
 
     const schoolName = user?.school?.name || "미림마이스터고등학교";
     const grade = user?.grade || "1";
@@ -4481,6 +4509,48 @@ closeSchoolSettings?.addEventListener("click", closeSchoolSettingsModal);
 
 bindBackdropDismiss(setupModal, closeSchoolSettingsModal);
 
+document.getElementById("setupChooseSchool")?.addEventListener("click", () => setSetupStartView("school"));
+document.getElementById("setupChooseBack")?.addEventListener("click", () => setSetupStartView("choose"));
+
+async function startManualTimetable(event) {
+  const button = event.currentTarget;
+  if (button.disabled) return;
+  button.disabled = true;
+  let snapshot;
+  try {
+    snapshot = pushUndoSnapshot("직접 시간표 만들기");
+    const edits = readJsonStorage(CELL_EDIT_STORAGE_KEY);
+    document.querySelectorAll("#timetable tbody tr[data-period]").forEach(row => {
+      const cells = row.querySelectorAll("td");
+      if (cells.length !== 5) return;
+      cells.forEach((cell, index) => {
+        if (cell.classList.contains("daily-homeroom-cell")) return;
+        const key = `${row.dataset.period}_${index}`;
+        if (!(key in edits)) edits[key] = "";
+      });
+    });
+    localStorage.setItem(CELL_EDIT_STORAGE_KEY, JSON.stringify(edits));
+    localStorage.setItem("tile-start-mode", "manual");
+    loadCellEdits();
+    updateSchoolSubtitle();
+    const status = document.getElementById("neisStatus");
+    if (status) status.textContent = "직접 만든 시간표";
+    updateCurrentStatus();
+    await closeSchoolSettingsModal({ restoreFocus: false });
+    document.getElementById("timetable")?.focus({ preventScroll: true });
+    document.getElementById("timetableEditToggle")?.click();
+  } catch (error) {
+    if (snapshot) {
+      try { restoreSnapshot(snapshot, { reload: false }); }
+      catch (restoreError) { console.error("시간표 시작 상태 복원 실패:", restoreError); }
+    }
+    document.getElementById("setupChoiceMessage").textContent = "시간표를 준비하지 못했어요. 저장 공간을 확인한 뒤 다시 시도해주세요.";
+  } finally {
+    button.disabled = false;
+  }
+}
+document.getElementById("setupChooseManual")?.addEventListener("click", startManualTimetable);
+
 document.getElementById("setupAccountSignIn")?.addEventListener("click", async () => {
   const closed = await closeSchoolSettingsModal({ restoreFocus: false });
   if (closed && setupModal?.classList.contains("hidden")) window.TileAuth?.openAccountSettings?.();
@@ -4562,6 +4632,8 @@ saveSchoolButton?.addEventListener("click", async () => {
       if (schoolFormMessage) schoolFormMessage.textContent = "적용하지 못했습니다. 기존 시간표는 그대로 유지됩니다.";
       return;
     }
+
+    localStorage.removeItem("tile-start-mode");
 
     localStorage.setItem(LAST_SYNC_STORAGE_KEY, new Date().toISOString());
     updateLastSyncValue();
@@ -4779,7 +4851,7 @@ function setTileDemoScene(index) {
   if (tileDemoEyebrow) tileDemoEyebrow.textContent = `${tileDemoIndex + 1} / ${tileTourSteps.length} · 실제 화면 안내`;
   if (tileDemoTitle) tileDemoTitle.textContent = scene.title;
   if (tileDemoDescription) tileDemoDescription.textContent = tileTourNeedsSchoolSetup && tileDemoIndex === tileTourSteps.length - 1
-    ? '학교와 학급을 연결하면 내 시간표가 완성돼요. 다음 화면에서 설정을 마치고 Tile을 시작해 보세요.'
+    ? '학교를 연결하거나 직접 만들 수 있어요. 계정에 백업한 시간표가 있다면 로그인해서 이어서 사용하세요.'
     : scene.description;
   const copyFrames = startupSpotlightReduceMotion.matches
     ? [{ opacity: 0 }, { opacity: 1 }]
@@ -4845,8 +4917,8 @@ function closeTileDemo(options = {}) {
   tileTourNeedsSchoolSetup = false;
   if (shouldOpenSchoolSettings) {
     revealTileStartCounters();
-    showToast('다음으로 학교와 학급을 연결해요', '', { duration: 1050 });
-    window.setTimeout(openSchoolSettings, startupSpotlightReduceMotion.matches ? 150 : 900);
+    showToast('내 시간표를 시작할 방법을 골라요', '', { duration: 1050 });
+    window.setTimeout(openStartChoices, startupSpotlightReduceMotion.matches ? 150 : 900);
   }
 }
 
@@ -4983,19 +5055,27 @@ async function init() {
     loadStatusLayout();
 
     const user = getSavedTileUser();
+    const isManual = !user && localStorage.getItem("tile-start-mode") === "manual";
 
     fillSchoolSettingsFromSavedUser();
     if (tileTourFirstVisit) {
-      tileTourNeedsSchoolSetup = !user;
+      tileTourNeedsSchoolSetup = !user && !isManual;
       tileTourAutoTimer = window.setTimeout(openTileDemo, 0);
     } else {
       document.documentElement.classList.remove('tile-tour-pending');
     }
 
+    if (isManual) {
+      updateSchoolSubtitle();
+      const status = document.getElementById("neisStatus");
+      if (status) status.textContent = "직접 만든 시간표";
+      return;
+    }
+
     if (!user) {
       const status = document.getElementById("neisStatus");
       if (status) status.textContent = "학교 설정 필요";
-      if (!tileTourFirstVisit) window.setTimeout(openSchoolSettings, 1450);
+      if (!tileTourFirstVisit) window.setTimeout(openStartChoices, 1450);
       return;
     }
 
