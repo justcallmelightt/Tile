@@ -1003,11 +1003,12 @@ html[data-status-layout="focused"] #mainContent .status-item-day { order: 5; }
 .setup-choice-chevron { width: 16px; height: 16px; color: var(--text-soft); }
 .account-lightframe-toggle.setup-choice-login { min-height: 76px; padding: 14px 16px; text-align: left; justify-content: flex-start; gap: 12px; }
 .setup-choice-login .account-lightframe-mark { flex-basis: 32px; width: 32px; margin: 0; font-size: 26px; }
-.setup-back { justify-self: start; padding: 8px 0; background: none; border: 0; color: var(--text-soft); font: inherit; font-size: .78rem; cursor: pointer; }
+.setup-back { display: inline-flex; align-items: center; justify-self: start; gap: 7px; min-height: 40px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 11px; background: var(--surface-soft); color: var(--text); font: inherit; font-size: .78rem; font-weight: 600; cursor: pointer; transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease; }
+.setup-back svg { width: 15px; height: 15px; flex: none; }
 .setup-choice:focus-visible, .setup-back:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
 @media (hover: hover) {
   .setup-choice:hover { background: var(--toggle-bg); border-color: var(--text-soft); }
-  .setup-back:hover { color: var(--text); }
+  .setup-back:hover { background: var(--toggle-bg); border-color: var(--text-soft); }
 }
 .setup-choice:active, .setup-back:active { opacity: .75; transform: scale(.985); transition: none; }
 .setup-choice:disabled { opacity: .55; cursor: wait; }
