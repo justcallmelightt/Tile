@@ -199,10 +199,13 @@
     if (!credentials) return;
     setBusy(nodes.lightframeSignIn, true);
     setEmailMessage("Lightframe. 계정에 로그인하고 있습니다.");
-    const { error } = await client.auth.signInWithPassword(credentials);
-    setBusy(nodes.lightframeSignIn, false);
-    if (error) return setEmailMessage(error.message, "error");
-    setEmailMessage("");
+    try {
+      const { error } = await client.auth.signInWithPassword(credentials);
+      if (error) throw error;
+      setEmailMessage("");
+    } catch (error) {
+      setEmailMessage(error?.message || "로그인하지 못했습니다. 다시 시도해주세요.", "error");
+    } finally { setBusy(nodes.lightframeSignIn, false); }
   }
 
   async function signUpWithLightframeAccount() {
@@ -212,41 +215,49 @@
     if (credentials.password.length < 8) return setEmailMessage("비밀번호는 8자 이상으로 입력해주세요.", "error");
     setBusy(nodes.lightframeSignUp, true);
     setEmailMessage("Lightframe. 계정을 만들고 있습니다.");
+    try {
     const { data, error } = await client.auth.signUp({
       ...credentials,
       options: { emailRedirectTo: getAuthRedirectUrl(), data: { full_name: "Lightframe. 사용자" } }
     });
-    setBusy(nodes.lightframeSignUp, false);
-    if (error) return setEmailMessage(error.message, "error");
+    if (error) throw error;
     if (!data.session) {
       setEmailMessage("인증 메일을 보냈습니다. 메일의 링크를 열어 계정을 완료해주세요.", "success");
       return;
     }
     setEmailMessage("");
+    } catch (error) {
+      setEmailMessage(error?.message || "계정을 만들지 못했습니다. 다시 시도해주세요.", "error");
+    } finally { setBusy(nodes.lightframeSignUp, false); }
   }
 
   async function backupCurrentData() {
     if (!client || !currentSession?.user) return;
+    try {
     const payload = window.TileApp?.createAccountBackup?.();
     if (!payload) return setMessage("백업할 Tile 데이터를 준비하지 못했습니다.", "error");
     setBusy(nodes.backup, true);
     setMessage("현재 데이터를 안전하게 백업하고 있습니다.");
     const updatedAt = new Date().toISOString();
     const { error } = await client.from("tile_backups").upsert({ user_id: currentSession.user.id, payload, updated_at: updatedAt }, { onConflict: "user_id" });
-    setBusy(nodes.backup, false);
-    if (error) return setMessage(error.message, "error");
+    if (error) throw error;
     if (nodes.backupStatus) nodes.backupStatus.textContent = formatDate(updatedAt);
     setMessage("현재 시간표를 Lightframe. 계정에 백업했습니다.", "success");
     window.TileApp?.notify?.("계정 백업 완료", "다른 기기에서 로그인해 불러올 수 있습니다.");
+    } catch (error) {
+      setMessage(error?.message || "백업하지 못했습니다. 다시 시도해주세요.", "error");
+    } finally { setBusy(nodes.backup, false); }
   }
 
   async function prepareRestore() {
     if (!client || !currentSession?.user) return;
+    pendingRestore = null;
+    setHidden(nodes.restorePanel, true);
     setBusy(nodes.restore, true);
     setMessage("클라우드 백업을 확인하고 있습니다.");
+    try {
     const { data, error } = await client.from("tile_backups").select("payload, updated_at").eq("user_id", currentSession.user.id).maybeSingle();
-    setBusy(nodes.restore, false);
-    if (error) return setMessage(error.message, "error");
+    if (error) throw error;
     if (!data?.payload) return setMessage("이 계정에 저장된 Tile 백업이 없습니다.");
     pendingRestore = data.payload;
     const summary = data.payload.summary || {};
@@ -256,6 +267,9 @@
     }
     setHidden(nodes.restorePanel, false);
     setMessage("적용할 백업 내용을 확인해주세요.");
+    } catch (error) {
+      setMessage(error?.message || "백업을 불러오지 못했습니다. 다시 시도해주세요.", "error");
+    } finally { setBusy(nodes.restore, false); }
   }
 
   function confirmRestore() {
@@ -271,9 +285,12 @@
   async function signOut() {
     if (!client) return;
     setBusy(nodes.signOut, true);
-    const { error } = await client.auth.signOut();
-    setBusy(nodes.signOut, false);
-    if (error) setMessage(error.message, "error");
+    try {
+      const { error } = await client.auth.signOut();
+      if (error) throw error;
+    } catch (error) {
+      setMessage(error?.message || "로그아웃하지 못했습니다. 다시 시도해주세요.", "error");
+    } finally { setBusy(nodes.signOut, false); }
   }
 
   async function deleteAccount() {

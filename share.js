@@ -490,11 +490,13 @@
   }
 
   async function createShare() {
+    if (nodes.create?.disabled) return;
     const client = window.TileAuth?.getClient?.();
     const activeSession = window.TileAuth?.getSession?.();
     const title = safeText(nodes.title?.value, 60);
     if (!title) { nodes.title?.focus(); return notify("공유 페이지 이름을 입력해주세요", "학교와 학급을 알아보기 쉬운 이름이 좋습니다."); }
     setBusy(nodes.create, true, "게시 준비 중…");
+    try {
     const scopes = getScopes();
     const record = { title, description: safeText(nodes.description?.value, 240), payload: buildPayload(), scopes };
     if (!client || !activeSession?.user) {
@@ -517,11 +519,13 @@
     }
     record.owner_id = activeSession.user.id;
     const { data, error } = await client.from("tile_timetable_shares").insert(record).select("id,title,description,payload,scopes,is_active,created_at,updated_at").single();
-    setBusy(nodes.create, false);
-    if (error) return notify("공유 링크를 만들지 못했습니다", error.message, "error");
+    if (error) throw error;
     clearComposerState();
     renderShare(data);
     notify("공유 프리셋을 게시했습니다", "원본 Tile은 변경되지 않았습니다.");
+    } catch (error) {
+      notify("공유 링크를 만들지 못했습니다", error?.message || "잠시 후 다시 시도해주세요.", "error");
+    } finally { setBusy(nodes.create, false); }
   }
 
   function managerButton(label, action, className = "") {
