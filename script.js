@@ -3533,6 +3533,7 @@ window.addEventListener("resize", updateFloatingTopbar, { passive: true });
 
 window.TileApp = {
   getShareableScheduleEdits,
+  updateCurrentStatus,
   setDialogVisible: setSetupDialogVisible,
   setNativeDialogVisible,
   createPersonalPreset() {

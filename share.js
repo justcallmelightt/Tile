@@ -333,6 +333,13 @@
   function closeModal() {
     window.TileApp?.setDialogVisible(nodes.modal, false);
     document.body.classList.remove("modal-open");
+    const url = new URL(window.location.href);
+    if (url.searchParams.has("share") || new URLSearchParams(url.hash.slice(1)).has(PORTABLE_SHARE_HASH_KEY)) {
+      url.searchParams.delete("share");
+      if (new URLSearchParams(url.hash.slice(1)).has(PORTABLE_SHARE_HASH_KEY)) url.hash = "";
+      window.history.replaceState(null, "", url.toString());
+    }
+    window.TileApp?.updateCurrentStatus?.();
     lastTrigger?.focus?.();
   }
 
@@ -502,7 +509,6 @@
         const portableShare = { ...body.share, url: shareUrl(body.share.id) };
         clearComposerState();
         renderShare(portableShare);
-        window.history.replaceState(null, "", portableShare.url);
         notify("짧은 공유 링크를 만들었습니다", "로그인 없이 만든 링크는 30일 동안 유지되며 관리 목록에는 저장되지 않습니다.");
       } catch (error) {
         notify("공유 링크를 만들지 못했습니다", error instanceof Error ? error.message : "공유 정보를 확인해주세요.", "error");
@@ -515,7 +521,6 @@
     if (error) return notify("공유 링크를 만들지 못했습니다", error.message, "error");
     clearComposerState();
     renderShare(data);
-    window.history.replaceState(null, "", shareUrl(data.id));
     notify("공유 프리셋을 게시했습니다", "원본 Tile은 변경되지 않았습니다.");
   }
 
@@ -666,10 +671,6 @@
     nodes.save?.addEventListener("click", saveSharedTimetable);
     document.addEventListener("keydown", (event) => { if (event.key === "Escape" && !nodes.modal?.classList.contains("hidden")) { persistComposerState(); closeModal(); } });
     nodes.closePreview?.addEventListener("click", () => {
-      const url = new URL(window.location.href);
-      url.searchParams.delete("share");
-      if (new URLSearchParams(url.hash.slice(1)).has(PORTABLE_SHARE_HASH_KEY)) url.hash = "";
-      window.history.replaceState(null, "", url.toString());
       closeModal();
     });
     [nodes.title, nodes.author, nodes.description].forEach((input) => input?.addEventListener("input", persistComposerState));
