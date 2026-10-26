@@ -4,11 +4,11 @@
     const DEFAULT_CONFIG = {
         apiKey: typeof NEIS_KEY !== "undefined" ? NEIS_KEY : "",
         apiBase: "",
-        schoolName: "미림마이스터고등학교",
+        schoolName: "",
         officeCode: "",
         schoolCode: "",
-        grade: "1",
-        className: "2"
+        grade: "",
+        className: ""
     };
     const config = {
         ...DEFAULT_CONFIG,
@@ -290,6 +290,8 @@
             };
         }
         const schoolName = user.school?.name || config.schoolName;
+        if (!schoolName)
+            throw new Error("학교를 먼저 설정해주세요.");
         const schools = await searchSchool(schoolName);
         const school = schools.find((item) => item.name === schoolName) || schools[0];
         if (!school)

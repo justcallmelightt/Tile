@@ -20,6 +20,7 @@ test('manual start persists empty cells without replacing prior edits or merged 
   ];
   let closed = false;
   let edited = false;
+  let homeroomRendered = false;
   const button = { disabled: false };
   const run = helper('startManualTimetable', {
     CELL_EDIT_STORAGE_KEY: 'cells',
@@ -32,7 +33,8 @@ test('manual start persists empty cells without replacing prior edits or merged 
         ? { click() { assert.equal(closed, true); edited = true; } }
         : { focus() {}, textContent: '' },
     },
-    loadCellEdits() {}, updateSchoolSubtitle() {}, updateCurrentStatus() {},
+    loadCellEdits() {}, renderDailyHomeroomSchedule() { homeroomRendered = true; },
+    updateSchoolSubtitle() {}, updateCurrentStatus() {},
     closeSchoolSettingsModal: async () => { closed = true; },
   });
   await run({ currentTarget: button });
@@ -43,6 +45,7 @@ test('manual start persists empty cells without replacing prior edits or merged 
   assert.equal(values.get('tile-start-mode'), 'manual');
   assert.equal(button.disabled, false);
   assert.equal(edited, true);
+  assert.equal(homeroomRendered, true);
 });
 
 test('failed manual storage rolls back and keeps setup available', async () => {
