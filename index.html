@@ -10,7 +10,7 @@
   <link rel="icon" href="./assets/favicon/favicon-32x32.png" sizes="32x32" type="image/png" />
   <link rel="icon" href="./assets/favicon/favicon-96x96.png" sizes="96x96" type="image/png" />
   <link rel="apple-touch-icon" href="./assets/favicon/favicon-96x96.png" />
-  <link rel="stylesheet" href="./style.css?v=20261110-quick-times" />
+  <link rel="stylesheet" href="./style.css?v=20261110-quick-times-spacing" />
   <!-- Google AdSense: site ownership verification and ad delivery -->
   <script
     async
@@ -611,19 +611,34 @@
     </dialog>
     <dialog id="quickTimesDialog" class="after-school-dialog tile-management-dialog" aria-labelledby="quickTimesTitle">
       <div class="setup-header"><div><span class="dialog-eyebrow">시간표 관리</span><h2 id="quickTimesTitle">일과 시간 빠르게 설정</h2></div><button id="quickTimesClose" class="dialog-close" type="button" aria-label="닫기">×</button></div>
-      <p class="after-school-description">학교의 일과표에 맞게 필요한 값만 입력하세요. 적용 전 계산된 시간을 확인할 수 있습니다.</p>
+      <p class="after-school-description">학교 일과표의 기준만 입력하면 나머지 시간을 계산해요.</p>
       <form id="quickTimesForm">
-        <div class="quick-times-grid">
-          <label class="setup-field"><span>1교시 시작</span><input id="quickFirstStart" type="time" value="08:20" required></label>
-          <label class="setup-field"><span>한 교시</span><input id="quickLessonMinutes" type="number" min="1" max="180" value="50" required inputmode="numeric"></label>
-          <label class="setup-field"><span>쉬는 시간</span><input id="quickBreakMinutes" type="number" min="0" max="120" value="10" required inputmode="numeric"></label>
-          <label class="setup-field"><span>점심 시작 전 교시</span><select id="quickLunchAfter"><option value="3">3교시 뒤</option><option value="4" selected>4교시 뒤</option><option value="5">5교시 뒤</option><option value="6">6교시 뒤</option></select></label>
-          <label class="setup-field"><span>점심시간</span><input id="quickLunchMinutes" type="number" min="1" max="180" value="50" required inputmode="numeric"></label>
-          <label class="setup-field"><span>조회 시간</span><input id="quickMorningMinutes" type="number" min="0" max="120" value="10" required inputmode="numeric"></label>
-          <label class="setup-field"><span>종례 시간</span><input id="quickClosingMinutes" type="number" min="0" max="120" value="40" required inputmode="numeric"></label>
+        <div class="quick-times-sections">
+          <section class="quick-times-section" aria-label="수업과 쉬는 시간">
+            <div class="quick-times-fields">
+              <label class="setup-field"><span>1교시 시작</span><input id="quickFirstStart" type="time" value="08:20" required></label>
+              <label class="setup-field"><span>수업 시간</span><span class="quick-number-control"><input id="quickLessonMinutes" type="number" min="1" max="180" value="50" required inputmode="numeric"><span aria-hidden="true">분</span></span></label>
+              <label class="setup-field"><span>쉬는 시간</span><span class="quick-number-control"><input id="quickBreakMinutes" type="number" min="0" max="120" value="10" required inputmode="numeric"><span aria-hidden="true">분</span></span></label>
+            </div>
+          </section>
+          <section class="quick-times-section" aria-label="점심">
+            <div class="quick-times-fields">
+              <label class="setup-field"><span>점심 시작</span><span class="quick-select-control"><select id="quickLunchAfter"><option value="3">3교시 뒤</option><option value="4" selected>4교시 뒤</option><option value="5">5교시 뒤</option><option value="6">6교시 뒤</option></select></span></label>
+              <label class="setup-field"><span>점심시간</span><span class="quick-number-control"><input id="quickLunchMinutes" type="number" min="1" max="180" value="50" required inputmode="numeric"><span aria-hidden="true">분</span></span></label>
+            </div>
+          </section>
+          <section class="quick-times-section" aria-label="조회와 종례">
+            <div class="quick-times-fields">
+              <label class="setup-field"><span>조회 시간</span><span class="quick-number-control"><input id="quickMorningMinutes" type="number" min="0" max="120" value="10" required inputmode="numeric"><span aria-hidden="true">분</span></span></label>
+              <label class="setup-field"><span>종례 시간</span><span class="quick-number-control"><input id="quickClosingMinutes" type="number" min="0" max="120" value="40" required inputmode="numeric"><span aria-hidden="true">분</span></span></label>
+            </div>
+          </section>
         </div>
-        <p class="after-school-description">조회는 1교시 직전에, 종례는 7교시 직후에 놓입니다. 요일별로 따로 수정한 시간은 적용 시 이 공통 시간으로 바뀝니다.</p>
-        <div id="quickTimesPreview" class="quick-times-preview" aria-live="polite"></div>
+        <div class="quick-times-result">
+          <h3>계산된 일과</h3>
+          <div id="quickTimesPreview" class="quick-times-preview" aria-live="polite"></div>
+        </div>
+        <p class="quick-times-note">적용하면 기존 요일별 시간은 이 공통 시간으로 바뀝니다.</p>
         <p id="quickTimesMessage" class="form-message" role="status"></p>
         <div class="subject-actions"><button id="quickTimesApply" class="primary-action" type="submit">이 시간으로 적용</button></div>
       </form>
@@ -754,7 +769,7 @@
   <script src="./neis.js?v=20261026-empty-start"></script>
   <script src="./after-school.js?v=20261110-no-default-after-school"></script>
   <script src="./script.js?v=20261110-quick-times"></script>
-  <script src="./auth.js?v=20261019-setup-google"></script>
+  <script src="./auth.js?v=20261110-server-check"></script>
   <script src="./share.js?v=20261017-dialog-motion"></script>
   <script src="./feedback.js?v=20261017-dialog-motion"></script>
   <script src="./personal-presets.js?v=20261017-dialog-motion"></script>

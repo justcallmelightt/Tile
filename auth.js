@@ -59,6 +59,28 @@
     button.disabled = busy;
     button.setAttribute("aria-busy", String(busy));
   }
+  function authErrorMessage(error, fallback) {
+    const message = String(error?.message || "");
+    if (/load failed|failed to fetch|network|fetcherror|networkerror/i.test(message)) {
+      return "계정 서버에 연결할 수 없습니다. 잠시 후 다시 시도하거나 인터넷 연결을 확인해주세요.";
+    }
+    return message || fallback;
+  }
+  async function checkAccountServer() {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 6000);
+    try {
+      // An opaque response is sufficient here: this only prevents navigation
+      // when the project hostname cannot be reached at all.
+      await fetch(`${config.supabaseUrl}/auth/v1/health`, {
+        mode: "no-cors", cache: "no-store", signal: controller.signal
+      });
+    } catch (_error) {
+      throw new Error("계정 서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.");
+    } finally {
+      window.clearTimeout(timeout);
+    }
+  }
   function formatDate(value) {
     if (!value) return "백업 없음";
     const date = new Date(value);
@@ -167,6 +189,7 @@
     setBusy(nodes.googleSignIn, true);
     setBusy(nodes.setupGoogleSignIn, true);
     try {
+      await checkAccountServer();
       sessionStorage.setItem(AUTH_RETURN_KEY, currentReturnLocation());
       const { error } = await client.auth.signInWithOAuth({
         provider: "google",
@@ -175,7 +198,7 @@
       if (error) throw error;
     } catch (error) {
       sessionStorage.removeItem(AUTH_RETURN_KEY);
-      window.TileApp?.notify?.("Google 로그인에 실패했습니다", error?.message || "잠시 후 다시 시도해주세요.", { tone: "error" });
+      window.TileApp?.notify?.("Google 로그인에 실패했습니다", authErrorMessage(error, "잠시 후 다시 시도해주세요."), { tone: "error" });
     } finally {
       setBusy(nodes.googleSignIn, false);
       setBusy(nodes.setupGoogleSignIn, false);
@@ -204,7 +227,7 @@
       if (error) throw error;
       setEmailMessage("");
     } catch (error) {
-      setEmailMessage(error?.message || "로그인하지 못했습니다. 다시 시도해주세요.", "error");
+      setEmailMessage(authErrorMessage(error, "로그인하지 못했습니다. 다시 시도해주세요."), "error");
     } finally { setBusy(nodes.lightframeSignIn, false); }
   }
 
@@ -227,7 +250,7 @@
     }
     setEmailMessage("");
     } catch (error) {
-      setEmailMessage(error?.message || "계정을 만들지 못했습니다. 다시 시도해주세요.", "error");
+      setEmailMessage(authErrorMessage(error, "계정을 만들지 못했습니다. 다시 시도해주세요."), "error");
     } finally { setBusy(nodes.lightframeSignUp, false); }
   }
 

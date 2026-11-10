@@ -4678,11 +4678,35 @@ button, input, textarea, select, option {
   margin: 0 42px 18px 0;
 }
 
-.quick-times-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 20px 0 14px; }
-.quick-times-preview { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; max-height: 220px; overflow: auto; margin: 16px 0; padding: 12px; border-radius: 14px; background: var(--surface, #161616); }
-.quick-times-preview > div { display: flex; justify-content: space-between; gap: 8px; padding: 6px; font-size: .82rem; }
-.quick-times-preview span { color: var(--muted, #aaa); font-variant-numeric: tabular-nums; }
-@media (max-width: 480px) { .quick-times-grid, .quick-times-preview { grid-template-columns: 1fr; } }
+#quickTimesDialog .after-school-description { margin: 5px 40px 18px 0; }
+#quickTimesDialog .quick-times-sections { display: grid; gap: 13px; }
+#quickTimesDialog .quick-times-section { overflow: hidden; border: 1px solid var(--border); border-radius: 14px; background: var(--surface-strong); }
+#quickTimesDialog .quick-times-fields { display: grid; }
+#quickTimesDialog .setup-field { display: grid; grid-template-columns: minmax(0, 1fr) minmax(154px, 43%); align-items: center; gap: 14px; min-height: 61px; padding: 7px 13px; }
+#quickTimesDialog .setup-field + .setup-field { border-top: 1px solid color-mix(in srgb, var(--border) 65%, transparent); }
+#quickTimesDialog .setup-field > span:first-child { color: var(--text); font-size: .88rem; font-weight: 550; }
+#quickTimesDialog .quick-number-control,
+#quickTimesDialog .quick-select-control { position: relative; display: block; width: 100%; color: var(--text); }
+#quickTimesDialog .quick-number-control input { padding-right: 42px; appearance: textfield; -moz-appearance: textfield; }
+#quickTimesDialog .quick-number-control input::-webkit-inner-spin-button,
+#quickTimesDialog .quick-number-control input::-webkit-outer-spin-button { margin: 0; -webkit-appearance: none; }
+#quickTimesDialog .quick-number-control > span { position: absolute; top: 50%; right: 15px; transform: translateY(-50%); color: var(--text-soft); font-size: .8rem; font-weight: 600; pointer-events: none; }
+#quickTimesDialog .quick-select-control select { box-sizing: border-box; width: 100%; min-height: 44px; padding: 10px 38px 10px 13px; border: 1px solid var(--border); border-radius: 12px; appearance: none; -webkit-appearance: none; background: var(--surface-strong); color: var(--text); font: inherit; font-size: .92rem; cursor: pointer; }
+#quickTimesDialog .setup-field input { min-height: 44px; padding-block: 10px; border-radius: 12px; background: var(--surface-strong); font-size: .92rem; }
+#quickTimesDialog .quick-select-control::after { content: ''; position: absolute; top: calc(50% - 3px); right: 17px; width: 7px; height: 7px; border-right: 1.5px solid var(--text-soft); border-bottom: 1.5px solid var(--text-soft); transform: rotate(45deg); pointer-events: none; }
+#quickTimesDialog .quick-select-control select:focus-visible { outline: 2px solid var(--text-soft); outline-offset: 2px; }
+#quickTimesDialog .quick-select-control select:active,
+#quickTimesDialog .quick-number-control input:active { filter: brightness(1.12); }
+#quickTimesDialog .quick-times-result { margin-top: 18px; }
+#quickTimesDialog .quick-times-result h3 { margin: 0 2px 9px; color: var(--text); font-size: .84rem; font-weight: 600; line-height: 1.3; }
+#quickTimesDialog .quick-times-note { margin: 10px 2px 16px; color: var(--text-soft); font-size: .75rem; line-height: 1.5; }
+#quickTimesDialog .subject-actions { grid-template-columns: minmax(0, 1fr); }
+#quickTimesDialog .subject-actions button { width: 100%; }
+#quickTimesDialog .quick-times-preview { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 14px; max-height: 196px; overflow: auto; margin: 0; padding: 8px 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-soft); }
+#quickTimesDialog .quick-times-preview > div { display: flex; justify-content: space-between; gap: 8px; min-width: 0; padding: 6px 2px; font-size: .78rem; }
+#quickTimesDialog .quick-times-preview span { color: var(--text-soft); font-variant-numeric: tabular-nums; white-space: nowrap; }
+@media (max-width: 480px) { #quickTimesDialog .quick-times-preview { grid-template-columns: 1fr; } }
+@media (max-width: 480px) { #quickTimesDialog .setup-field { grid-template-columns: minmax(0, 1fr) minmax(136px, 48%); gap: 8px; } }
 
 .toast-region {
   position: fixed;
