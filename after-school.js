@@ -16,7 +16,8 @@ window.initAfterSchool = function (app) {
     && validTime(item.start) && validTime(item.end) && item.start < item.end;
   const validSaved = Array.isArray(saved.items) && saved.items.length <= LIMIT
     && saved.items.every(validItem) && new Set(saved.items.map(item => item.name)).size === saved.items.length;
-  let items = validSaved ? saved.items : defaults;
+  // A missing or unreadable record must not recreate school-specific after-school rows.
+  let items = validSaved ? saved.items : [];
   let nextId = Math.max(3, Number.isSafeInteger(saved.nextId) ? saved.nextId : 3,
     ...items.map(item => (Number(item.name.slice(4)) || 0) + 1));
   let knownNames = new Set(defaults.map(item => item.name));

@@ -4678,6 +4678,12 @@ button, input, textarea, select, option {
   margin: 0 42px 18px 0;
 }
 
+.quick-times-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 20px 0 14px; }
+.quick-times-preview { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; max-height: 220px; overflow: auto; margin: 16px 0; padding: 12px; border-radius: 14px; background: var(--surface, #161616); }
+.quick-times-preview > div { display: flex; justify-content: space-between; gap: 8px; padding: 6px; font-size: .82rem; }
+.quick-times-preview span { color: var(--muted, #aaa); font-variant-numeric: tabular-nums; }
+@media (max-width: 480px) { .quick-times-grid, .quick-times-preview { grid-template-columns: 1fr; } }
+
 .toast-region {
   position: fixed;
   right: 18px;

@@ -276,6 +276,7 @@ const schoolSyncPreviewDescription = document.getElementById("schoolSyncPreviewD
 const schoolFormMessage = document.getElementById("schoolFormMessage");
 const CELL_EDIT_STORAGE_KEY = "tile-cell-edits";
 const SCHEDULE_EDIT_STORAGE_KEY = "tile-schedule-edits";
+const TIME_SETUP_STORAGE_KEY = "tile-time-setup";
 const SUBJECT_MEMO_STORAGE_KEY = "tile-subject-memos";
 const SUBJECT_INFO_EDIT_STORAGE_KEY = "tile-subject-info-edits";
 const CELL_INFO_EDIT_STORAGE_KEY = "tile-cell-info-edits";
@@ -2627,6 +2628,123 @@ periodEditSave?.addEventListener("click", () => {
   });
 });
 
+const quickTimesDialog = document.getElementById("quickTimesDialog");
+const quickTimesForm = document.getElementById("quickTimesForm");
+const quickTimesPreview = document.getElementById("quickTimesPreview");
+const quickTimesMessage = document.getElementById("quickTimesMessage");
+const quickTimesTitle = document.getElementById("quickTimesTitle");
+
+function needsSchoolTimeSetup() {
+  if (!getSavedTileUser()?.school?.name) return false;
+  const state = localStorage.getItem(TIME_SETUP_STORAGE_KEY);
+  if (state === "ready") return false;
+  if (state === "pending") return true;
+  return !localStorage.getItem(SCHEDULE_EDIT_STORAGE_KEY);
+}
+
+function openQuickTimes({ afterSchoolSetup = false } = {}) {
+  if (quickTimesTitle) quickTimesTitle.textContent = afterSchoolSetup ? "학교 일과 시간 확인" : "일과 시간 빠르게 설정";
+  renderQuickTimesPreview();
+  window.TileApp?.setNativeDialogVisible(quickTimesDialog, true);
+}
+
+function calculateQuickTimes(values) {
+  const start = values.firstStart;
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(start)) return null;
+  const first = Number(start.slice(0, 2)) * 60 + Number(start.slice(3));
+  const numbers = [values.lesson, values.breakTime, values.lunch, values.morning, values.closing, values.lunchAfter];
+  if (numbers.some(value => !Number.isInteger(value))) return null;
+  const { lesson, breakTime, lunch, morning, closing, lunchAfter } = values;
+  if (lesson < 1 || lesson > 180 || breakTime < 0 || breakTime > 120 || lunch < 1 || lunch > 180
+    || morning < 0 || morning > 120 || closing < 0 || closing > 120 || lunchAfter < 3 || lunchAfter > 6 || first < morning) return null;
+  const format = minutes => `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+  const result = { "조회": { start: format(first - morning), end: format(first) } };
+  let cursor = first;
+  for (let number = 1; number <= 7; number += 1) {
+    result[`${number}교시`] = { start: format(cursor), end: format(cursor + lesson) };
+    cursor += lesson;
+    if (number === lunchAfter) {
+      result["중식"] = { start: format(cursor), end: format(cursor + lunch) };
+      cursor += lunch;
+    } else if (number < 7) cursor += breakTime;
+  }
+  result["종례"] = { start: format(cursor), end: format(cursor + closing) };
+  return cursor + closing < 1440 ? result : null;
+}
+
+function readQuickTimes() {
+  const value = id => document.getElementById(id)?.value;
+  return calculateQuickTimes({ firstStart: value("quickFirstStart"), lesson: Number(value("quickLessonMinutes")),
+    breakTime: Number(value("quickBreakMinutes")), lunch: Number(value("quickLunchMinutes")),
+    morning: Number(value("quickMorningMinutes")), closing: Number(value("quickClosingMinutes")),
+    lunchAfter: Number(value("quickLunchAfter")) });
+}
+
+function renderQuickTimesPreview() {
+  const times = readQuickTimes();
+  if (!quickTimesPreview) return;
+  quickTimesPreview.replaceChildren();
+  if (!times) {
+    quickTimesMessage.textContent = "시간을 확인해 주세요. 모든 일과는 같은 날 안에 끝나야 합니다.";
+    return;
+  }
+  quickTimesMessage.textContent = "";
+  for (const [name, range] of Object.entries(times)) {
+    const row = document.createElement("div");
+    const label = document.createElement("strong");
+    const time = document.createElement("span");
+    label.textContent = name;
+    time.textContent = `${range.start} – ${range.end}`;
+    row.append(label, time);
+    quickTimesPreview.append(row);
+  }
+}
+
+document.getElementById("managementQuickTimes")?.addEventListener("click", () => {
+  openQuickTimes();
+});
+document.getElementById("quickTimesClose")?.addEventListener("click", () => window.TileApp?.setNativeDialogVisible(quickTimesDialog, false));
+quickTimesForm?.addEventListener("input", renderQuickTimesPreview);
+quickTimesForm?.addEventListener("change", renderQuickTimesPreview);
+quickTimesForm?.addEventListener("submit", event => {
+  event.preventDefault();
+  const times = readQuickTimes();
+  if (!times) { renderQuickTimesPreview(); return; }
+  let snapshot;
+  try {
+    snapshot = pushUndoSnapshot("일과 시간 빠르게 설정");
+    const edits = readJsonStorage(SCHEDULE_EDIT_STORAGE_KEY);
+    Object.assign(edits, times);
+    writeJsonStorage(SCHEDULE_EDIT_STORAGE_KEY, edits);
+    localStorage.setItem(TIME_SETUP_STORAGE_KEY, "ready");
+  } catch (error) {
+    quickTimesMessage.textContent = "저장하지 못했습니다. 브라우저 저장 공간을 확인해 주세요.";
+    return;
+  }
+  for (const [name, range] of Object.entries(times)) {
+    const item = scheduleRanges.find(entry => entry.name === name);
+    if (!item) continue;
+    Object.assign(item, range, { dayRanges: {} });
+    const row = document.querySelector(`#timetable tbody tr[data-period="${name}"]`);
+    if (row) updateRowTimeText(row, item);
+  }
+  scheduleRanges.sort((a, b) => a.start.localeCompare(b.start));
+  const tbody = document.querySelector("#timetable tbody");
+  scheduleRanges.forEach(item => {
+    const row = Array.from(tbody?.rows || []).find(entry => entry.dataset.period === item.name);
+    if (row) tbody.append(row);
+  });
+  renderDailyHomeroomSchedule();
+  updateCurrentStatus();
+  window.TileApp?.setNativeDialogVisible(quickTimesDialog, false);
+  showToast("일과 시간을 적용했습니다", "교시 시간은 언제든 개별 수정할 수 있어요.", {
+    actionLabel: "되돌리기", onAction: () => {
+      localStorage.setItem(TIME_SETUP_STORAGE_KEY, "pending");
+      restoreSnapshot(snapshot);
+    }
+  });
+});
+
 function renderDailyHomeroomSchedule() {
   const timetable = document.getElementById("timetable");
   const homeroomRow = document.querySelector('tbody tr[data-period="종례"]');
@@ -3259,8 +3377,8 @@ if (currentTimeEl) {
   const hasTimetable = Boolean(getSavedTileUser()?.school?.name)
     || localStorage.getItem("tile-start-mode") === "manual"
     || Boolean(document.querySelector("#timetable td[data-subject]"));
-  if (!hasTimetable) {
-    if (currentPeriodEl) renderRollingStyleText(currentPeriodEl, "시간표 미설정", "current-period");
+  if (!hasTimetable || needsSchoolTimeSetup()) {
+    if (currentPeriodEl) renderRollingStyleText(currentPeriodEl, hasTimetable ? "일과 시간 설정 필요" : "시간표 미설정", "current-period");
     if (remainingTimeLabelEl) remainingTimeLabelEl.textContent = "교시 남은 시간";
     if (remainingTimeEl) renderRollingStyleText(remainingTimeEl, "—", "period-remaining-time");
     if (dayRemainingTimeLabelEl) dayRemainingTimeLabelEl.textContent = "일과 남은 시간";
@@ -4614,6 +4732,8 @@ saveSchoolButton?.addEventListener("click", async () => {
       || "";
     const previousUndo = localStorage.getItem(UNDO_STORAGE_KEY);
     const rollbackSnapshot = pushUndoSnapshot("학교 변경");
+    const priorUser = getSavedTileUser();
+    const timeWasConfigured = !needsSchoolTimeSetup();
     const user = {
       school: preparedSchoolSync.school,
       grade: preparedSchoolSync.user.grade,
@@ -4645,6 +4765,12 @@ saveSchoolButton?.addEventListener("click", async () => {
     captureDefaultCellSubjects();
 
     localStorage.removeItem("tile-start-mode");
+    const sameClass = priorUser?.school?.code === user.school.code
+      && priorUser?.school?.office === user.school.office
+      && String(priorUser?.grade) === String(user.grade)
+      && String(priorUser?.classNum) === String(user.classNum);
+    if (!sameClass || !timeWasConfigured) localStorage.setItem(TIME_SETUP_STORAGE_KEY, "pending");
+    updateCurrentStatus();
 
     localStorage.setItem(LAST_SYNC_STORAGE_KEY, new Date().toISOString());
     updateLastSyncValue();
@@ -4652,7 +4778,9 @@ saveSchoolButton?.addEventListener("click", async () => {
       || neisStatusEl?.dataset?.displayText
       || neisStatusEl?.textContent?.trim()
       || "";
-    closeSchoolSettingsModal();
+    closeSchoolSettingsModal({ restoreFocus: false }).then(closed => {
+      if (closed && needsSchoolTimeSetup()) openQuickTimes({ afterSchoolSetup: true });
+    });
 
     requestAnimationFrame(() => {
       replayStartupSpotlight();
