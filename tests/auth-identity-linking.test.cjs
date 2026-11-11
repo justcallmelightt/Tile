@@ -13,7 +13,7 @@ function load(name, context) {
 
 function nodes() {
   return {
-    googleStatus: {}, emailStatus: {}, linkGoogle: {}, linkEmail: { setAttribute() {} }, addPasswordForm: { hidden: true },
+    googleStatus: {}, emailStatus: {}, linkGoogle: { dataset: {}, setAttribute() {} }, linkEmail: { dataset: {}, setAttribute() {} }, addPasswordForm: { hidden: true },
     methodsMessage: { dataset: {} }, newPassword: { value: 'new-password-123' }, addPassword: { disabled: false },
   };
 }

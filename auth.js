@@ -209,8 +209,18 @@
     const hasEmail = identities.some((identity) => identity.provider === "email");
     if (nodes.googleStatus) nodes.googleStatus.textContent = hasGoogle ? "연결됨" : "연결하기";
     if (nodes.emailStatus) nodes.emailStatus.textContent = hasEmail ? "연결됨" : "연결하기";
-    if (nodes.linkGoogle) nodes.linkGoogle.disabled = hasGoogle;
-    if (nodes.linkEmail) nodes.linkEmail.disabled = hasEmail;
+    if (nodes.linkGoogle) {
+      nodes.linkGoogle.disabled = hasGoogle;
+      nodes.linkGoogle.dataset.linked = String(hasGoogle);
+      nodes.linkGoogle.setAttribute("aria-label", hasGoogle ? "Google 연결됨" : "Google 연결하기");
+      nodes.linkGoogle.title = hasGoogle ? "Google 연결됨" : "Google 연결하기";
+    }
+    if (nodes.linkEmail) {
+      nodes.linkEmail.disabled = hasEmail;
+      nodes.linkEmail.dataset.linked = String(hasEmail);
+      nodes.linkEmail.setAttribute("aria-label", hasEmail ? "Lightframe 이메일 연결됨" : "Lightframe 이메일 연결하기");
+      nodes.linkEmail.title = hasEmail ? "Lightframe 이메일 연결됨" : "Lightframe 이메일 연결하기";
+    }
     if (hasEmail) {
       setHidden(nodes.addPasswordForm, true);
       nodes.linkEmail?.setAttribute("aria-expanded", "false");

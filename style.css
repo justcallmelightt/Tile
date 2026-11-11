@@ -4122,14 +4122,16 @@ button, input, textarea, select, option {
 .account-methods-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 0 2px 10px; }
 .account-methods-heading strong { color: var(--text); font-size: 0.82rem; font-weight: 650; letter-spacing: -0.015em; }
 .account-methods-heading span { color: var(--text-soft); font-size: 0.7rem; line-height: 1.45; }
-.account-method-choice { display: flex; align-items: center; width: 100%; gap: 12px; min-height: 52px; padding: 10px 8px; border: 0; border-top: 1px solid var(--border); border-radius: 0; background: transparent; color: var(--text); text-align: left; font: inherit; font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: background-color .18s ease, transform .18s ease; }
-.account-method-choice img { display: block; width: 22px; height: 22px; object-fit: contain; flex: 0 0 22px; }
-.account-method-choice .account-method-status { margin-left: auto; color: var(--text-soft); font-size: 0.7rem; font-weight: 500; }
-.account-method-choice:not(:disabled) .account-method-status { color: var(--text); }
-.account-method-choice:not(:disabled):hover { background: var(--surface-soft); }
-.account-method-choice:not(:disabled):active, .account-add-password button:active:not(:disabled) { transform: scale(0.985); }
-.account-method-choice:disabled { cursor: default; opacity: 1; }
-.account-method-choice:focus-visible, .account-add-password button:focus-visible { outline: 2px solid var(--focus-glow); outline-offset: -2px; }
+.account-method-icons { display: flex; align-items: center; gap: 12px; padding: 6px 2px 12px; }
+.account-method-icon { position: relative; display: grid; place-items: center; width: 62px; height: 62px; padding: 0; border: 1px solid var(--border); border-radius: 17px; background: var(--surface-soft); cursor: pointer; transition: background-color .18s ease, border-color .18s ease, transform .18s ease; }
+.account-method-icon img { display: block; width: 30px; height: 30px; object-fit: contain; }
+.account-method-icon::after { position: absolute; right: -5px; bottom: -5px; display: grid; place-items: center; width: 19px; height: 19px; border: 2px solid var(--surface); border-radius: 50%; background: var(--text); color: var(--surface); content: '+'; font-size: 16px; font-weight: 500; line-height: 1; }
+.account-method-icon[data-linked="loading"]::after { display: none; }
+.account-method-icon[data-linked="true"]::after { content: '✓'; font-size: 12px; font-weight: 750; }
+.account-method-icon:not(:disabled):hover { background: var(--accent-soft); border-color: var(--text-soft); }
+.account-method-icon:not(:disabled):active, .account-add-password button:active:not(:disabled) { transform: scale(0.96); }
+.account-method-icon:disabled { cursor: default; opacity: 1; }
+.account-method-icon:focus-visible, .account-add-password button:focus-visible { outline: 2px solid var(--focus-glow); outline-offset: 3px; }
 .account-add-password { display: flex; align-items: end; gap: 8px; padding: 6px 2px 12px; }
 .account-add-password[hidden] { display: none; }
 .account-add-password .setup-field { flex: 1; min-width: 0; gap: 5px; }
@@ -4137,7 +4139,7 @@ button, input, textarea, select, option {
 .account-add-password button { min-height: 38px; white-space: nowrap; border-radius: 9px; font-size: 0.72rem; }
 .account-methods .account-message { min-height: 0; margin: 0; }
 @media (max-width: 540px) { .account-add-password { display: grid; } .account-add-password button { width: 100%; } }
-@media (prefers-reduced-motion: reduce) { .account-method-choice, .account-add-password button { transition: opacity 150ms ease; } .account-method-choice:not(:disabled):active, .account-add-password button:active:not(:disabled) { transform: none; opacity: .8; } }
+@media (prefers-reduced-motion: reduce) { .account-method-icon, .account-add-password button { transition: opacity 150ms ease; } .account-method-icon:not(:disabled):active, .account-add-password button:active:not(:disabled) { transform: none; opacity: .8; } }
 
 .account-brand-logo {
   flex: 0 0 64px;
