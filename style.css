@@ -4392,6 +4392,7 @@ button, input, textarea, select, option {
 .account-notice strong { color: var(--text); font-size: 0.84rem; }
 .account-notice span { color: var(--text-soft); font-size: 0.74rem; line-height: 1.5; }
 .account-summary { padding: 0; }
+.account-backup-help { margin: -3px 2px 0; color: var(--text-soft); font-size: 0.74rem; line-height: 1.5; }
 .account-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .account-message { min-height: 0; margin: 0; }
 .account-message[data-tone="error"] { color: #ff5a5f; }

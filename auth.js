@@ -26,6 +26,7 @@
   const sessionSubscribers = new Set();
   const AUTH_RETURN_KEY = "tile-auth-return-location";
   const AUTH_LINK_KEY = "tile-auth-link-google";
+  const AUTH_RESTORE_KEY = "tile-auth-restore-after-login";
   const MAX_AUTH_RETURN_LENGTH = 20000;
   const CANONICAL_AUTH_ORIGIN = "https://tile0.vercel.app";
 
@@ -176,9 +177,13 @@
   }
 
   async function renderSession(session) {
+    const previousUserId = currentSession?.user?.id;
     currentSession = session;
-    pendingRestore = null;
-    setHidden(nodes.restorePanel, true);
+    if (previousUserId !== session?.user?.id) {
+      pendingRestore = null;
+      setHidden(nodes.restorePanel, true);
+      setMessage("");
+    }
     setHidden(nodes.deletePanel, true);
     const user = session?.user;
     if (nodes.accountEntryStatus) {
@@ -195,9 +200,9 @@
     if (nodes.avatar) nodes.avatar.textContent = getInitial(user);
     if (nodes.displayName) nodes.displayName.textContent = name;
     if (nodes.email) nodes.email.textContent = user.email || "Google 계정";
-    setMessage("");
     await renderLoginMethods(user.id);
     await refreshBackupStatus();
+    await finishRestoreFlow();
   }
 
   async function renderLoginMethods(userId) {
@@ -369,7 +374,7 @@
     try {
     const { data, error } = await client.from("tile_backups").select("payload, updated_at").eq("user_id", currentSession.user.id).maybeSingle();
     if (error) throw error;
-    if (!data?.payload) return setMessage("이 계정에 저장된 Tile 백업이 없습니다.");
+    if (!data?.payload) return setMessage("이 계정에 저장된 Tile 백업이 없습니다. 로그인만으로 이전 기기의 시간표를 불러올 수는 없습니다.");
     pendingRestore = data.payload;
     const summary = data.payload.summary || {};
     const classroom = summary.grade && summary.classNum ? ` · ${summary.grade}학년 ${summary.classNum}반` : "";
@@ -429,6 +434,22 @@
     }, 100);
   }
 
+  async function finishRestoreFlow() {
+    if (!currentSession?.user || sessionStorage.getItem(AUTH_RESTORE_KEY) !== "1") return;
+    sessionStorage.removeItem(AUTH_RESTORE_KEY);
+    openAccountSettings();
+    await prepareRestore();
+    window.setTimeout(() => {
+      (pendingRestore ? nodes.restorePanel : nodes.message)?.scrollIntoView?.({ block: "nearest" });
+    }, 180);
+  }
+
+  function startRestoreFlow() {
+    sessionStorage.setItem(AUTH_RESTORE_KEY, "1");
+    if (currentSession?.user) return finishRestoreFlow();
+    openAccountSettings();
+  }
+
   function bindEvents() {
     nodes.accountEntry?.addEventListener("click", openAccountSettings);
     nodes.googleSignIn?.addEventListener("click", signInWithGoogle);
@@ -469,7 +490,8 @@
       subscriber(currentSession);
       return () => sessionSubscribers.delete(subscriber);
     },
-    openAccountSettings
+    openAccountSettings,
+    startRestoreFlow
   };
 
   async function init() {

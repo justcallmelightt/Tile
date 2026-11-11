@@ -4756,7 +4756,7 @@ document.getElementById("setupChooseManual")?.addEventListener("click", startMan
 
 document.getElementById("setupAccountSignIn")?.addEventListener("click", async () => {
   const closed = await closeSchoolSettingsModal({ restoreFocus: false });
-  if (closed && setupModal?.classList.contains("hidden")) window.TileAuth?.openAccountSettings?.();
+  if (closed && setupModal?.classList.contains("hidden")) window.TileAuth?.startRestoreFlow?.();
 });
 
 saveSchoolButton?.addEventListener("click", async () => {

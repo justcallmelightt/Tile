@@ -10,7 +10,7 @@
   <link rel="icon" href="./assets/favicon/favicon-32x32.png" sizes="32x32" type="image/png" />
   <link rel="icon" href="./assets/favicon/favicon-96x96.png" sizes="96x96" type="image/png" />
   <link rel="apple-touch-icon" href="./assets/favicon/favicon-96x96.png" />
-  <link rel="stylesheet" href="./style.css?v=20261112-account-controls" />
+  <link rel="stylesheet" href="./style.css?v=20261112-manual-cloud-backup" />
   <!-- Google AdSense: site ownership verification and ad delivery -->
   <script
     async
@@ -100,7 +100,7 @@
         <div class="account-lightframe-action">
           <button id="setupAccountSignIn" class="account-lightframe-toggle setup-choice-login" type="button">
             <span class="account-lightframe-mark" aria-hidden="true"><svg class="account-lightframe-glyph" viewBox="0 0 391 580" focusable="false"><path d="M0 289.645L195.152 0L390.305 289.645L195.152 579.301L0 289.645Z" fill="currentColor"/></svg></span>
-            <span><strong>로그인해서 불러오기</strong><small>Lightframe. 계정에 로그인한 뒤 백업을 불러와요.</small></span>
+            <span><strong>로그인해서 불러오기</strong><small>로그인 후 백업을 확인하고 직접 적용해요.</small></span>
           </button>
         </div>
         <p id="setupChoiceMessage" class="form-message" role="status"></p>
@@ -280,13 +280,19 @@
             <div><strong id="accountDisplayName">Lightframe. 사용자</strong><span id="accountEmail"></span></div>
           </div>
           <div class="settings-data-summary account-summary">
-            <div><span>현재 저장 위치</span><strong>이 기기 + Lightframe. 계정</strong></div>
+            <div><span>현재 저장 위치</span><strong>이 기기의 브라우저</strong></div>
             <div><span>클라우드 백업</span><strong id="cloudBackupStatus">확인 전</strong></div>
           </div>
+          <p class="account-backup-help">클라우드 백업은 자동으로 저장되거나 적용되지 않습니다. 필요할 때 직접 선택하세요.</p>
           <p id="accountMessage" class="form-message account-message" aria-live="polite"></p>
           <div class="settings-secondary-actions account-actions">
-            <button id="backupCloudData" class="secondary-action" type="button">현재 데이터 백업</button>
+            <button id="backupCloudData" class="secondary-action" type="button">지금 백업하기</button>
             <button id="restoreCloudData" class="secondary-action" type="button">백업 불러오기</button>
+          </div>
+          <div id="restoreConfirmPanel" class="account-confirm-panel" hidden>
+            <strong>이 기기의 데이터를 교체할까요?</strong>
+            <p id="restoreConfirmDescription">현재 데이터는 되돌리기용으로 보관한 뒤 클라우드 백업을 적용합니다.</p>
+            <div><button id="cancelCloudRestore" class="secondary-action" type="button">취소</button><button id="confirmCloudRestore" class="primary-action" type="button">백업 적용</button></div>
           </div>
           <div class="account-methods" aria-labelledby="accountMethodsTitle">
             <div class="account-methods-heading"><strong id="accountMethodsTitle">계정 연결</strong><span>아이콘을 눌러 로그인 방법을 추가하세요</span></div>
@@ -299,11 +305,6 @@
               <button id="accountAddPassword" class="secondary-action" type="submit">이메일 로그인 추가</button>
             </form>
             <p id="accountMethodsMessage" class="form-message account-message" role="status" aria-live="polite"></p>
-          </div>
-          <div id="restoreConfirmPanel" class="account-confirm-panel" hidden>
-            <strong>이 기기의 데이터를 교체할까요?</strong>
-            <p id="restoreConfirmDescription">현재 데이터는 되돌리기용으로 보관한 뒤 클라우드 백업을 적용합니다.</p>
-            <div><button id="cancelCloudRestore" class="secondary-action" type="button">취소</button><button id="confirmCloudRestore" class="primary-action" type="button">백업 적용</button></div>
           </div>
           <button id="accountSignOut" class="account-text-action" type="button">로그아웃</button>
           <button id="showDeleteAccount" class="account-text-action account-danger-action" type="button">계정 삭제</button>
@@ -788,8 +789,8 @@
   <script src="./config.js?v=20260703-script-fix" onerror="this.remove()"></script>
   <script src="./neis.js?v=20261026-empty-start"></script>
   <script src="./after-school.js?v=20261110-no-default-after-school"></script>
-  <script src="./script.js?v=20261110-manual-times-2"></script>
-  <script src="./auth.js?v=20261111-icon-only-connect"></script>
+  <script src="./script.js?v=20261112-manual-cloud-backup"></script>
+  <script src="./auth.js?v=20261112-manual-cloud-backup"></script>
   <script src="./share.js?v=20261017-dialog-motion"></script>
   <script src="./feedback.js?v=20261017-dialog-motion"></script>
   <script src="./personal-presets.js?v=20261017-dialog-motion"></script>
