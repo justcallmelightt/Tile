@@ -14,13 +14,18 @@
     restoreDescription: byId("restoreConfirmDescription"), cancelRestore: byId("cancelCloudRestore"),
     confirmRestore: byId("confirmCloudRestore"), signOut: byId("accountSignOut"), showDelete: byId("showDeleteAccount"),
     deletePanel: byId("deleteAccountPanel"), cancelDelete: byId("cancelDeleteAccount"), confirmDelete: byId("confirmDeleteAccount"),
-    accountEntry: byId("accountSettingsToggle"), accountEntryStatus: byId("accountSettingsStatus")
+    accountEntry: byId("accountSettingsToggle"), accountEntryStatus: byId("accountSettingsStatus"),
+    googleStatus: byId("accountGoogleStatus"), emailStatus: byId("accountEmailStatus"),
+    linkGoogle: byId("accountLinkGoogle"), addPasswordForm: byId("accountAddPasswordForm"),
+    newPassword: byId("accountNewPassword"), addPassword: byId("accountAddPassword"),
+    methodsMessage: byId("accountMethodsMessage")
   };
   let client = null;
   let currentSession = null;
   let pendingRestore = null;
   const sessionSubscribers = new Set();
   const AUTH_RETURN_KEY = "tile-auth-return-location";
+  const AUTH_LINK_KEY = "tile-auth-link-google";
   const MAX_AUTH_RETURN_LENGTH = 20000;
   const CANONICAL_AUTH_ORIGIN = "https://tile0.vercel.app";
 
@@ -54,6 +59,11 @@
     nodes.lightframeEmailMessage.textContent = message;
     nodes.lightframeEmailMessage.dataset.tone = tone;
   }
+  function setMethodsMessage(message = "", tone = "") {
+    if (!nodes.methodsMessage) return;
+    nodes.methodsMessage.textContent = message;
+    nodes.methodsMessage.dataset.tone = tone;
+  }
   function setBusy(button, busy) {
     if (!button) return;
     button.disabled = busy;
@@ -61,6 +71,12 @@
   }
   function authErrorMessage(error, fallback) {
     const message = String(error?.message || "");
+    if (/identity.already.exists|identity.already.linked|already.linked.to.another.user/i.test(`${error?.code || ""} ${message}`)) {
+      return "이 Google 계정은 다른 Lightframe 계정에 연결되어 있습니다. 두 계정의 백업은 자동으로 합쳐지지 않습니다.";
+    }
+    if (/manual.link|identity.linking/i.test(`${error?.code || ""} ${message}`)) {
+      return "계정 연결이 꺼져 있습니다. Supabase 인증 설정에서 수동 계정 연결을 켜주세요.";
+    }
     if (/load failed|failed to fetch|network|fetcherror|networkerror/i.test(message)) {
       return "계정 서버에 연결할 수 없습니다. 잠시 후 다시 시도하거나 인터넷 연결을 확인해주세요.";
     }
@@ -138,8 +154,10 @@
     const returnLocation = readAuthReturnLocation();
     sessionStorage.removeItem(AUTH_RETURN_KEY);
     window.history.replaceState(null, "", returnLocation || `${url.pathname}${url.search}${url.hash}`);
+    const wasLinking = sessionStorage.getItem(AUTH_LINK_KEY) === "1";
+    sessionStorage.removeItem(AUTH_LINK_KEY);
     window.setTimeout(() => window.TileApp?.notify?.(
-      "Google 로그인을 완료하지 못했습니다",
+      wasLinking ? "Google 계정을 연결하지 못했습니다" : "Google 로그인을 완료하지 못했습니다",
       description.startsWith("Unable to exchange external code")
         ? "Google 로그인 연결 설정에 문제가 있습니다. 잠시 후 다시 시도하거나 관리자에게 알려주세요."
         : description,
@@ -170,6 +188,7 @@
     }
     setHidden(nodes.signedOut, Boolean(user));
     setHidden(nodes.signedIn, !user);
+    setMethodsMessage("");
     sessionSubscribers.forEach((subscriber) => subscriber(session));
     if (!user) return;
     const name = user.user_metadata?.full_name || user.user_metadata?.name || "Lightframe. 사용자";
@@ -177,7 +196,60 @@
     if (nodes.displayName) nodes.displayName.textContent = name;
     if (nodes.email) nodes.email.textContent = user.email || "Google 계정";
     setMessage("");
+    await renderLoginMethods(user.id);
     await refreshBackupStatus();
+  }
+
+  async function renderLoginMethods(userId) {
+    const { data, error } = await client.auth.getUserIdentities();
+    if (currentSession?.user?.id !== userId) return;
+    if (error) return setMethodsMessage(authErrorMessage(error, "로그인 방법을 확인하지 못했습니다."), "error");
+    const identities = data?.identities || [];
+    const hasGoogle = identities.some((identity) => identity.provider === "google");
+    const hasEmail = identities.some((identity) => identity.provider === "email");
+    if (nodes.googleStatus) nodes.googleStatus.textContent = hasGoogle ? "연결됨" : "연결 안 됨";
+    if (nodes.emailStatus) nodes.emailStatus.textContent = hasEmail ? "사용 가능" : "설정 안 됨";
+    setHidden(nodes.linkGoogle, hasGoogle);
+    setHidden(nodes.addPasswordForm, hasEmail);
+    if (sessionStorage.getItem(AUTH_LINK_KEY) === "1") {
+      sessionStorage.removeItem(AUTH_LINK_KEY);
+      setMethodsMessage(hasGoogle ? "Google 계정을 연결했습니다. 두 방법으로 같은 백업에 접근할 수 있습니다." : "Google 연결을 확인하지 못했습니다. 다시 시도해주세요.", hasGoogle ? "success" : "error");
+    }
+  }
+
+  async function linkGoogleIdentity() {
+    if (!client || !currentSession?.user) return;
+    if (window.location.origin !== CANONICAL_AUTH_ORIGIN) {
+      return setMethodsMessage("계정 연결은 배포된 Tile에서 진행해주세요.", "error");
+    }
+    setBusy(nodes.linkGoogle, true);
+    setMethodsMessage("Google 계정 선택 화면으로 이동합니다.");
+    sessionStorage.setItem(AUTH_LINK_KEY, "1");
+    try {
+      const { error } = await client.auth.linkIdentity({ provider: "google", options: { redirectTo: getAuthRedirectUrl(), queryParams: { prompt: "select_account" } } });
+      if (error) throw error;
+    } catch (error) {
+      sessionStorage.removeItem(AUTH_LINK_KEY);
+      setMethodsMessage(authErrorMessage(error, "Google 계정을 연결하지 못했습니다."), "error");
+    } finally { setBusy(nodes.linkGoogle, false); }
+  }
+
+  async function addEmailPassword(event) {
+    event?.preventDefault();
+    if (!client || !currentSession?.user) return;
+    const password = String(nodes.newPassword?.value || "");
+    if (password.length < 8) return setMethodsMessage("비밀번호는 8자 이상으로 입력해주세요.", "error");
+    setBusy(nodes.addPassword, true);
+    setMethodsMessage("이메일 로그인 방법을 추가하고 있습니다.");
+    try {
+      const { error } = await client.auth.updateUser({ password });
+      if (error) throw error;
+      if (nodes.newPassword) nodes.newPassword.value = "";
+      await renderLoginMethods(currentSession.user.id);
+      setMethodsMessage("이메일 로그인을 추가했습니다. 다음부터 같은 계정으로 로그인할 수 있습니다.", "success");
+    } catch (error) {
+      setMethodsMessage(authErrorMessage(error, "이메일 로그인을 추가하지 못했습니다."), "error");
+    } finally { setBusy(nodes.addPassword, false); }
   }
 
   async function signInWithGoogle() {
@@ -359,6 +431,8 @@
     nodes.restore?.addEventListener("click", prepareRestore);
     nodes.cancelRestore?.addEventListener("click", () => { pendingRestore = null; setHidden(nodes.restorePanel, true); setMessage(""); });
     nodes.confirmRestore?.addEventListener("click", confirmRestore);
+    nodes.linkGoogle?.addEventListener("click", linkGoogleIdentity);
+    nodes.addPasswordForm?.addEventListener("submit", addEmailPassword);
     nodes.signOut?.addEventListener("click", signOut);
     nodes.showDelete?.addEventListener("click", () => setHidden(nodes.deletePanel, false));
     nodes.cancelDelete?.addEventListener("click", () => setHidden(nodes.deletePanel, true));

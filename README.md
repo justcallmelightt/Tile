@@ -177,6 +177,8 @@ Google 로그인 설정 순서:
 6. `config.public.js`의 `TILE_AUTH_CONFIG`에 Project URL과 브라우저용 Publishable Key를 입력합니다.
 7. Vercel에 `SUPABASE_URL`, `SUPABASE_SECRET_KEY`를 등록합니다.
 
+계정 설정의 Google 연결 버튼으로 이메일 계정에 Google 로그인을 추가하려면 Supabase **Authentication → Sign In / Providers → User Signups → Allow manual linking**을 켭니다. Google로 만든 계정에는 로그인 상태에서 비밀번호를 설정해 같은 사용자 ID에 이메일 로그인을 추가할 수 있습니다. 같은 인증된 이메일의 로그인 방식은 Supabase가 자동 연결하지만, 이미 서로 다른 사용자 ID로 생성된 두 계정의 백업을 이 기능이 합치지는 않습니다.
+
 Google 계정 선택 뒤 `Unable to exchange external code`가 표시되고 Supabase Auth 로그에 `invalid_client` / `The provided client secret is invalid`가 기록되면, Google Cloud Console에서 해당 OAuth 웹 클라이언트의 새 client secret을 발급하고 Supabase Authentication → Sign In / Providers → Google의 Client Secret을 갱신해야 합니다. 저장 후 실제 배포 주소에서 다시 로그인해 확인합니다. 브라우저 코드나 Vercel 환경변수에 Google client secret을 넣지 않습니다.
 
 이메일 가입 요청의 성공 응답만으로 메일 발송을 확정할 수 없습니다. 이미 인증된 주소로 재가입하면 계정 존재 여부를 숨기는 응답이 돌아오며 메일은 다시 발송되지 않을 수 있습니다. 기존 사용자는 로그인하거나 비밀번호 재설정 절차를 이용합니다.

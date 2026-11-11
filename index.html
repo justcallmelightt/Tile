@@ -10,7 +10,7 @@
   <link rel="icon" href="./assets/favicon/favicon-32x32.png" sizes="32x32" type="image/png" />
   <link rel="icon" href="./assets/favicon/favicon-96x96.png" sizes="96x96" type="image/png" />
   <link rel="apple-touch-icon" href="./assets/favicon/favicon-96x96.png" />
-  <link rel="stylesheet" href="./style.css?v=20261110-recommended-badge" />
+  <link rel="stylesheet" href="./style.css?v=20261111-identity-linking" />
   <!-- Google AdSense: site ownership verification and ad delivery -->
   <script
     async
@@ -287,6 +287,16 @@
           <div class="settings-secondary-actions account-actions">
             <button id="backupCloudData" class="secondary-action" type="button">현재 데이터 백업</button>
             <button id="restoreCloudData" class="secondary-action" type="button">백업 불러오기</button>
+          </div>
+          <div class="account-methods" aria-labelledby="accountMethodsTitle">
+            <div class="account-methods-heading"><strong id="accountMethodsTitle">로그인 방법</strong><span>한 계정에서 함께 사용해요</span></div>
+            <div class="account-method-row"><span>Google</span><span id="accountGoogleStatus">확인 중</span><button id="accountLinkGoogle" class="secondary-action" type="button" hidden>연결하기</button></div>
+            <div class="account-method-row"><span>이메일 · 비밀번호</span><span id="accountEmailStatus">확인 중</span></div>
+            <form id="accountAddPasswordForm" class="account-add-password" hidden>
+              <label class="setup-field" for="accountNewPassword"><span>이메일 로그인에 사용할 비밀번호</span><input id="accountNewPassword" type="password" autocomplete="new-password" minlength="8" placeholder="8자 이상" required></label>
+              <button id="accountAddPassword" class="secondary-action" type="submit">이메일 로그인 추가</button>
+            </form>
+            <p id="accountMethodsMessage" class="form-message account-message" role="status" aria-live="polite"></p>
           </div>
           <div id="restoreConfirmPanel" class="account-confirm-panel" hidden>
             <strong>이 기기의 데이터를 교체할까요?</strong>
@@ -777,7 +787,7 @@
   <script src="./neis.js?v=20261026-empty-start"></script>
   <script src="./after-school.js?v=20261110-no-default-after-school"></script>
   <script src="./script.js?v=20261110-manual-times-2"></script>
-  <script src="./auth.js?v=20261111-auth-feedback"></script>
+  <script src="./auth.js?v=20261111-identity-linking"></script>
   <script src="./share.js?v=20261017-dialog-motion"></script>
   <script src="./feedback.js?v=20261017-dialog-motion"></script>
   <script src="./personal-presets.js?v=20261017-dialog-motion"></script>

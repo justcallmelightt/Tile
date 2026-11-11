@@ -4118,6 +4118,25 @@ button, input, textarea, select, option {
 .account-identity strong { color: var(--text); font-size: 0.9rem; font-weight: 600; }
 .account-identity div span { color: var(--text-soft); font-size: 0.74rem; }
 
+.account-methods { display: grid; gap: 0; padding-top: 6px; }
+.account-methods-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 0 2px 10px; }
+.account-methods-heading strong { color: var(--text); font-size: 0.82rem; font-weight: 650; letter-spacing: -0.015em; }
+.account-methods-heading span { color: var(--text-soft); font-size: 0.7rem; line-height: 1.45; }
+.account-method-row { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 10px 2px; border-top: 1px solid var(--border); font-size: 0.77rem; font-weight: 560; }
+.account-method-row > span:nth-child(2) { margin-left: auto; color: var(--text-soft); font-size: 0.7rem; font-weight: 500; }
+.account-method-row button { min-height: 31px; padding: 0 12px; border-radius: 9px; font-size: 0.7rem; }
+.account-method-row button[hidden] { display: none; }
+.account-method-row button:active:not(:disabled), .account-add-password button:active:not(:disabled) { transform: scale(0.97); }
+.account-method-row button:focus-visible, .account-add-password button:focus-visible { outline: 2px solid var(--focus-glow); outline-offset: 2px; }
+.account-add-password { display: flex; align-items: end; gap: 8px; padding: 6px 2px 12px; }
+.account-add-password[hidden] { display: none; }
+.account-add-password .setup-field { flex: 1; min-width: 0; gap: 5px; }
+.account-add-password input { min-height: 38px; }
+.account-add-password button { min-height: 38px; white-space: nowrap; border-radius: 9px; font-size: 0.72rem; }
+.account-methods .account-message { min-height: 0; margin: 0; }
+@media (max-width: 540px) { .account-add-password { display: grid; } .account-add-password button { width: 100%; } }
+@media (prefers-reduced-motion: reduce) { .account-method-row button, .account-add-password button { transition: opacity 150ms ease; } .account-method-row button:active:not(:disabled), .account-add-password button:active:not(:disabled) { transform: none; opacity: .8; } }
+
 .account-brand-logo {
   flex: 0 0 64px;
   width: 64px;
