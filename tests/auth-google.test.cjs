@@ -27,6 +27,8 @@ function createGoogleSignIn({ error = null } = {}) {
     AUTH_RETURN_KEY: 'tile-auth-return-location',
     currentReturnLocation: () => '/index.html',
     getAuthRedirectUrl: () => 'https://tile0.vercel.app/index.html',
+    checkAccountServer: async () => {},
+    authErrorMessage: (error, fallback) => error?.message || fallback,
     setBusy: (button, busy) => { button.disabled = busy; },
     window: { TileApp: { notify: (...args) => notices.push(args) } },
   };

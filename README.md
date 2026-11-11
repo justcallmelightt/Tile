@@ -177,6 +177,10 @@ Google 로그인 설정 순서:
 6. `config.public.js`의 `TILE_AUTH_CONFIG`에 Project URL과 브라우저용 Publishable Key를 입력합니다.
 7. Vercel에 `SUPABASE_URL`, `SUPABASE_SECRET_KEY`를 등록합니다.
 
+Google 계정 선택 뒤 `Unable to exchange external code`가 표시되고 Supabase Auth 로그에 `invalid_client` / `The provided client secret is invalid`가 기록되면, Google Cloud Console에서 해당 OAuth 웹 클라이언트의 새 client secret을 발급하고 Supabase Authentication → Sign In / Providers → Google의 Client Secret을 갱신해야 합니다. 저장 후 실제 배포 주소에서 다시 로그인해 확인합니다. 브라우저 코드나 Vercel 환경변수에 Google client secret을 넣지 않습니다.
+
+이메일 가입 요청의 성공 응답만으로 메일 발송을 확정할 수 없습니다. 이미 인증된 주소로 재가입하면 계정 존재 여부를 숨기는 응답이 돌아오며 메일은 다시 발송되지 않을 수 있습니다. 기존 사용자는 로그인하거나 비밀번호 재설정 절차를 이용합니다.
+
 GitHub Pages 배포 체크가 `deployment_queued`에서 오래 멈추면 저장소의 **Settings → Pages → Build and deployment**에서 Source를 `GitHub Actions`로 맞춘 뒤, 포함된 `.github/workflows/pages.yml` 워크플로로 배포하세요. Vercel만 정식 배포판으로 쓸 경우 GitHub Pages를 비활성화하면 Pages deploy 체크 자체가 생성되지 않습니다.
 
 ---

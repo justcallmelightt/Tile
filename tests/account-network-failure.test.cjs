@@ -28,6 +28,7 @@ for (const [name, button] of [
       nodes: { [button]: { disabled: false }, restorePanel: {} },
       getEmailCredentials: () => ({ email: 'test@example.com', password: 'password123' }),
       getAuthRedirectUrl: () => 'https://tile0.vercel.app',
+      authErrorMessage: (error, fallback) => error?.message || fallback,
       setBusy: (node, busy) => { node.disabled = busy; },
       setHidden: (node, hidden) => { node.hidden = hidden; },
       setMessage: (...args) => notices.push(args),
@@ -56,4 +57,20 @@ test('share payload failure releases publish button without publishing', async (
   await load('share.js', 'createShare', context)();
   assert.equal(context.nodes.create.disabled, false);
   assert.equal(notices[0][1], 'storage unavailable');
+});
+
+test('signup without a session does not claim a verification email was sent', async () => {
+  const notices = [];
+  const button = { disabled: false };
+  await load('auth.js', 'signUpWithLightframeAccount', {
+    client: { auth: { signUp: async () => ({ data: { session: null, user: { identities: [] } }, error: null }) } },
+    nodes: { lightframeSignUp: button },
+    getEmailCredentials: () => ({ email: 'test@example.com', password: 'password123' }),
+    getAuthRedirectUrl: () => 'https://tile0.vercel.app/',
+    setBusy: (node, busy) => { node.disabled = busy; },
+    setEmailMessage: (...args) => notices.push(args),
+  })();
+  assert.equal(button.disabled, false);
+  assert.match(notices.at(-1)[0], /기존 계정으로 로그인/);
+  assert.doesNotMatch(notices.at(-1)[0], /메일을 보냈습니다/);
 });

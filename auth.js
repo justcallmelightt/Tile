@@ -141,7 +141,7 @@
     window.setTimeout(() => window.TileApp?.notify?.(
       "Google 로그인을 완료하지 못했습니다",
       description.startsWith("Unable to exchange external code")
-        ? "Google 인증 설정에서 코드를 확인하지 못했습니다. 공유 링크는 로그인 없이 만들 수 있습니다."
+        ? "Google 로그인 연결 설정에 문제가 있습니다. 잠시 후 다시 시도하거나 관리자에게 알려주세요."
         : description,
       { tone: "error" }
     ), 0);
@@ -245,7 +245,9 @@
     });
     if (error) throw error;
     if (!data.session) {
-      setEmailMessage("인증 메일을 보냈습니다. 메일의 링크를 열어 계정을 완료해주세요.", "success");
+      // Supabase can return an obfuscated user for an existing account.
+      // A successful signUp response does not prove that an email was sent.
+      setEmailMessage("계정 요청을 확인했습니다. 새 계정이면 인증 메일을 확인해주세요. 메일이 오지 않으면 기존 계정으로 로그인하거나 스팸함을 확인해주세요.", "success");
       return;
     }
     setEmailMessage("");
