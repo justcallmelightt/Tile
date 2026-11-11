@@ -2633,6 +2633,14 @@ const quickTimesForm = document.getElementById("quickTimesForm");
 const quickTimesPreview = document.getElementById("quickTimesPreview");
 const quickTimesMessage = document.getElementById("quickTimesMessage");
 const quickTimesTitle = document.getElementById("quickTimesTitle");
+const quickTimesDescription = document.getElementById("quickTimesDescription");
+const quickTimesAutoFields = document.getElementById("quickTimesAutoFields");
+const quickTimesManualFields = document.getElementById("quickTimesManualFields");
+const quickTimesManualList = document.getElementById("quickTimesManualList");
+const quickTimesAutoResult = document.getElementById("quickTimesAutoResult");
+const quickTimeNames = new Set(["조회", "1교시", "2교시", "3교시", "4교시", "중식", "5교시", "6교시", "7교시", "종례"]);
+let quickTimesMode = "auto";
+let quickTimesAfterSchoolSetup = false;
 
 function needsSchoolTimeSetup() {
   if (!getSavedTileUser()?.school?.name) return false;
@@ -2643,9 +2651,72 @@ function needsSchoolTimeSetup() {
 }
 
 function openQuickTimes({ afterSchoolSetup = false } = {}) {
-  if (quickTimesTitle) quickTimesTitle.textContent = afterSchoolSetup ? "학교 일과 시간 확인" : "일과 시간 빠르게 설정";
+  quickTimesAfterSchoolSetup = afterSchoolSetup;
+  renderManualTimes();
+  setQuickTimesMode("auto");
   renderQuickTimesPreview();
   window.TileApp?.setNativeDialogVisible(quickTimesDialog, true);
+}
+
+function renderManualTimes() {
+  if (!quickTimesManualList) return;
+  quickTimesManualList.replaceChildren();
+  scheduleRanges.filter(item => quickTimeNames.has(item.name)).sort((a, b) => a.start.localeCompare(b.start)).forEach(item => {
+    const row = document.createElement("div");
+    row.className = "quick-times-manual-row";
+    const name = document.createElement("strong");
+    name.textContent = item.name;
+    row.append(name);
+    for (const [field, label] of [["start", "시작"], ["end", "종료"]]) {
+      const control = document.createElement("label");
+      const caption = document.createElement("span");
+      const input = document.createElement("input");
+      caption.textContent = label;
+      input.type = "time";
+      input.value = item[field];
+      input.required = true;
+      input.setAttribute("aria-label", `${item.name} ${label}`);
+      input.dataset.period = item.name;
+      input.dataset.field = field;
+      control.append(caption, input);
+      row.append(control);
+    }
+    quickTimesManualList.append(row);
+  });
+}
+
+function setQuickTimesMode(mode) {
+  quickTimesMode = mode;
+  const manual = mode === "manual";
+  if (quickTimesTitle) quickTimesTitle.textContent = quickTimesAfterSchoolSetup ? "학교 일과 시간 확인" : manual ? "일과 시간 직접 지정" : "일과 시간 빠르게 설정";
+  if (quickTimesDescription) quickTimesDescription.textContent = manual ? "각 교시의 시작과 종료를 학교 일과표에 맞게 입력하세요." : "학교 일과표의 기준만 입력하면 나머지 시간을 계산해요.";
+  quickTimesAutoFields.hidden = manual;
+  quickTimesAutoResult.hidden = manual;
+  quickTimesManualFields.hidden = !manual;
+  quickTimesAutoFields.querySelectorAll("input, select").forEach(control => { control.disabled = manual; });
+  quickTimesManualFields.querySelectorAll("input").forEach(control => { control.disabled = !manual; });
+  for (const [id, active] of [["quickTimesAutoMode", !manual], ["quickTimesManualMode", manual]]) {
+    const button = document.getElementById(id);
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", String(active));
+  }
+  quickTimesMessage.textContent = "";
+}
+
+function readManualTimes() {
+  const times = {};
+  for (const row of quickTimesManualList.children) {
+    const [startInput, endInput] = row.querySelectorAll("input");
+    const { period } = startInput.dataset;
+    const start = startInput.value;
+    const end = endInput.value;
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(start) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(end) || start >= end) return null;
+    times[period] = { start, end };
+  }
+  if (Object.keys(times).length !== quickTimeNames.size) return null;
+  const ranges = Object.values(times).sort((a, b) => a.start.localeCompare(b.start));
+  if (ranges.some((range, index) => index > 0 && range.start < ranges[index - 1].end)) return null;
+  return times;
 }
 
 function calculateQuickTimes(values) {
@@ -2704,15 +2775,20 @@ document.getElementById("managementQuickTimes")?.addEventListener("click", () =>
   openQuickTimes();
 });
 document.getElementById("quickTimesClose")?.addEventListener("click", () => window.TileApp?.setNativeDialogVisible(quickTimesDialog, false));
-quickTimesForm?.addEventListener("input", renderQuickTimesPreview);
-quickTimesForm?.addEventListener("change", renderQuickTimesPreview);
+document.getElementById("quickTimesAutoMode")?.addEventListener("click", () => setQuickTimesMode("auto"));
+document.getElementById("quickTimesManualMode")?.addEventListener("click", () => setQuickTimesMode("manual"));
+quickTimesAutoFields?.addEventListener("input", renderQuickTimesPreview);
+quickTimesAutoFields?.addEventListener("change", renderQuickTimesPreview);
 quickTimesForm?.addEventListener("submit", event => {
   event.preventDefault();
-  const times = readQuickTimes();
-  if (!times) { renderQuickTimesPreview(); return; }
+  const times = quickTimesMode === "manual" ? readManualTimes() : readQuickTimes();
+  if (!times) {
+    quickTimesMessage.textContent = quickTimesMode === "manual" ? "시작·종료 시각을 확인해 주세요. 시간이 겹치지 않고 같은 날 안에 끝나야 합니다." : "시간을 확인해 주세요. 모든 일과는 같은 날 안에 끝나야 합니다.";
+    return;
+  }
   let snapshot;
   try {
-    snapshot = pushUndoSnapshot("일과 시간 빠르게 설정");
+    snapshot = pushUndoSnapshot(quickTimesMode === "manual" ? "일과 시간 직접 지정" : "일과 시간 빠르게 설정");
     const edits = readJsonStorage(SCHEDULE_EDIT_STORAGE_KEY);
     Object.assign(edits, times);
     writeJsonStorage(SCHEDULE_EDIT_STORAGE_KEY, edits);

@@ -10,7 +10,7 @@
   <link rel="icon" href="./assets/favicon/favicon-32x32.png" sizes="32x32" type="image/png" />
   <link rel="icon" href="./assets/favicon/favicon-96x96.png" sizes="96x96" type="image/png" />
   <link rel="apple-touch-icon" href="./assets/favicon/favicon-96x96.png" />
-  <link rel="stylesheet" href="./style.css?v=20261110-quick-times-spacing" />
+  <link rel="stylesheet" href="./style.css?v=20261110-recommended-badge" />
   <!-- Google AdSense: site ownership verification and ad delivery -->
   <script
     async
@@ -99,7 +99,7 @@
         </button>
         <div class="account-lightframe-action">
           <button id="setupAccountSignIn" class="account-lightframe-toggle setup-choice-login" type="button">
-            <span class="account-lightframe-mark" aria-hidden="true">✨</span>
+            <span class="account-lightframe-mark" aria-hidden="true"><svg class="account-lightframe-glyph" viewBox="0 0 391 580" focusable="false"><path d="M0 289.645L195.152 0L390.305 289.645L195.152 579.301L0 289.645Z" fill="currentColor"/></svg></span>
             <span><strong>로그인해서 불러오기</strong><small>Lightframe. 계정에 로그인한 뒤 백업을 불러와요.</small></span>
           </button>
         </div>
@@ -259,13 +259,13 @@
         </div>
         <div id="accountSignedOut" class="account-state" hidden>
           <div class="account-lightframe-action">
-            <button id="lightframeEmailToggle" class="account-lightframe-toggle" type="button" aria-expanded="false" aria-controls="lightframeEmailForm"><span class="account-lightframe-mark" aria-hidden="true">✨</span><span class="account-lightframe-label"><strong>Lightframe.</strong><span>으로 로그인</span></span></button>
+            <button id="lightframeEmailToggle" class="account-lightframe-toggle" type="button" aria-expanded="false" aria-controls="lightframeEmailForm"><span class="account-lightframe-mark" aria-hidden="true"><svg class="account-lightframe-glyph" viewBox="0 0 391 580" focusable="false"><path d="M0 289.645L195.152 0L390.305 289.645L195.152 579.301L0 289.645Z" fill="currentColor"/></svg></span><span class="account-lightframe-label"><strong>Lightframe.</strong><span>으로 로그인</span></span></button>
           </div>
           <form id="lightframeEmailForm" class="account-email-form" hidden>
             <p class="account-email-intro">이메일과 비밀번호로 Lightframe. 계정에 로그인하거나 새로 만들 수 있습니다.</p>
             <label class="setup-field" for="lightframeEmailInput"><span>이메일</span><input id="lightframeEmailInput" type="email" autocomplete="email" inputmode="email" placeholder="name@example.com" required></label>
             <label class="setup-field" for="lightframePasswordInput"><span>비밀번호</span><input id="lightframePasswordInput" type="password" autocomplete="current-password" minlength="8" placeholder="8자 이상" required></label>
-            <div class="account-email-actions"><button id="lightframePasswordSignIn" class="secondary-action" type="submit">로그인</button><button id="lightframePasswordSignUp" class="primary-action" type="button">계정 만들기</button></div>
+            <div class="account-email-actions"><button id="lightframePasswordSignIn" class="primary-action" type="submit">로그인</button><button id="lightframePasswordSignUp" class="secondary-action" type="button">계정 만들기</button></div>
             <p id="lightframeEmailMessage" class="account-email-message" aria-live="polite"></p>
           </form>
           <button id="googleSignIn" class="account-primary-action" type="button">
@@ -611,9 +611,13 @@
     </dialog>
     <dialog id="quickTimesDialog" class="after-school-dialog tile-management-dialog" aria-labelledby="quickTimesTitle">
       <div class="setup-header"><div><span class="dialog-eyebrow">시간표 관리</span><h2 id="quickTimesTitle">일과 시간 빠르게 설정</h2></div><button id="quickTimesClose" class="dialog-close" type="button" aria-label="닫기">×</button></div>
-      <p class="after-school-description">학교 일과표의 기준만 입력하면 나머지 시간을 계산해요.</p>
+      <p id="quickTimesDescription" class="after-school-description">학교 일과표의 기준만 입력하면 나머지 시간을 계산해요.</p>
       <form id="quickTimesForm">
-        <div class="quick-times-sections">
+        <div class="quick-times-mode" role="group" aria-label="일과 시간 입력 방식">
+          <button id="quickTimesAutoMode" type="button" class="is-active" aria-pressed="true">빠르게 채우기 <span class="feature-stage-badge" aria-label="추천 방식">추천</span></button>
+          <button id="quickTimesManualMode" type="button" aria-pressed="false">직접 지정</button>
+        </div>
+        <div id="quickTimesAutoFields" class="quick-times-sections">
           <section class="quick-times-section" aria-label="수업과 쉬는 시간">
             <div class="quick-times-fields">
               <label class="setup-field"><span>1교시 시작</span><input id="quickFirstStart" type="time" value="08:20" required></label>
@@ -634,7 +638,11 @@
             </div>
           </section>
         </div>
-        <div class="quick-times-result">
+        <div id="quickTimesManualFields" class="quick-times-manual" hidden>
+          <p>각 일과의 시작과 종료를 직접 지정하세요.</p>
+          <div id="quickTimesManualList" class="quick-times-manual-list"></div>
+        </div>
+        <div id="quickTimesAutoResult" class="quick-times-result">
           <h3>계산된 일과</h3>
           <div id="quickTimesPreview" class="quick-times-preview" aria-live="polite"></div>
         </div>
@@ -768,7 +776,7 @@
   <script src="./config.js?v=20260703-script-fix" onerror="this.remove()"></script>
   <script src="./neis.js?v=20261026-empty-start"></script>
   <script src="./after-school.js?v=20261110-no-default-after-school"></script>
-  <script src="./script.js?v=20261110-quick-times"></script>
+  <script src="./script.js?v=20261110-manual-times-2"></script>
   <script src="./auth.js?v=20261110-server-check"></script>
   <script src="./share.js?v=20261017-dialog-motion"></script>
   <script src="./feedback.js?v=20261017-dialog-motion"></script>

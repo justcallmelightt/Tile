@@ -1002,7 +1002,7 @@ html[data-status-layout="focused"] #mainContent .status-item-day { order: 5; }
 .setup-choice-symbol svg { width: 25px; height: 25px; }
 .setup-choice-chevron { width: 16px; height: 16px; color: var(--text-soft); }
 .account-lightframe-toggle.setup-choice-login { min-height: 76px; padding: 14px 16px; text-align: left; justify-content: flex-start; gap: 12px; }
-.setup-choice-login .account-lightframe-mark { flex-basis: 32px; width: 32px; margin: 0; font-size: 26px; }
+.setup-choice-login .account-lightframe-mark { flex-basis: 18px; width: 18px; height: 26px; margin: 0; }
 .setup-back { display: inline-flex; align-items: center; justify-self: start; gap: 7px; min-height: 40px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 11px; background: var(--surface-soft); color: var(--text); font: inherit; font-size: .78rem; font-weight: 600; cursor: pointer; transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease; }
 .setup-back svg { width: 15px; height: 15px; flex: none; }
 .setup-choice:focus-visible, .setup-back:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
@@ -2885,7 +2885,7 @@ body.light-mode .subject-modal {
 
 .setup-subtitle {
   max-width: 470px;
-  margin: 7px 0 0;
+  margin: 4px 0 0;
   color: var(--text-soft);
   font-size: 0.84rem;
   font-weight: 500;
@@ -4157,7 +4157,7 @@ button, input, textarea, select, option {
   opacity: 0;
   pointer-events: none;
   transform: scale(0.97);
-  transition: opacity 180ms ease, transform 220ms ease;
+  transition: opacity 420ms cubic-bezier(0.55, 0.05, 0.85, 0.65), transform 460ms cubic-bezier(0.55, 0.05, 0.85, 0.65);
   content: "";
 }
 
@@ -4183,7 +4183,8 @@ button, input, textarea, select, option {
   transition: filter 160ms ease, box-shadow 160ms ease;
 }
 
-.account-lightframe-mark { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 20px; width: 20px; height: 20px; margin-right: 8px; font-size: 18px; line-height: 1; }
+.account-lightframe-mark { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 18px; width: 18px; height: 26px; margin-right: 8px; color: #fff; line-height: 1; }
+.account-lightframe-glyph { display: block; width: 18px; height: 26px; overflow: visible; }
 .account-lightframe-label { display: inline-flex; align-items: baseline; gap: 5px; }
 .account-lightframe-label strong { font-size: 1rem; font-weight: 650; letter-spacing: -0.035em; line-height: 1.1; }
 .account-lightframe-label > span { color: #faf9fc; font-size: 0.79rem; font-weight: 500; line-height: 1.5; }
@@ -4262,12 +4263,25 @@ button, input, textarea, select, option {
   border-radius: 10px;
   font-size: 0.78rem;
   font-weight: 600;
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
 }
 
 .account-email-actions .primary-action {
   border: 0;
   background: var(--accent);
   color: var(--bg);
+}
+.account-email-actions .secondary-action {
+  border: 1px solid var(--border);
+  background: var(--toggle-bg);
+  color: var(--text);
+}
+.account-email-actions button:active:not(:disabled) { transform: scale(0.985); }
+.account-email-actions button:focus-visible { outline: 2px solid var(--focus-glow); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .account-email-actions button { transition: opacity 150ms ease; }
+  .account-email-actions button:active:not(:disabled) { transform: none; opacity: .8; }
 }
 
 .account-email-message {
@@ -4678,7 +4692,20 @@ button, input, textarea, select, option {
   margin: 0 42px 18px 0;
 }
 
-#quickTimesDialog .after-school-description { margin: 5px 40px 18px 0; }
+#quickTimesDialog .after-school-description { margin: 2px 40px 14px 0; }
+#quickTimesDialog .quick-times-mode { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; margin-bottom: 16px; padding: 4px; border-radius: 13px; background: var(--surface-soft); }
+#quickTimesDialog .quick-times-mode button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 38px; border: 0; border-radius: 10px; background: transparent; color: var(--text-soft); font: inherit; font-size: .84rem; font-weight: 600; white-space: nowrap; cursor: pointer; transition: background 180ms ease, color 180ms ease, transform 180ms ease; }
+#quickTimesDialog .quick-times-mode .feature-stage-badge { margin-left: 0; }
+#quickTimesDialog .quick-times-mode button.is-active { background: var(--surface-strong); color: var(--text); box-shadow: 0 1px 5px rgba(0,0,0,.16); }
+#quickTimesDialog .quick-times-mode button:active { transform: scale(.97); }
+#quickTimesDialog .quick-times-mode button:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+#quickTimesDialog .quick-times-manual > p { margin: 0 2px 10px; color: var(--text-soft); font-size: .78rem; }
+#quickTimesDialog .quick-times-manual-list { display: grid; gap: 1px; overflow: hidden; border: 1px solid var(--border); border-radius: 14px; background: var(--border); }
+#quickTimesDialog .quick-times-manual-row { display: grid; grid-template-columns: minmax(70px, 1fr) minmax(0, 1.25fr) minmax(0, 1.25fr); align-items: center; gap: 10px; padding: 8px 12px; background: var(--surface-strong); }
+#quickTimesDialog .quick-times-manual-row strong { font-size: .83rem; font-weight: 600; }
+#quickTimesDialog .quick-times-manual-row label { display: grid; gap: 3px; color: var(--text-soft); font-size: .68rem; }
+#quickTimesDialog .quick-times-manual-row input { min-height: 38px; padding: 7px 9px; border-radius: 9px; font-size: .82rem; font-variant-numeric: tabular-nums; }
+#quickTimesDialog [hidden] { display: none !important; }
 #quickTimesDialog .quick-times-sections { display: grid; gap: 13px; }
 #quickTimesDialog .quick-times-section { overflow: hidden; border: 1px solid var(--border); border-radius: 14px; background: var(--surface-strong); }
 #quickTimesDialog .quick-times-fields { display: grid; }
@@ -4707,6 +4734,9 @@ button, input, textarea, select, option {
 #quickTimesDialog .quick-times-preview span { color: var(--text-soft); font-variant-numeric: tabular-nums; white-space: nowrap; }
 @media (max-width: 480px) { #quickTimesDialog .quick-times-preview { grid-template-columns: 1fr; } }
 @media (max-width: 480px) { #quickTimesDialog .setup-field { grid-template-columns: minmax(0, 1fr) minmax(136px, 48%); gap: 8px; } }
+@media (max-width: 380px) { #quickTimesDialog .quick-times-mode button { gap: 3px; font-size: .76rem; } #quickTimesDialog .quick-times-mode .feature-stage-badge { padding-inline: 4px; font-size: .56rem; } }
+@media (max-width: 480px) { #quickTimesDialog .quick-times-manual-row { grid-template-columns: 58px minmax(0, 1fr) minmax(0, 1fr); gap: 5px; padding: 7px; } }
+@media (prefers-reduced-motion: reduce) { #quickTimesDialog .quick-times-mode button { transition: background 150ms ease, color 150ms ease; } }
 
 .toast-region {
   position: fixed;
@@ -5262,10 +5292,10 @@ body.light-mode .tile-management-dialog {
   -webkit-backdrop-filter: blur(12px) saturate(1.08);
 }
 body.light-mode .tile-management-dialog::backdrop { background: rgba(17,24,39,.18); }
-.tile-management-dialog .setup-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin: 0; }
+.tile-management-dialog .setup-header { position: relative; display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin: 0; padding-right: 42px; }
 .tile-management-dialog .setup-header h2 { margin: 0; font-size: 1.2rem; font-weight: 600; line-height: 1.3; letter-spacing: -.02em; }
-.tile-management-dialog .dialog-close { min-height: 34px; }
-.tile-management-dialog .after-school-description { margin: 12px 0 16px; font-size: .875rem; line-height: 1.55; }
+.tile-management-dialog .setup-header .dialog-close { position: absolute; top: 0; right: 0; min-height: 34px; }
+.tile-management-dialog .after-school-description { margin: 4px 0 16px; font-size: .875rem; line-height: 1.55; }
 .tile-management-dialog input,
 .tile-management-dialog textarea {
   box-sizing: border-box;
