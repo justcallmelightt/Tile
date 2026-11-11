@@ -4125,6 +4125,7 @@ button, input, textarea, select, option {
 .account-method-icons { display: flex; align-items: center; gap: 12px; padding: 6px 2px 12px; }
 .account-method-icon { position: relative; display: grid; place-items: center; width: 62px; height: 62px; padding: 0; border: 1px solid var(--border); border-radius: 17px; background: var(--surface-soft); cursor: pointer; transition: background-color .18s ease, border-color .18s ease, transform .18s ease; }
 .account-method-icon img { display: block; width: 30px; height: 30px; object-fit: contain; }
+#accountLinkEmail img { width: 40px; height: 40px; }
 .account-method-icon::after { position: absolute; right: -5px; bottom: -5px; display: grid; place-items: center; width: 19px; height: 19px; border: 2px solid var(--surface); border-radius: 50%; background: var(--text); color: var(--surface); content: '+'; font-size: 16px; font-weight: 500; line-height: 1; }
 .account-method-icon[data-linked="loading"]::after { display: none; }
 .account-method-icon[data-linked="true"]::after { content: '✓'; font-size: 12px; font-weight: 750; }
@@ -4421,7 +4422,7 @@ button, input, textarea, select, option {
 .account-confirm-panel p { margin: 0; color: var(--text-soft); font-size: 0.74rem; line-height: 1.5; }
 .account-confirm-panel > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .account-confirm-panel button { min-height: 38px; border-radius: 10px; font-size: 0.78rem; font-weight: 600; }
-.account-confirm-panel .primary-action { background: var(--accent); color: #fff; }
+.account-confirm-panel .primary-action { background: var(--accent); color: var(--bg); }
 .account-confirm-panel .danger-action { background: #ff453a; color: #fff; }
 
 .tile-reset-section {
