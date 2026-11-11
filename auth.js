@@ -16,7 +16,7 @@
     deletePanel: byId("deleteAccountPanel"), cancelDelete: byId("cancelDeleteAccount"), confirmDelete: byId("confirmDeleteAccount"),
     accountEntry: byId("accountSettingsToggle"), accountEntryStatus: byId("accountSettingsStatus"),
     googleStatus: byId("accountGoogleStatus"), emailStatus: byId("accountEmailStatus"),
-    linkGoogle: byId("accountLinkGoogle"), addPasswordForm: byId("accountAddPasswordForm"),
+    linkGoogle: byId("accountLinkGoogle"), linkEmail: byId("accountLinkEmail"), addPasswordForm: byId("accountAddPasswordForm"),
     newPassword: byId("accountNewPassword"), addPassword: byId("accountAddPassword"),
     methodsMessage: byId("accountMethodsMessage")
   };
@@ -207,10 +207,14 @@
     const identities = data?.identities || [];
     const hasGoogle = identities.some((identity) => identity.provider === "google");
     const hasEmail = identities.some((identity) => identity.provider === "email");
-    if (nodes.googleStatus) nodes.googleStatus.textContent = hasGoogle ? "연결됨" : "연결 안 됨";
-    if (nodes.emailStatus) nodes.emailStatus.textContent = hasEmail ? "사용 가능" : "설정 안 됨";
-    setHidden(nodes.linkGoogle, hasGoogle);
-    setHidden(nodes.addPasswordForm, hasEmail);
+    if (nodes.googleStatus) nodes.googleStatus.textContent = hasGoogle ? "연결됨" : "눌러서 연결";
+    if (nodes.emailStatus) nodes.emailStatus.textContent = hasEmail ? "사용 가능" : "눌러서 설정";
+    if (nodes.linkGoogle) nodes.linkGoogle.disabled = hasGoogle;
+    if (nodes.linkEmail) nodes.linkEmail.disabled = hasEmail;
+    if (hasEmail) {
+      setHidden(nodes.addPasswordForm, true);
+      nodes.linkEmail?.setAttribute("aria-expanded", "false");
+    }
     if (sessionStorage.getItem(AUTH_LINK_KEY) === "1") {
       sessionStorage.removeItem(AUTH_LINK_KEY);
       setMethodsMessage(hasGoogle ? "Google 계정을 연결했습니다. 두 방법으로 같은 백업에 접근할 수 있습니다." : "Google 연결을 확인하지 못했습니다. 다시 시도해주세요.", hasGoogle ? "success" : "error");
@@ -432,6 +436,13 @@
     nodes.cancelRestore?.addEventListener("click", () => { pendingRestore = null; setHidden(nodes.restorePanel, true); setMessage(""); });
     nodes.confirmRestore?.addEventListener("click", confirmRestore);
     nodes.linkGoogle?.addEventListener("click", linkGoogleIdentity);
+    nodes.linkEmail?.addEventListener("click", () => {
+      if (!nodes.addPasswordForm || nodes.linkEmail?.disabled) return;
+      const opening = nodes.addPasswordForm.hidden;
+      setHidden(nodes.addPasswordForm, !opening);
+      nodes.linkEmail.setAttribute("aria-expanded", String(opening));
+      if (opening) nodes.newPassword?.focus();
+    });
     nodes.addPasswordForm?.addEventListener("submit", addEmailPassword);
     nodes.signOut?.addEventListener("click", signOut);
     nodes.showDelete?.addEventListener("click", () => setHidden(nodes.deletePanel, false));

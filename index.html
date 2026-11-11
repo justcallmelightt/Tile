@@ -10,7 +10,7 @@
   <link rel="icon" href="./assets/favicon/favicon-32x32.png" sizes="32x32" type="image/png" />
   <link rel="icon" href="./assets/favicon/favicon-96x96.png" sizes="96x96" type="image/png" />
   <link rel="apple-touch-icon" href="./assets/favicon/favicon-96x96.png" />
-  <link rel="stylesheet" href="./style.css?v=20261111-identity-linking" />
+  <link rel="stylesheet" href="./style.css?v=20261111-identity-icons" />
   <!-- Google AdSense: site ownership verification and ad delivery -->
   <script
     async
@@ -290,8 +290,8 @@
           </div>
           <div class="account-methods" aria-labelledby="accountMethodsTitle">
             <div class="account-methods-heading"><strong id="accountMethodsTitle">로그인 방법</strong><span>한 계정에서 함께 사용해요</span></div>
-            <div class="account-method-row"><span>Google</span><span id="accountGoogleStatus">확인 중</span><button id="accountLinkGoogle" class="secondary-action" type="button" hidden>연결하기</button></div>
-            <div class="account-method-row"><span>이메일 · 비밀번호</span><span id="accountEmailStatus">확인 중</span></div>
+            <button id="accountLinkGoogle" class="account-method-choice" type="button" disabled><img src="./assets/google-g-logo.png" alt="" width="22" height="22"><span>Google</span><span id="accountGoogleStatus" class="account-method-status">확인 중</span></button>
+            <button id="accountLinkEmail" class="account-method-choice" type="button" disabled aria-expanded="false" aria-controls="accountAddPasswordForm"><img src="./assets/lightframe-diamond.svg" alt="" width="22" height="22"><span>Lightframe. 이메일</span><span id="accountEmailStatus" class="account-method-status">확인 중</span></button>
             <form id="accountAddPasswordForm" class="account-add-password" hidden>
               <label class="setup-field" for="accountNewPassword"><span>이메일 로그인에 사용할 비밀번호</span><input id="accountNewPassword" type="password" autocomplete="new-password" minlength="8" placeholder="8자 이상" required></label>
               <button id="accountAddPassword" class="secondary-action" type="submit">이메일 로그인 추가</button>
@@ -787,7 +787,7 @@
   <script src="./neis.js?v=20261026-empty-start"></script>
   <script src="./after-school.js?v=20261110-no-default-after-school"></script>
   <script src="./script.js?v=20261110-manual-times-2"></script>
-  <script src="./auth.js?v=20261111-identity-linking"></script>
+  <script src="./auth.js?v=20261111-identity-icons"></script>
   <script src="./share.js?v=20261017-dialog-motion"></script>
   <script src="./feedback.js?v=20261017-dialog-motion"></script>
   <script src="./personal-presets.js?v=20261017-dialog-motion"></script>

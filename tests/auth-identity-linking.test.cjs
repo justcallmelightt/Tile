@@ -13,7 +13,7 @@ function load(name, context) {
 
 function nodes() {
   return {
-    googleStatus: {}, emailStatus: {}, linkGoogle: {}, addPasswordForm: {},
+    googleStatus: {}, emailStatus: {}, linkGoogle: {}, linkEmail: { setAttribute() {} }, addPasswordForm: { hidden: true },
     methodsMessage: { dataset: {} }, newPassword: { value: 'new-password-123' }, addPassword: { disabled: false },
   };
 }
@@ -56,7 +56,8 @@ test('Google account can add password and then sees email login available', asyn
   };
   context.renderLoginMethods = load('renderLoginMethods', context);
   await context.renderLoginMethods('google-user');
-  assert.equal(ui.addPasswordForm.hidden, false);
+  assert.equal(ui.addPasswordForm.hidden, true);
+  assert.equal(ui.linkEmail.disabled, false);
   await load('addEmailPassword', context)({ preventDefault() {} });
   assert.equal(ui.newPassword.value, '');
   assert.equal(ui.emailStatus.textContent, '사용 가능');

@@ -4122,12 +4122,13 @@ button, input, textarea, select, option {
 .account-methods-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 0 2px 10px; }
 .account-methods-heading strong { color: var(--text); font-size: 0.82rem; font-weight: 650; letter-spacing: -0.015em; }
 .account-methods-heading span { color: var(--text-soft); font-size: 0.7rem; line-height: 1.45; }
-.account-method-row { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 10px 2px; border-top: 1px solid var(--border); font-size: 0.77rem; font-weight: 560; }
-.account-method-row > span:nth-child(2) { margin-left: auto; color: var(--text-soft); font-size: 0.7rem; font-weight: 500; }
-.account-method-row button { min-height: 31px; padding: 0 12px; border-radius: 9px; font-size: 0.7rem; }
-.account-method-row button[hidden] { display: none; }
-.account-method-row button:active:not(:disabled), .account-add-password button:active:not(:disabled) { transform: scale(0.97); }
-.account-method-row button:focus-visible, .account-add-password button:focus-visible { outline: 2px solid var(--focus-glow); outline-offset: 2px; }
+.account-method-choice { display: flex; align-items: center; width: 100%; gap: 12px; min-height: 52px; padding: 10px 8px; border: 0; border-top: 1px solid var(--border); border-radius: 0; background: transparent; color: var(--text); text-align: left; font: inherit; font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: background-color .18s ease, transform .18s ease; }
+.account-method-choice img { display: block; width: 22px; height: 22px; object-fit: contain; flex: 0 0 22px; }
+.account-method-choice .account-method-status { margin-left: auto; color: var(--text-soft); font-size: 0.7rem; font-weight: 500; }
+.account-method-choice:not(:disabled):hover { background: var(--surface-soft); }
+.account-method-choice:not(:disabled):active, .account-add-password button:active:not(:disabled) { transform: scale(0.985); }
+.account-method-choice:disabled { cursor: default; opacity: 1; }
+.account-method-choice:focus-visible, .account-add-password button:focus-visible { outline: 2px solid var(--focus-glow); outline-offset: -2px; }
 .account-add-password { display: flex; align-items: end; gap: 8px; padding: 6px 2px 12px; }
 .account-add-password[hidden] { display: none; }
 .account-add-password .setup-field { flex: 1; min-width: 0; gap: 5px; }
@@ -4135,7 +4136,7 @@ button, input, textarea, select, option {
 .account-add-password button { min-height: 38px; white-space: nowrap; border-radius: 9px; font-size: 0.72rem; }
 .account-methods .account-message { min-height: 0; margin: 0; }
 @media (max-width: 540px) { .account-add-password { display: grid; } .account-add-password button { width: 100%; } }
-@media (prefers-reduced-motion: reduce) { .account-method-row button, .account-add-password button { transition: opacity 150ms ease; } .account-method-row button:active:not(:disabled), .account-add-password button:active:not(:disabled) { transform: none; opacity: .8; } }
+@media (prefers-reduced-motion: reduce) { .account-method-choice, .account-add-password button { transition: opacity 150ms ease; } .account-method-choice:not(:disabled):active, .account-add-password button:active:not(:disabled) { transform: none; opacity: .8; } }
 
 .account-brand-logo {
   flex: 0 0 64px;
