@@ -60,7 +60,7 @@ test('Google account can add password and then sees email login available', asyn
   assert.equal(ui.linkEmail.disabled, false);
   await load('addEmailPassword', context)({ preventDefault() {} });
   assert.equal(ui.newPassword.value, '');
-  assert.equal(ui.emailStatus.textContent, '사용 가능');
+  assert.equal(ui.emailStatus.textContent, '연결됨');
   assert.equal(ui.addPasswordForm.hidden, true);
   assert.match(messages.at(-1)[0], /같은 계정/);
 });

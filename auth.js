@@ -207,8 +207,8 @@
     const identities = data?.identities || [];
     const hasGoogle = identities.some((identity) => identity.provider === "google");
     const hasEmail = identities.some((identity) => identity.provider === "email");
-    if (nodes.googleStatus) nodes.googleStatus.textContent = hasGoogle ? "연결됨" : "눌러서 연결";
-    if (nodes.emailStatus) nodes.emailStatus.textContent = hasEmail ? "사용 가능" : "눌러서 설정";
+    if (nodes.googleStatus) nodes.googleStatus.textContent = hasGoogle ? "연결됨" : "연결하기";
+    if (nodes.emailStatus) nodes.emailStatus.textContent = hasEmail ? "연결됨" : "연결하기";
     if (nodes.linkGoogle) nodes.linkGoogle.disabled = hasGoogle;
     if (nodes.linkEmail) nodes.linkEmail.disabled = hasEmail;
     if (hasEmail) {

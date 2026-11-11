@@ -4125,6 +4125,7 @@ button, input, textarea, select, option {
 .account-method-choice { display: flex; align-items: center; width: 100%; gap: 12px; min-height: 52px; padding: 10px 8px; border: 0; border-top: 1px solid var(--border); border-radius: 0; background: transparent; color: var(--text); text-align: left; font: inherit; font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: background-color .18s ease, transform .18s ease; }
 .account-method-choice img { display: block; width: 22px; height: 22px; object-fit: contain; flex: 0 0 22px; }
 .account-method-choice .account-method-status { margin-left: auto; color: var(--text-soft); font-size: 0.7rem; font-weight: 500; }
+.account-method-choice:not(:disabled) .account-method-status { color: var(--text); }
 .account-method-choice:not(:disabled):hover { background: var(--surface-soft); }
 .account-method-choice:not(:disabled):active, .account-add-password button:active:not(:disabled) { transform: scale(0.985); }
 .account-method-choice:disabled { cursor: default; opacity: 1; }
