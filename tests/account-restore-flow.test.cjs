@@ -28,6 +28,7 @@ test('login-to-restore continues to direct restore after authentication', async 
     },
     currentSession: null,
     openAccountSettings: () => calls.push('open'),
+    setMessage: (message) => calls.push(message),
     prepareRestore: async ({ applyImmediately }) => calls.push(applyImmediately ? 'apply' : 'preview'),
     pendingRestore: { version: 1 },
     nodes: { restorePanel: { scrollIntoView: () => calls.push('scroll') } },
@@ -40,7 +41,7 @@ test('login-to-restore continues to direct restore after authentication', async 
   assert.equal(storage.get(context.AUTH_RESTORE_KEY), '1');
   context.currentSession = { user: { id: 'user-1' } };
   await context.finishRestoreFlow();
-  assert.deepEqual(calls, ['open', 'open', 'apply']);
+  assert.deepEqual(calls, ['open', 'open', '로그인되었습니다. 계정의 시간표를 불러오는 중입니다.', 'apply']);
   assert.equal(storage.has(context.AUTH_RESTORE_KEY), false);
 });
 
