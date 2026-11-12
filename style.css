@@ -4133,13 +4133,13 @@ button, input, textarea, select, option {
 .account-method-icon:not(:disabled):active, .account-add-password button:active:not(:disabled) { transform: scale(0.96); }
 .account-method-icon:disabled { cursor: default; opacity: 1; }
 .account-method-icon:focus-visible, .account-add-password button:focus-visible { outline: 2px solid var(--focus-glow); outline-offset: 3px; }
-.account-add-password { display: flex; align-items: end; gap: 8px; padding: 6px 2px 12px; }
+.account-add-password { display: grid; gap: 10px; padding: 12px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface-soft); }
 .account-add-password[hidden] { display: none; }
-.account-add-password .setup-field { flex: 1; min-width: 0; gap: 5px; }
-.account-add-password input { min-height: 38px; }
-.account-add-password button { min-height: 38px; white-space: nowrap; border-radius: 9px; font-size: 0.72rem; }
+.account-add-password .setup-field { min-width: 0; gap: 5px; }
+.account-add-password input { width: 100%; min-height: 42px; box-sizing: border-box; padding: 9px 11px; border: 1px solid var(--border); border-radius: 10px; outline: 0; background: var(--toggle-bg); color: var(--text); font: inherit; font-size: 0.78rem; font-weight: 500; }
+.account-add-password input:focus { border-color: var(--focus-glow); background: var(--surface); box-shadow: 0 0 0 3px var(--focus-glow-soft); }
+.account-add-password button { width: 100%; min-height: 40px; border: 1px solid var(--border); border-radius: 10px; background: var(--toggle-bg); color: var(--text); font-size: 0.78rem; white-space: nowrap; }
 .account-methods .account-message { min-height: 0; margin: 0; }
-@media (max-width: 540px) { .account-add-password { display: grid; } .account-add-password button { width: 100%; } }
 @media (prefers-reduced-motion: reduce) { .account-method-icon, .account-add-password button { transition: opacity 150ms ease; } .account-method-icon:not(:disabled):active, .account-add-password button:active:not(:disabled) { transform: none; opacity: .8; } }
 
 .account-brand-logo {
