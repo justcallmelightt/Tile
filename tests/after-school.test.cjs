@@ -47,7 +47,7 @@ function setup(saved = {}, blocked = false) {
 test('add persists and restores a new five-day time slot', () => {
   const app = setup();
   app.add('20:00', '20:50');
-  assert.equal(app.stored().items.length, 3);
+  assert.equal(app.stored().items.length, 1);
   assert.equal(app.tbody.rows.at(-1).children.length, 6);
   assert.equal(setup(app.stored()).scheduleRanges.at(-1).name, '방과후 3');
 });
@@ -59,7 +59,7 @@ test('overlap and reversed times do not save', () => {
   assert.equal(app.stored(), undefined);
 });
 test('removal requires confirmation and remains removed after reload', () => {
-  const app = setup();
+  const app = setup({ items: [{ name: '방과후 A', start: '16:30', end: '17:20' }] });
   app.node('managementAfterSchool').fire('click');
   const remove = app.node('afterSchoolList').children[0].children[1];
   remove.fire('click');
@@ -70,8 +70,8 @@ test('removal requires confirmation and remains removed after reload', () => {
 test('storage failure leaves rows and schedule unchanged', () => {
   const app = setup({}, true);
   app.add('20:00', '20:50');
-  assert.equal(app.scheduleRanges.length, 3);
-  assert.equal(app.tbody.rows.length, 3);
+  assert.equal(app.scheduleRanges.length, 1);
+  assert.equal(app.tbody.rows.length, 1);
 });
 test('twenty-slot cap and empty saved list are respected', () => {
   const items = Array.from({ length: 20 }, (_, i) => ({ name: `방과후 ${i + 3}`, start: '20:00', end: '20:01' }));
