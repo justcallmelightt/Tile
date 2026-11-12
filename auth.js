@@ -447,16 +447,8 @@
   async function finishRestoreFlow() {
     if (!currentSession?.user || sessionStorage.getItem(AUTH_RESTORE_KEY) !== "1") return;
     sessionStorage.removeItem(AUTH_RESTORE_KEY);
-    openAccountSettings();
-    const userId = currentSession.user.id;
-    setMessage("로그인되었습니다. 계정의 시간표를 불러오는 중입니다.");
-    // Let the account view appear before restoreAccountBackup reloads the page.
-    await new Promise((resolve) => window.setTimeout(resolve, 450));
-    if (currentSession?.user?.id !== userId) return false;
     const applied = await prepareRestore({ applyImmediately: true });
-    window.setTimeout(() => {
-      nodes.message?.scrollIntoView?.({ block: "nearest" });
-    }, 180);
+    if (!applied) window.TileApp?.notify?.("시간표를 불러오지 못했습니다", nodes.message?.textContent || "계정 백업을 확인해주세요.", { tone: "error" });
     return applied === true;
   }
 

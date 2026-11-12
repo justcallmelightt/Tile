@@ -28,11 +28,10 @@ test('login-to-restore continues to direct restore after authentication', async 
     },
     currentSession: null,
     openAccountSettings: () => calls.push('open'),
-    setMessage: (message) => calls.push(message),
-    prepareRestore: async ({ applyImmediately }) => calls.push(applyImmediately ? 'apply' : 'preview'),
+    prepareRestore: async ({ applyImmediately }) => { calls.push(applyImmediately ? 'apply' : 'preview'); return applyImmediately; },
     pendingRestore: { version: 1 },
-    nodes: { restorePanel: { scrollIntoView: () => calls.push('scroll') } },
-    window: { setTimeout: (callback) => callback() },
+    nodes: { message: { textContent: '' } },
+    window: { TileApp: { notify: () => calls.push('notify') } },
   };
   context.finishRestoreFlow = helper('finishRestoreFlow', context);
   const startRestoreFlow = helper('startRestoreFlow', context);
@@ -41,7 +40,7 @@ test('login-to-restore continues to direct restore after authentication', async 
   assert.equal(storage.get(context.AUTH_RESTORE_KEY), '1');
   context.currentSession = { user: { id: 'user-1' } };
   await context.finishRestoreFlow();
-  assert.deepEqual(calls, ['open', 'open', '로그인되었습니다. 계정의 시간표를 불러오는 중입니다.', 'apply']);
+  assert.deepEqual(calls, ['open', 'apply']);
   assert.equal(storage.has(context.AUTH_RESTORE_KEY), false);
 });
 
@@ -52,6 +51,23 @@ test('manual account actions remain separate from the start choice', () => {
   const sessionStart = authSource.indexOf('async function renderSession(');
   const sessionEnd = authSource.indexOf('\n  }\n', sessionStart) + 4;
   assert.doesNotMatch(authSource.slice(sessionStart, sessionEnd), /backupCurrentData\(/);
+});
+
+test('missing backup reports failure without opening settings after sign-in', async () => {
+  const storage = new Map([['tile-auth-restore-after-login', '1']]);
+  const calls = [];
+  const context = {
+    AUTH_RESTORE_KEY: 'tile-auth-restore-after-login',
+    sessionStorage: { getItem: (key) => storage.get(key), removeItem: (key) => storage.delete(key) },
+    currentSession: { user: { id: 'user-1' } },
+    openAccountSettings: () => assert.fail('settings must stay closed after login'),
+    prepareRestore: async () => false,
+    nodes: { message: { textContent: '이 계정에 저장된 Tile 백업이 없습니다.' } },
+    window: { TileApp: { notify: (...args) => calls.push(args) } },
+  };
+  await helper('finishRestoreFlow', context)();
+  assert.equal(calls.length, 1);
+  assert.match(calls[0][1], /백업이 없습니다/);
 });
 
 function restoreContext(result) {
