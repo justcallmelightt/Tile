@@ -4754,11 +4754,6 @@ async function startManualTimetable(event) {
 }
 document.getElementById("setupChooseManual")?.addEventListener("click", startManualTimetable);
 
-document.getElementById("setupAccountSignIn")?.addEventListener("click", async () => {
-  const closed = await closeSchoolSettingsModal({ restoreFocus: false });
-  if (closed && setupModal?.classList.contains("hidden")) window.TileAuth?.startRestoreFlow?.();
-});
-
 saveSchoolButton?.addEventListener("click", async () => {
     const formUser = saveSchoolSettings({ persist: false });
     if (!formUser) return;
@@ -4970,7 +4965,7 @@ const tileDemoScenes = [
   {
     eyebrow: "어디서든 그대로",
     title: "당신의 Tile은 이어집니다.",
-    description: "Lightframe. 계정으로 시간표와 설정을 안전하게 백업하고 다른 기기에서도 그대로 이어서 사용하세요.",
+    description: "시간표는 이 기기에 저장됩니다. 내 계정에서 로그인 방법을 연결하고, 필요한 경우 직접 백업할 수 있어요.",
     visual: `<div class="demo-sync"><div class="demo-sync-orbit"><div class="demo-sync-card"><b>✨</b><strong>Lightframe.</strong><span>동기화 완료</span></div></div></div>`
   }
 ];
@@ -4996,7 +4991,7 @@ const tileTourSteps = [
   { target: '#timetable', title: '시간표의 과목을 눌러보세요.', description: '과목 칸을 누르면 과목명·교실·선생님을 수정하고 수업별 메모를 남길 수 있어요. 지금은 위치를 안내하는 중이에요.' },
   { target: '#mealPanel', title: '오늘 급식은 도구에서.', description: '도구 → 오늘 급식을 누르면 이 패널이 열려요. Tile 설정에서 피하고 싶은 재료도 등록할 수 있어요.', panel: '#mealPanel' },
   { target: '#memoPanel', title: '준비물과 과제를 남겨요.', description: '도구 → 메모에서 해야 할 일을 적고 저장하세요. 입력한 내용은 이 브라우저에 보관돼요.', panel: '#memoPanel' },
-  { target: '#toolMenuPanel', title: '설정도, 계정도 이곳에.', description: '학교 설정으로 학급을 연결하고, 내 계정에서 로그인과 백업을 관리하세요. 이제 직접 Tile을 사용해 보세요.', menu: true }
+  { target: '#toolMenuPanel', title: '설정도, 계정도 이곳에.', description: '학교 설정으로 학급을 연결하고, 내 계정에서 로그인 방법을 관리하세요. 이제 직접 Tile을 사용해 보세요.', menu: true }
 ];
 
 function positionTileTour() {
@@ -5066,7 +5061,7 @@ function setTileDemoScene(index) {
   if (tileDemoEyebrow) tileDemoEyebrow.textContent = `${tileDemoIndex + 1} / ${tileTourSteps.length} · 실제 화면 안내`;
   if (tileDemoTitle) tileDemoTitle.textContent = scene.title;
   if (tileDemoDescription) tileDemoDescription.textContent = tileTourNeedsSchoolSetup && tileDemoIndex === tileTourSteps.length - 1
-    ? '학교를 연결하거나 직접 만들 수 있어요. 계정에 백업한 시간표가 있다면 로그인해서 이어서 사용하세요.'
+    ? '학교를 연결하거나 직접 시간표를 만들어 시작할 수 있어요.'
     : scene.description;
   const copyFrames = startupSpotlightReduceMotion.matches
     ? [{ opacity: 0 }, { opacity: 1 }]

@@ -26,8 +26,6 @@
   const sessionSubscribers = new Set();
   const AUTH_RETURN_KEY = "tile-auth-return-location";
   const AUTH_LINK_KEY = "tile-auth-link-google";
-  const AUTH_RESTORE_KEY = "tile-auth-restore-after-login";
-  const AUTH_RESTORE_DONE_KEY = "tile-auth-restore-complete";
   const MAX_AUTH_RETURN_LENGTH = 20000;
   const CANONICAL_AUTH_ORIGIN = "https://tile0.vercel.app";
 
@@ -201,7 +199,6 @@
     if (nodes.avatar) nodes.avatar.textContent = getInitial(user);
     if (nodes.displayName) nodes.displayName.textContent = name;
     if (nodes.email) nodes.email.textContent = user.email || "Google 계정";
-    if (await finishRestoreFlow()) return;
     await renderLoginMethods(user.id);
     await refreshBackupStatus();
   }
@@ -233,7 +230,7 @@
     }
     if (sessionStorage.getItem(AUTH_LINK_KEY) === "1") {
       sessionStorage.removeItem(AUTH_LINK_KEY);
-      setMethodsMessage(hasGoogle ? "Google 계정을 연결했습니다. 두 방법으로 같은 백업에 접근할 수 있습니다." : "Google 연결을 확인하지 못했습니다. 다시 시도해주세요.", hasGoogle ? "success" : "error");
+      setMethodsMessage(hasGoogle ? "Google 계정을 연결했습니다. 두 방법으로 같은 Lightframe. 계정에 로그인할 수 있습니다." : "Google 연결을 확인하지 못했습니다. 다시 시도해주세요.", hasGoogle ? "success" : "error");
     }
   }
 
@@ -360,13 +357,13 @@
     if (error) throw error;
     if (nodes.backupStatus) nodes.backupStatus.textContent = formatDate(updatedAt);
     setMessage("현재 시간표를 Lightframe. 계정에 백업했습니다.", "success");
-    window.TileApp?.notify?.("계정 백업 완료", "다른 기기에서 로그인해 불러올 수 있습니다.");
+    window.TileApp?.notify?.("계정 백업 완료", "다른 기기에서는 계정 설정의 백업 불러오기를 사용하세요.");
     } catch (error) {
       setMessage(error?.message || "백업하지 못했습니다. 다시 시도해주세요.", "error");
     } finally { setBusy(nodes.backup, false); }
   }
 
-  async function prepareRestore({ applyImmediately = false } = {}) {
+  async function prepareRestore() {
     if (!client || !currentSession?.user) return;
     const userId = currentSession.user.id;
     pendingRestore = null;
@@ -379,13 +376,6 @@
     if (currentSession?.user?.id !== userId) return;
     if (!data?.payload) return setMessage("이 계정에 저장된 Tile 백업이 없습니다. 이 기기의 시간표는 그대로 유지됩니다.");
     pendingRestore = data.payload;
-    if (applyImmediately) {
-      if (typeof window.TileApp?.restoreAccountBackup !== "function") throw new Error("백업을 적용할 준비가 되지 않았습니다. 페이지를 새로고침해주세요.");
-      sessionStorage.setItem(AUTH_RESTORE_DONE_KEY, "1");
-      try { window.TileApp.restoreAccountBackup(pendingRestore); }
-      catch (error) { sessionStorage.removeItem(AUTH_RESTORE_DONE_KEY); throw error; }
-      return true;
-    }
     const summary = data.payload.summary || {};
     const classroom = summary.grade && summary.classNum ? ` · ${summary.grade}학년 ${summary.classNum}반` : "";
     if (nodes.restoreDescription) {
@@ -444,20 +434,6 @@
     }, 100);
   }
 
-  async function finishRestoreFlow() {
-    if (!currentSession?.user || sessionStorage.getItem(AUTH_RESTORE_KEY) !== "1") return;
-    sessionStorage.removeItem(AUTH_RESTORE_KEY);
-    const applied = await prepareRestore({ applyImmediately: true });
-    if (!applied) window.TileApp?.notify?.("시간표를 불러오지 못했습니다", nodes.message?.textContent || "계정 백업을 확인해주세요.", { tone: "error" });
-    return applied === true;
-  }
-
-  function startRestoreFlow() {
-    sessionStorage.setItem(AUTH_RESTORE_KEY, "1");
-    if (currentSession?.user) return finishRestoreFlow();
-    openAccountSettings();
-  }
-
   function bindEvents() {
     nodes.accountEntry?.addEventListener("click", openAccountSettings);
     nodes.googleSignIn?.addEventListener("click", signInWithGoogle);
@@ -499,7 +475,6 @@
       return () => sessionSubscribers.delete(subscriber);
     },
     openAccountSettings,
-    startRestoreFlow
   };
 
   async function init() {
@@ -521,10 +496,6 @@
     if (error) throw error;
     if (data.session && restoreAuthReturnLocation()) return;
     await renderSession(data.session);
-    if (sessionStorage.getItem(AUTH_RESTORE_DONE_KEY) === "1") {
-      sessionStorage.removeItem(AUTH_RESTORE_DONE_KEY);
-      if (data.session) window.TileApp?.notify?.("시간표를 불러왔습니다", "Lightframe. 계정의 백업을 이 기기에 적용했습니다.");
-    }
     client.auth.onAuthStateChange((_event, session) => window.setTimeout(() => renderSession(session), 0));
   }
 

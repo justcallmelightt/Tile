@@ -4393,6 +4393,13 @@ button, input, textarea, select, option {
 .account-notice span { color: var(--text-soft); font-size: 0.74rem; line-height: 1.5; }
 .account-summary { padding: 0; }
 .account-backup-help { margin: -3px 2px 0; color: var(--text-soft); font-size: 0.74rem; line-height: 1.5; }
+.account-manual-backup { padding: 12px 14px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface-soft); }
+.account-manual-backup summary { cursor: pointer; color: var(--text); font-size: .8rem; font-weight: 650; }
+.account-manual-backup summary:active { opacity: .7; }
+.account-manual-backup > p { color: var(--text-soft); font-size: .74rem; line-height: 1.5; }
+.account-manual-backup .account-summary { margin-bottom: 10px; }
+.account-manual-backup .account-actions { margin-top: 10px; }
+@media (prefers-reduced-motion: reduce) { .account-manual-backup summary { transition: opacity 150ms ease; } }
 .account-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .account-message { min-height: 0; margin: 0; }
 .account-message[data-tone="error"] { color: #ff5a5f; }
