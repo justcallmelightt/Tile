@@ -14,9 +14,9 @@ function helper(name, context) {
   return vm.runInNewContext(`(${authSource.slice(start, end)})`, context);
 }
 
-test('login-to-restore opens the backup preview and still requires explicit apply', async () => {
+test('login-to-restore continues to direct restore after authentication', async () => {
   assert.match(scriptSource, /setupAccountSignIn[\s\S]*?window\.TileAuth\?\.startRestoreFlow\?\.\(\)/);
-  assert.match(html, /로그인 후 백업을 확인하고 직접 적용해요/);
+  assert.match(html, /계정에 백업이 있다면 로그인 후 바로 적용해요/);
   const storage = new Map();
   const calls = [];
   const context = {
@@ -28,7 +28,7 @@ test('login-to-restore opens the backup preview and still requires explicit appl
     },
     currentSession: null,
     openAccountSettings: () => calls.push('open'),
-    prepareRestore: async () => calls.push('preview'),
+    prepareRestore: async ({ applyImmediately }) => calls.push(applyImmediately ? 'apply' : 'preview'),
     pendingRestore: { version: 1 },
     nodes: { restorePanel: { scrollIntoView: () => calls.push('scroll') } },
     window: { setTimeout: (callback) => callback() },
@@ -40,18 +40,59 @@ test('login-to-restore opens the backup preview and still requires explicit appl
   assert.equal(storage.get(context.AUTH_RESTORE_KEY), '1');
   context.currentSession = { user: { id: 'user-1' } };
   await context.finishRestoreFlow();
-  assert.deepEqual(calls, ['open', 'open', 'preview', 'scroll']);
+  assert.deepEqual(calls, ['open', 'open', 'apply']);
   assert.equal(storage.has(context.AUTH_RESTORE_KEY), false);
-  assert.match(html, /id="confirmCloudRestore"[^>]*>백업 적용/);
 });
 
-test('manual backup and restore remain separate actions with no automatic backup call', () => {
-  assert.match(html, /클라우드 백업은 자동으로 저장되거나 적용되지 않습니다/);
+test('manual account actions remain separate from the start choice', () => {
+  assert.match(html, /계정 설정의 백업과 불러오기는 필요할 때 직접 실행합니다/);
   assert.match(html, /id="backupCloudData"[^>]*>지금 백업하기/);
   assert.match(html, /id="restoreCloudData"[^>]*>백업 불러오기/);
   const sessionStart = authSource.indexOf('async function renderSession(');
   const sessionEnd = authSource.indexOf('\n  }\n', sessionStart) + 4;
   assert.doesNotMatch(authSource.slice(sessionStart, sessionEnd), /backupCurrentData\(/);
+});
+
+function restoreContext(result) {
+  const calls = [];
+  const storage = new Map();
+  const context = {
+    client: { from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => result }) }) }) },
+    currentSession: { user: { id: 'user-1' } }, pendingRestore: null,
+    nodes: { restorePanel: { hidden: true }, restore: { disabled: false }, restoreDescription: {} },
+    setHidden: (node, hidden) => { node.hidden = hidden; },
+    setBusy: (node, busy) => { node.disabled = busy; },
+    setMessage: (message) => calls.push(['message', message]),
+    formatDate: () => '11월 12일',
+    AUTH_RESTORE_DONE_KEY: 'tile-auth-restore-complete',
+    sessionStorage: { setItem: (key, value) => storage.set(key, value), removeItem: (key) => storage.delete(key) },
+    window: { TileApp: { restoreAccountBackup: (backup) => calls.push(['restore', backup]) } },
+  };
+  return { prepareRestore: helper('prepareRestore', context), context, calls, storage };
+}
+
+test('start-choice restore applies an existing backup without a second click', async () => {
+  const backup = { version: 1, summary: { schoolName: '테스트고' }, values: { school: 'saved' } };
+  const flow = restoreContext({ data: { payload: backup, updated_at: '2026-11-12T00:00:00Z' }, error: null });
+  await flow.prepareRestore({ applyImmediately: true });
+  assert.equal(flow.context.nodes.restorePanel.hidden, true);
+  assert.deepEqual(flow.calls.find(([type]) => type === 'restore'), ['restore', backup]);
+  assert.equal(flow.storage.get('tile-auth-restore-complete'), '1');
+});
+
+test('ordinary account restore still waits for explicit confirmation', async () => {
+  const backup = { version: 1, summary: {}, values: { school: 'saved' } };
+  const flow = restoreContext({ data: { payload: backup, updated_at: '2026-11-12T00:00:00Z' }, error: null });
+  await flow.prepareRestore();
+  assert.equal(flow.context.nodes.restorePanel.hidden, false);
+  assert.equal(flow.calls.some(([type]) => type === 'restore'), false);
+});
+
+test('a login with no cloud backup leaves this device unchanged and explains why', async () => {
+  const flow = restoreContext({ data: null, error: null });
+  await flow.prepareRestore({ applyImmediately: true });
+  assert.equal(flow.calls.some(([type]) => type === 'restore'), false);
+  assert.match(flow.calls.at(-1)[1], /백업이 없습니다/);
 });
 
 test('a repeated auth event does not dismiss a pending restore preview', async () => {
@@ -68,4 +109,18 @@ test('a repeated auth event does not dismiss a pending restore preview', async (
   await helper('renderSession', context)({ user });
   assert.equal(panel.hidden, false);
   assert.deepEqual(context.pendingRestore, { version: 1 });
+});
+
+test('a chosen restore runs before optional account metadata requests', async () => {
+  const user = { id: 'user-1', email: 'tester@example.com', user_metadata: {} };
+  const context = {
+    currentSession: null, pendingRestore: null,
+    nodes: { restorePanel: {}, deletePanel: {}, signedOut: {}, signedIn: {}, accountEntryStatus: {}, avatar: {}, displayName: {}, email: {} },
+    setHidden: () => {}, setMessage: () => {}, setMethodsMessage: () => {},
+    sessionSubscribers: new Set(), getInitial: () => 'T',
+    finishRestoreFlow: async () => true,
+    renderLoginMethods: () => assert.fail('identity lookup should not delay restoration'),
+    refreshBackupStatus: () => assert.fail('status lookup should not delay restoration'),
+  };
+  await helper('renderSession', context)({ user });
 });

@@ -27,6 +27,7 @@
   const AUTH_RETURN_KEY = "tile-auth-return-location";
   const AUTH_LINK_KEY = "tile-auth-link-google";
   const AUTH_RESTORE_KEY = "tile-auth-restore-after-login";
+  const AUTH_RESTORE_DONE_KEY = "tile-auth-restore-complete";
   const MAX_AUTH_RETURN_LENGTH = 20000;
   const CANONICAL_AUTH_ORIGIN = "https://tile0.vercel.app";
 
@@ -200,9 +201,9 @@
     if (nodes.avatar) nodes.avatar.textContent = getInitial(user);
     if (nodes.displayName) nodes.displayName.textContent = name;
     if (nodes.email) nodes.email.textContent = user.email || "Google 계정";
+    if (await finishRestoreFlow()) return;
     await renderLoginMethods(user.id);
     await refreshBackupStatus();
-    await finishRestoreFlow();
   }
 
   async function renderLoginMethods(userId) {
@@ -365,8 +366,9 @@
     } finally { setBusy(nodes.backup, false); }
   }
 
-  async function prepareRestore() {
+  async function prepareRestore({ applyImmediately = false } = {}) {
     if (!client || !currentSession?.user) return;
+    const userId = currentSession.user.id;
     pendingRestore = null;
     setHidden(nodes.restorePanel, true);
     setBusy(nodes.restore, true);
@@ -374,8 +376,16 @@
     try {
     const { data, error } = await client.from("tile_backups").select("payload, updated_at").eq("user_id", currentSession.user.id).maybeSingle();
     if (error) throw error;
-    if (!data?.payload) return setMessage("이 계정에 저장된 Tile 백업이 없습니다. 로그인만으로 이전 기기의 시간표를 불러올 수는 없습니다.");
+    if (currentSession?.user?.id !== userId) return;
+    if (!data?.payload) return setMessage("이 계정에 저장된 Tile 백업이 없습니다. 이 기기의 시간표는 그대로 유지됩니다.");
     pendingRestore = data.payload;
+    if (applyImmediately) {
+      if (typeof window.TileApp?.restoreAccountBackup !== "function") throw new Error("백업을 적용할 준비가 되지 않았습니다. 페이지를 새로고침해주세요.");
+      sessionStorage.setItem(AUTH_RESTORE_DONE_KEY, "1");
+      try { window.TileApp.restoreAccountBackup(pendingRestore); }
+      catch (error) { sessionStorage.removeItem(AUTH_RESTORE_DONE_KEY); throw error; }
+      return true;
+    }
     const summary = data.payload.summary || {};
     const classroom = summary.grade && summary.classNum ? ` · ${summary.grade}학년 ${summary.classNum}반` : "";
     if (nodes.restoreDescription) {
@@ -438,10 +448,11 @@
     if (!currentSession?.user || sessionStorage.getItem(AUTH_RESTORE_KEY) !== "1") return;
     sessionStorage.removeItem(AUTH_RESTORE_KEY);
     openAccountSettings();
-    await prepareRestore();
+    const applied = await prepareRestore({ applyImmediately: true });
     window.setTimeout(() => {
-      (pendingRestore ? nodes.restorePanel : nodes.message)?.scrollIntoView?.({ block: "nearest" });
+      nodes.message?.scrollIntoView?.({ block: "nearest" });
     }, 180);
+    return applied === true;
   }
 
   function startRestoreFlow() {
@@ -513,6 +524,10 @@
     if (error) throw error;
     if (data.session && restoreAuthReturnLocation()) return;
     await renderSession(data.session);
+    if (sessionStorage.getItem(AUTH_RESTORE_DONE_KEY) === "1") {
+      sessionStorage.removeItem(AUTH_RESTORE_DONE_KEY);
+      if (data.session) window.TileApp?.notify?.("시간표를 불러왔습니다", "Lightframe. 계정의 백업을 이 기기에 적용했습니다.");
+    }
     client.auth.onAuthStateChange((_event, session) => window.setTimeout(() => renderSession(session), 0));
   }
 

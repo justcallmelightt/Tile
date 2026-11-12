@@ -10,7 +10,7 @@
   <link rel="icon" href="./assets/favicon/favicon-32x32.png" sizes="32x32" type="image/png" />
   <link rel="icon" href="./assets/favicon/favicon-96x96.png" sizes="96x96" type="image/png" />
   <link rel="apple-touch-icon" href="./assets/favicon/favicon-96x96.png" />
-  <link rel="stylesheet" href="./style.css?v=20261112-manual-cloud-backup" />
+  <link rel="stylesheet" href="./style.css?v=20261112-direct-restore" />
   <!-- Google AdSense: site ownership verification and ad delivery -->
   <script
     async
@@ -100,7 +100,7 @@
         <div class="account-lightframe-action">
           <button id="setupAccountSignIn" class="account-lightframe-toggle setup-choice-login" type="button">
             <span class="account-lightframe-mark" aria-hidden="true"><svg class="account-lightframe-glyph" viewBox="0 0 391 580" focusable="false"><path d="M0 289.645L195.152 0L390.305 289.645L195.152 579.301L0 289.645Z" fill="currentColor"/></svg></span>
-            <span><strong>로그인해서 불러오기</strong><small>로그인 후 백업을 확인하고 직접 적용해요.</small></span>
+            <span><strong>로그인해서 불러오기</strong><small>계정에 백업이 있다면 로그인 후 바로 적용해요.</small></span>
           </button>
         </div>
         <p id="setupChoiceMessage" class="form-message" role="status"></p>
@@ -283,7 +283,7 @@
             <div><span>현재 저장 위치</span><strong>이 기기의 브라우저</strong></div>
             <div><span>클라우드 백업</span><strong id="cloudBackupStatus">확인 전</strong></div>
           </div>
-          <p class="account-backup-help">클라우드 백업은 자동으로 저장되거나 적용되지 않습니다. 필요할 때 직접 선택하세요.</p>
+          <p class="account-backup-help">계정 설정의 백업과 불러오기는 필요할 때 직접 실행합니다.</p>
           <p id="accountMessage" class="form-message account-message" aria-live="polite"></p>
           <div class="settings-secondary-actions account-actions">
             <button id="backupCloudData" class="secondary-action" type="button">지금 백업하기</button>
@@ -790,7 +790,7 @@
   <script src="./neis.js?v=20261026-empty-start"></script>
   <script src="./after-school.js?v=20261110-no-default-after-school"></script>
   <script src="./script.js?v=20261112-manual-cloud-backup"></script>
-  <script src="./auth.js?v=20261112-manual-cloud-backup"></script>
+  <script src="./auth.js?v=20261112-direct-restore"></script>
   <script src="./share.js?v=20261017-dialog-motion"></script>
   <script src="./feedback.js?v=20261017-dialog-motion"></script>
   <script src="./personal-presets.js?v=20261017-dialog-motion"></script>
