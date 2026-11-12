@@ -71,6 +71,12 @@
   }
   function authErrorMessage(error, fallback) {
     const message = String(error?.message || "");
+    if (error?.code === "email_address_not_authorized") {
+      return "현재 이 주소로 인증 메일을 보낼 수 없습니다. 서비스 관리자에게 이메일 발송 설정을 확인해달라고 알려주세요.";
+    }
+    if (error?.code === "over_email_send_rate_limit") {
+      return "인증 메일 발송 한도에 도달했습니다. 잠시 후 다시 시도하거나 서비스 관리자에게 알려주세요.";
+    }
     if (/identity.already.exists|identity.already.linked|already.linked.to.another.user/i.test(`${error?.code || ""} ${message}`)) {
       return "이 Google 계정은 다른 Lightframe 계정에 연결되어 있습니다. 두 계정의 백업은 자동으로 합쳐지지 않습니다.";
     }
@@ -336,7 +342,7 @@
     if (!data.session) {
       // Supabase can return an obfuscated user for an existing account.
       // A successful signUp response does not prove that an email was sent.
-      setEmailMessage("계정 요청을 확인했습니다. 새 계정이면 인증 메일을 확인해주세요. 메일이 오지 않으면 기존 계정으로 로그인하거나 스팸함을 확인해주세요.", "success");
+      setEmailMessage("가입 요청을 처리했습니다. 새 주소라면 인증 메일과 스팸함을 확인하세요. 이전에 Google로 로그인했다면 메일이 오지 않을 수 있습니다. 아래 Google로 로그인한 뒤 계정 연결에서 이메일 로그인을 추가하세요.");
       return;
     }
     setEmailMessage("");

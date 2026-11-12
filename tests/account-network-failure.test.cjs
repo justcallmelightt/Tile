@@ -71,6 +71,16 @@ test('signup without a session does not claim a verification email was sent', as
     setEmailMessage: (...args) => notices.push(args),
   })();
   assert.equal(button.disabled, false);
-  assert.match(notices.at(-1)[0], /기존 계정으로 로그인/);
+  assert.match(notices.at(-1)[0], /Google로 로그인한 뒤 계정 연결/);
   assert.doesNotMatch(notices.at(-1)[0], /메일을 보냈습니다/);
+  assert.equal(notices.at(-1)[1], undefined);
+});
+
+test('email delivery failures give the user an actionable explanation', () => {
+  const source = readFileSync(`${__dirname}/../auth.js`, 'utf8');
+  const start = source.indexOf('function authErrorMessage(');
+  const end = source.indexOf('\n  async function checkAccountServer(', start);
+  const authErrorMessage = vm.runInNewContext(`(${source.slice(start, end)})`);
+  assert.match(authErrorMessage({ code: 'email_address_not_authorized' }, 'fallback'), /이메일 발송 설정/);
+  assert.match(authErrorMessage({ code: 'over_email_send_rate_limit' }, 'fallback'), /발송 한도/);
 });
