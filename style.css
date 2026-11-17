@@ -4417,11 +4417,10 @@ button, input, textarea, select, option {
 .account-danger-action,
 .account-danger-panel strong { color: #ff5a5f; }
 
-.account-session-actions { display: grid; gap: 8px; margin-top: 4px; padding-top: 16px; border-top: 1px solid var(--border); }
-.account-session-actions .account-text-action { min-height: 44px; border-radius: 11px; transition: background-color 150ms ease, color 150ms ease, opacity 150ms ease, transform 120ms ease; }
-.account-session-actions #accountSignOut { width: 100%; padding: 0 14px; border: 1px solid var(--border); background: var(--surface-soft); color: var(--text); text-align: center; }
-.account-session-actions #accountSignOut:hover { background: var(--toggle-bg); }
-.account-session-actions .account-danger-action { justify-self: end; padding: 0 10px; color: var(--text-soft); }
+.account-session-actions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 2px; padding-top: 10px; }
+.account-session-actions .account-text-action { min-height: 44px; padding: 0 12px; border-radius: 10px; transition: background-color 150ms ease, color 150ms ease, opacity 150ms ease, transform 120ms ease; }
+.account-session-actions .account-text-action:hover { color: var(--text); background: var(--surface-soft); }
+.account-session-actions .account-danger-action { color: #ff5a5f; }
 .account-session-actions .account-danger-action:hover { color: #ff8780; background: rgba(255, 90, 95, .08); }
 .account-session-actions .account-text-action:active { transform: scale(.985); opacity: .78; }
 
