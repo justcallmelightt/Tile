@@ -362,7 +362,7 @@
     const { error } = await client.from("tile_backups").upsert({ user_id: currentSession.user.id, payload, updated_at: updatedAt }, { onConflict: "user_id" });
     if (error) throw error;
     if (nodes.backupStatus) nodes.backupStatus.textContent = formatDate(updatedAt);
-    setMessage("현재 시간표를 Lightframe. 계정에 백업했습니다.", "success");
+    setMessage("현재 시간표를 Lightframe. 계정에 안전하게 백업했습니다.", "success");
     window.TileApp?.notify?.("계정 백업 완료", "다른 기기에서는 계정 설정의 백업 불러오기를 사용하세요.");
     } catch (error) {
       setMessage(error?.message || "백업하지 못했습니다. 다시 시도해주세요.", "error");

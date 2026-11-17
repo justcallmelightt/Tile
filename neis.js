@@ -17,6 +17,39 @@
     const syncButton = document.getElementById("neisSync")
         ?? document.getElementById("saveSchool");
     const statusEl = document.getElementById("neisStatus");
+    const partialInfoButton = document.getElementById("neisPartialInfo");
+    const partialInfoText = document.getElementById("neisPartialInfoText");
+    let partialInfoPinned = false;
+    function closePartialInfo() {
+        partialInfoPinned = false;
+        if (partialInfoText) partialInfoText.hidden = true;
+        partialInfoButton?.setAttribute("aria-expanded", "false");
+    }
+    function openPartialInfo() {
+        if (!partialInfoText || partialInfoButton?.hidden) return;
+        partialInfoText.hidden = false;
+        partialInfoButton.setAttribute("aria-expanded", "true");
+    }
+    partialInfoButton?.addEventListener("pointerenter", openPartialInfo);
+    partialInfoButton?.addEventListener("click", () => {
+        if (partialInfoPinned) closePartialInfo();
+        else {
+            partialInfoPinned = true;
+            openPartialInfo();
+        }
+    });
+    partialInfoButton?.closest(".neis-connection")?.addEventListener("pointerleave", () => {
+        if (!partialInfoPinned) closePartialInfo();
+    });
+    document.addEventListener("pointerdown", (event) => {
+        if (!partialInfoButton?.contains(event.target) && !partialInfoText?.contains(event.target)) closePartialInfo();
+    });
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && !partialInfoText?.hidden) {
+            closePartialInfo();
+            partialInfoButton?.focus();
+        }
+    });
     const isLocalHost = ["localhost", "127.0.0.1", "::1", ""].includes(window.location.hostname);
     const proxyBase = config.apiBase || (!config.apiKey && !isLocalHost ? "/api/neis" : "");
     const SYNC_SCOPE_STORAGE_KEY = "tile-neis-sync-scope";
@@ -32,6 +65,8 @@
     function setStatus(message) {
         if (!statusEl)
             return;
+        if (partialInfoButton) partialInfoButton.hidden = !message.includes("일부 API 데이터 누락");
+        if (partialInfoButton?.hidden) closePartialInfo();
         if (window.TileApp?.renderRollingText) {
             window.TileApp.renderRollingText(statusEl, message, "neis-status");
         }
@@ -431,9 +466,7 @@
         window.TileApp?.setSchoolDetails?.(prepared.school);
         window.TileApp?.setSchoolDepartment?.(prepared.department);
         applyMeals(prepared.meals, prepared.mealDate);
-        setStatus(prepared.partial
-            ? `일부 연결됨 · ${appliedCount}개 반영됨`
-            : `연결됨 · ${appliedCount}개 반영됨`);
+        setStatus(`연결됨 · ${appliedCount}개 반영됨${prepared.partial ? " · 일부 API 데이터 누락" : ""}`);
         localStorage.setItem(SYNC_SCOPE_STORAGE_KEY, prepared.syncScope);
         return {
             appliedCount,

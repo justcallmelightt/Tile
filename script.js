@@ -289,6 +289,7 @@ const UNDO_STORAGE_KEY = "tile-last-undo";
 const LAST_SYNC_STORAGE_KEY = "tile-neis-last-sync";
 const TIMETABLE_SHARE_STORAGE_KEYS = [
   "tile-after-school",
+  "tile-period-order",
   CELL_EDIT_STORAGE_KEY,
   SCHEDULE_EDIT_STORAGE_KEY,
   SUBJECT_INFO_EDIT_STORAGE_KEY,
@@ -304,6 +305,7 @@ const MAX_TIMETABLE_SHARE_LENGTH = 18000;
 const USER_DATA_STORAGE_KEYS = [
   "tile-start-mode",
   "tile-after-school",
+  "tile-period-order",
   CELL_EDIT_STORAGE_KEY,
   SCHEDULE_EDIT_STORAGE_KEY,
   SUBJECT_MEMO_STORAGE_KEY,
@@ -777,6 +779,7 @@ function showToast(title, detail = "", options = {}) {
 
   const toast = document.createElement("div");
   toast.className = "tile-toast";
+  if (options.compact) toast.classList.add("is-compact");
   toast.setAttribute("role", options.tone === "error" ? "alert" : "status");
 
   const copy = document.createElement("div");
@@ -2516,7 +2519,9 @@ function loadScheduleEdits() {
           }
         });
       }
-      const row = document.querySelector(`tbody tr[data-period="${period}"]`);
+      const row = Array.from(document.querySelectorAll?.("tbody tr[data-period]") || [])
+        .find((entry) => entry.dataset.period === period)
+        || document.querySelector?.(`tbody tr[data-period="${period}"]`);
       if (row) updateRowTimeText(row, item);
     });
   } catch (error) {
@@ -2532,7 +2537,9 @@ function loadCellEdits() {
     Object.entries(edits).forEach(([key, subject]) => {
       if (typeof subject !== "string") return;
       const [period, day] = key.split("_");
-      const row = document.querySelector(`tbody tr[data-period="${period}"]`);
+      const row = Array.from(document.querySelectorAll?.("tbody tr[data-period]") || [])
+        .find((entry) => entry.dataset.period === period)
+        || document.querySelector?.(`tbody tr[data-period="${period}"]`);
       if (!row) return;
       const cells = row.querySelectorAll("td");
       const targetCell = cells[Number(day)];
@@ -2810,6 +2817,7 @@ quickTimesForm?.addEventListener("submit", event => {
     const row = Array.from(tbody?.rows || []).find(entry => entry.dataset.period === item.name);
     if (row) tbody.append(row);
   });
+  window.TilePeriodOrder?.apply();
   renderDailyHomeroomSchedule();
   updateCurrentStatus();
   window.TileApp?.setNativeDialogVisible(quickTimesDialog, false);
@@ -2861,9 +2869,15 @@ function renderDailyHomeroomSchedule() {
 
   for (let day = 1; day <= 5; day += 1) {
     const { start, end } = getScheduleItemForDay(homeroomItem, day);
-    const lastLessonIndex = lessonRows.findLastIndex((row) => Boolean(row.querySelectorAll("td")[day - 1]?.dataset.subject));
-    const lastLessonRow = lessonRows[lastLessonIndex];
-    const nextLessonRow = lessonRows[lastLessonIndex + 1];
+    const orderedLessonRows = [...lessonRows].sort((first, second) => {
+      const firstItem = scheduleRanges.find((item) => item.name === first.dataset.period);
+      const secondItem = scheduleRanges.find((item) => item.name === second.dataset.period);
+      return (getScheduleItemForDay(firstItem, day)?.start || "")
+        .localeCompare(getScheduleItemForDay(secondItem, day)?.start || "");
+    });
+    const lastLessonIndex = orderedLessonRows.findLastIndex((row) => Boolean(row.querySelectorAll("td")[day - 1]?.dataset.subject));
+    const lastLessonRow = orderedLessonRows[lastLessonIndex];
+    const nextLessonRow = orderedLessonRows[lastLessonIndex + 1];
     const nextCell = nextLessonRow?.querySelectorAll("td")[day - 1];
     const lastLessonTime = getScheduleItemForDay(
       scheduleRanges.find((item) => item.name === lastLessonRow?.dataset.period), day
@@ -2873,7 +2887,6 @@ function renderDailyHomeroomSchedule() {
     );
     const canUseNextEmptySlot = Boolean(
       homeroomItem.dayRanges?.[String(day)]
-      && nextLessonRow === lastLessonRow?.nextElementSibling
       && nextCell && !nextCell.dataset.subject
       && lastLessonTime && nextLessonTime
       && toMinutes(start) >= toMinutes(lastLessonTime.end)
@@ -3729,6 +3742,20 @@ window.addEventListener("resize", updateFloatingTopbar, { passive: true });
 window.TileApp = {
   getShareableScheduleEdits,
   updateCurrentStatus,
+  savePeriodOrder(order) {
+    const previous = pushUndoSnapshot("교시 행 순서 변경");
+    try {
+      localStorage.setItem("tile-period-order", JSON.stringify(order));
+      showToast("교시 행 순서를 바꿨습니다", "과목과 교시 시간은 각 행에 그대로 유지됩니다.", {
+        compact: true,
+        actionLabel: "되돌리기", onAction: () => restoreSnapshot(previous)
+      });
+      return true;
+    } catch (error) {
+      showToast("순서를 저장하지 못했습니다", "브라우저 저장 공간을 확인해 주세요.", { tone: "error" });
+      return false;
+    }
+  },
   setDialogVisible: setSetupDialogVisible,
   setNativeDialogVisible,
   createPersonalPreset() {
@@ -4221,10 +4248,7 @@ function renderSelectedSchoolInfo(school = selectedSchool) {
         return;
     }
 
-    const typeText = [school.kind, getDisplaySchoolType(school)]
-        .filter(Boolean)
-        .filter((value, index, array) => array.indexOf(value) === index)
-        .join(" · ") || "학교 정보";
+    const typeText = getAccessibleSchoolType(school) || school.kind || "학교 정보";
     const wasVisible = selectedSchoolInfo.classList.contains("is-visible");
     animateSchoolSetupLayout(() => {
       selectedSchoolInfo.classList.add("is-visible");
@@ -4232,7 +4256,7 @@ function renderSelectedSchoolInfo(school = selectedSchool) {
       [
         ["설립 구분", school.foundation || "확인 중"],
         ["학교 종류", typeText],
-        ["교육청", school.officeName || school.office || "확인 중"]
+        ["관할 교육청", school.officeName || school.office || "확인 중"]
       ].forEach(([labelText, valueText]) => {
         const item = document.createElement("div");
         const label = document.createElement("span");

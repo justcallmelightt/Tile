@@ -10,7 +10,7 @@
   <link rel="icon" href="./assets/favicon/favicon-32x32.png" sizes="32x32" type="image/png" />
   <link rel="icon" href="./assets/favicon/favicon-96x96.png" sizes="96x96" type="image/png" />
   <link rel="apple-touch-icon" href="./assets/favicon/favicon-96x96.png" />
-  <link rel="stylesheet" href="./style.css?v=20261118-account-actions-row" />
+  <link rel="stylesheet" href="./style.css?v=20261118-neis-info-hover" />
   <!-- Google AdSense: site ownership verification and ad delivery -->
   <script
     async
@@ -142,7 +142,7 @@
             <span class="dialog-eyebrow">적용 전 확인</span>
             <strong id="schoolSyncPreviewTitle">시간표를 확인했습니다</strong>
           </div>
-          <span id="schoolSyncPreviewBadge" class="source-badge source-neis">NEIS</span>
+          <span id="schoolSyncPreviewBadge" class="source-badge source-neis">NEIS API</span>
         </div>
         <div class="sync-preview-grid">
           <div><span>시간표</span><strong id="schoolSyncPreviewCount">0개</strong></div>
@@ -244,7 +244,7 @@
       </section>
       <section class="settings-section" id="accountSettings" aria-labelledby="accountSettingsTitle" hidden>
         <div class="settings-section-header">
-          <h3 id="accountSettingsTitle">Lightframe. 계정 <span class="feature-stage-badge" aria-label="알파 기능">Alpha</span></h3>
+          <h3 id="accountSettingsTitle">Lightframe. 계정 <span class="feature-stage-badge" aria-label="베타 기능">Beta</span></h3>
           <p>로그인은 계정 연결에 사용합니다. 시간표는 이 기기에 저장되며, 클라우드 백업은 직접 실행할 수 있습니다.</p>
         </div>
         <div id="accountUnavailable" class="account-notice" role="status" hidden>
@@ -287,8 +287,8 @@
             <p id="accountMethodsMessage" class="form-message account-message" role="status" aria-live="polite"></p>
           </div>
           <details class="account-manual-backup">
-            <summary>수동 백업·불러오기</summary>
-            <p>필요할 때 직접 백업하거나, 이전에 저장한 백업을 이 기기에 적용할 수 있습니다.</p>
+            <summary>수동 백업</summary>
+            <p>기기를 바꾸거나 시간표를 따로 보관하고 싶을 때만 수동으로 백업하세요.</p>
             <div class="settings-data-summary account-summary"><div><span>클라우드 백업</span><strong id="cloudBackupStatus">확인 전</strong></div></div>
             <p id="accountMessage" class="form-message account-message" aria-live="polite"></p>
             <div class="settings-secondary-actions account-actions"><button id="backupCloudData" class="secondary-action" type="button">지금 백업하기</button><button id="restoreCloudData" class="secondary-action" type="button">백업 불러오기</button></div>
@@ -400,7 +400,7 @@
         </h1>
         <div class="school-meta-line">
           <p class="subtitle" id="schoolSubtitle">학교 정보 없음</p>
-          <span class="neis-connection" aria-label="NEIS 연결 상태"><span>NEIS</span><strong id="neisStatus">대기 중</strong></span>
+          <span class="neis-connection" aria-label="NEIS API 연결 상태"><span>NEIS API</span><strong id="neisStatus">대기 중</strong><button id="neisPartialInfo" class="neis-info-button" type="button" aria-label="누락된 NEIS API 데이터 안내" aria-controls="neisPartialInfoText" aria-expanded="false" hidden>i</button><span id="neisPartialInfoText" class="neis-info-popover" role="note" hidden>NEIS API가 알려준 전체 건수보다 실제 전달된 시간표가 적습니다. 누락된 교시는 수동으로 추가하거나 나중에 다시 연결해 주세요.</span></span>
         </div>
       </div>
       <div class="controls">
@@ -411,7 +411,7 @@
           <div class="tool-menu-panel" id="toolMenuPanel" aria-hidden="true">
             <span class="tool-menu-label">설정</span>
             <button id="schoolSettingsToggle" type="button"><span>학교 설정</span><small>학교와 학급 변경</small></button>
-            <button id="accountSettingsToggle" type="button"><span class="tool-menu-title">내 계정 <em class="tool-beta-badge" aria-label="알파 기능">Alpha</em></span><small id="accountSettingsStatus">로그인 및 계정 관리</small></button>
+            <button id="accountSettingsToggle" type="button"><span class="tool-menu-title">내 계정 <em class="tool-beta-badge" aria-label="베타 기능">Beta</em></span><small id="accountSettingsStatus">로그인 및 계정 관리</small></button>
             <button id="appSettingsToggle" type="button"><span>Tile 설정</span><small>개인화와 데이터</small></button>
             <span class="tool-menu-label tool-menu-label-help">도움말</span>
             <button id="tileDemoLaunch" type="button"><span>사용법 익히기</span><small>Tile 화면 안내 다시 보기</small></button>
@@ -653,10 +653,10 @@
     </dialog>
     <dialog id="afterSchoolDialog" class="after-school-dialog tile-management-dialog" aria-labelledby="afterSchoolTitle">
       <div class="setup-header"><div><span class="dialog-eyebrow">시간표 관리</span><h2 id="afterSchoolTitle">방과후</h2></div><button id="afterSchoolClose" class="dialog-close" type="button" aria-label="방과후 관리 닫기">×</button></div>
-      <p class="after-school-description">최대 20개 시간대 · 삭제한 항목은 마지막 변경 되돌리기로 복원할 수 있어요.</p>
+      <p class="after-school-description">시간대를 추가하고 이름을 바꿀 수 있어요. 최대 20개까지 저장됩니다.</p>
       <div id="afterSchoolList" class="after-school-list"></div>
       <form id="afterSchoolForm">
-        <div class="after-school-inputs"><label class="setup-field"><span>시작</span><input id="afterSchoolStart" type="time" required></label><label class="setup-field"><span>종료</span><input id="afterSchoolEnd" type="time" required></label><button id="afterSchoolAdd" class="primary-action" type="submit">시간대 추가</button></div>
+        <div class="after-school-inputs"><label class="setup-field after-school-name-field"><span>시간표에 표시할 이름</span><input id="afterSchoolName" type="text" maxlength="40" placeholder="예: 방과후 A, 야간자율학습" autocomplete="off"></label><label class="setup-field"><span>시작</span><input id="afterSchoolStart" type="time" required></label><label class="setup-field"><span>종료</span><input id="afterSchoolEnd" type="time" required></label><button id="afterSchoolAdd" class="primary-action" type="submit">시간대 추가</button></div>
         <p id="afterSchoolMessage" class="form-message" role="status"></p>
       </form>
     </dialog>
@@ -774,10 +774,11 @@
   </div>
   <script src="./config.public.js?v=20261026-empty-start"></script>
   <script src="./config.js?v=20260703-script-fix" onerror="this.remove()"></script>
-  <script src="./neis.js?v=20261026-empty-start"></script>
-  <script src="./after-school.js?v=20261110-no-default-after-school"></script>
-  <script src="./script.js?v=20261112-account-manual-only"></script>
-  <script src="./auth.js?v=20261112-email-guidance"></script>
+  <script src="./neis.js?v=20261118-neis-info-pin"></script>
+  <script src="./after-school.js?v=20261112-after-school-names"></script>
+  <script src="./script.js?v=20261118-school-labels"></script>
+  <script src="./period-order.js?v=20261112-period-rows"></script>
+  <script src="./auth.js?v=20261112-safe-backup-copy"></script>
   <script src="./share.js?v=20261017-dialog-motion"></script>
   <script src="./feedback.js?v=20261017-dialog-motion"></script>
   <script src="./personal-presets.js?v=20261017-dialog-motion"></script>
