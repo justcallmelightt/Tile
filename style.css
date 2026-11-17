@@ -3705,7 +3705,7 @@ body.light-mode .subject-modal {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
-  margin-top: 18px;
+  margin-top: 0;
 }
 
 .status-layout-options > button {
@@ -3742,7 +3742,7 @@ body.light-mode .subject-modal {
 .status-layout-options strong {
   margin-top: 12px;
   font-size: 0.88rem;
-  font-weight: 650;
+  font-weight: 600;
 }
 
 .status-layout-options small {
@@ -3780,7 +3780,7 @@ body.light-mode .subject-modal {
 .status-layout-preview-focused i:nth-child(n + 4) { grid-column: span 3; opacity: 0.62; }
 
 .status-layout-note {
-  margin-top: 12px;
+  margin-top: 0;
 }
 
 .settings-nav button,
