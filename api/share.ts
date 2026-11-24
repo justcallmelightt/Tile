@@ -5,8 +5,6 @@ const ALLOWED_ORIGINS = new Set([
   "http://127.0.0.1:5506"
 ]);
 const PREVIEW_ORIGIN = /^https:\/\/tile-[a-z0-9-]+-justgivemethespotlights-projects\.vercel\.app$/;
-const ANONYMOUS_SHARE_TTL_DAYS = 30;
-const ANONYMOUS_SHARE_HOURLY_LIMIT = 5;
 
 interface ShareRequest {
   method?: string;
@@ -69,33 +67,27 @@ async function createAnonymousShare(request: ShareRequest, response: ShareRespon
   const record = parseAnonymousShare(request.body);
   if (!record) return response.status(400).json({ error: "공유 정보가 올바르지 않거나 너무 큽니다." });
   const key = await anonymousKey(request, secretKey);
-  const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-  const rateQuery = new URLSearchParams({
-    owner_id: "is.null", anonymous_key: `eq.${key}`, created_at: `gte.${since}`, select: "id", limit: String(ANONYMOUS_SHARE_HOURLY_LIMIT)
-  });
-  const rateResponse = await fetch(`${supabaseUrl}/rest/v1/tile_timetable_shares?${rateQuery.toString()}`, {
-    headers: { apikey: secretKey, Authorization: `Bearer ${secretKey}`, Accept: "application/json" }
-  });
-  if (!rateResponse.ok) return response.status(502).json({ error: "공유 저장소를 확인하지 못했습니다." });
-  const recent = await rateResponse.json() as Array<Record<string, unknown>>;
-  if (recent.length >= ANONYMOUS_SHARE_HOURLY_LIMIT) return response.status(429).json({ error: "짧은 시간에 너무 많은 링크를 만들었습니다. 한 시간 뒤 다시 시도해주세요." });
   const cleanupQuery = new URLSearchParams({ owner_id: "is.null", expires_at: `lt.${new Date().toISOString()}` });
   const cleanupResponse = await fetch(`${supabaseUrl}/rest/v1/tile_timetable_shares?${cleanupQuery.toString()}`, {
     method: "DELETE",
     headers: { apikey: secretKey, Authorization: `Bearer ${secretKey}`, Prefer: "return=minimal" }
   });
   if (!cleanupResponse.ok) console.error("Supabase anonymous timetable share cleanup failed", cleanupResponse.status);
-  const expiresAt = new Date(Date.now() + ANONYMOUS_SHARE_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString();
-  const upstream = await fetch(`${supabaseUrl}/rest/v1/tile_timetable_shares`, {
+  const upstream = await fetch(`${supabaseUrl}/rest/v1/rpc/create_anonymous_tile_share`, {
     method: "POST",
     headers: {
       apikey: secretKey, Authorization: `Bearer ${secretKey}`, Accept: "application/vnd.pgrst.object+json",
-      "Content-Type": "application/json", Prefer: "return=representation"
+      "Content-Type": "application/json"
     },
-    body: JSON.stringify({ ...record, owner_id: null, anonymous_key: key, expires_at: expiresAt, is_active: true })
+    body: JSON.stringify({ p_anonymous_key: key, p_title: record.title, p_description: record.description,
+      p_payload: record.payload, p_scopes: record.scopes })
   });
   if (!upstream.ok) {
-    console.error("Supabase anonymous timetable share insert failed", upstream.status, await upstream.text());
+    const detail = await upstream.json().catch(() => null) as { code?: string; message?: string } | null;
+    if (detail?.code === "P0001" && detail.message === "anonymous_share_rate_limit") {
+      return response.status(429).json({ error: "짧은 시간에 너무 많은 링크를 만들었습니다. 한 시간 뒤 다시 시도해주세요." });
+    }
+    console.error("Supabase anonymous timetable share insert failed", upstream.status, detail);
     return response.status(502).json({ error: "짧은 공유 링크를 저장하지 못했습니다." });
   }
   const share = await upstream.json() as Record<string, unknown>;

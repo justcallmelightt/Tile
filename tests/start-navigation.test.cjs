@@ -26,7 +26,9 @@ test('manual start persists empty cells without replacing prior edits or merged 
     CELL_EDIT_STORAGE_KEY: 'cells',
     readJsonStorage: () => edits,
     pushUndoSnapshot: () => ({}), restoreSnapshot: () => assert.fail('unexpected rollback'),
-    localStorage: { setItem: (key, value) => values.set(key, value) },
+    localStorage: { setItem: (key, value) => values.set(key, value), removeItem: key => values.delete(key) },
+    LAST_PERIOD_STORAGE_KEY: 'last-period', applyLastRegularPeriod() {},
+    window: { TileMetrics: { track() {} } },
     document: {
       querySelectorAll: () => rows,
       getElementById: id => id === 'timetableEditToggle'
@@ -56,7 +58,9 @@ test('failed manual storage rolls back and keeps setup available', async () => {
     CELL_EDIT_STORAGE_KEY: 'cells', readJsonStorage: () => ({}),
     pushUndoSnapshot: () => ({ values: {} }), restoreSnapshot: () => { rolledBack = true; },
     document: { querySelectorAll: () => [], getElementById: () => message },
-    localStorage: { setItem() { throw new Error('quota'); } },
+    localStorage: { setItem() { throw new Error('quota'); }, removeItem() {} },
+    LAST_PERIOD_STORAGE_KEY: 'last-period', applyLastRegularPeriod() {},
+    window: { TileMetrics: { track() {} } },
   });
   await run({ currentTarget: button });
   assert.equal(rolledBack, true);

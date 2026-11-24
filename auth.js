@@ -191,6 +191,11 @@
     }
     setHidden(nodes.deletePanel, true);
     const user = session?.user;
+    if (user) window.TileMetrics?.track("auth_session_seen", { once: true });
+    if (user && sessionStorage.getItem("tile-metrics-auth-pending")) {
+      window.TileMetrics?.track("auth_complete");
+      sessionStorage.removeItem("tile-metrics-auth-pending");
+    }
     if (nodes.accountEntryStatus) {
       nodes.accountEntryStatus.textContent = user
         ? `${user.user_metadata?.full_name || user.user_metadata?.name || "로그인됨"} · 계정 관리`
@@ -283,6 +288,8 @@
     if (nodes.googleSignIn?.disabled || nodes.setupGoogleSignIn?.disabled) return;
     setBusy(nodes.googleSignIn, true);
     setBusy(nodes.setupGoogleSignIn, true);
+    window.TileMetrics?.track("auth_google_start");
+    sessionStorage.setItem("tile-metrics-auth-pending", "google");
     try {
       await checkAccountServer();
       sessionStorage.setItem(AUTH_RETURN_KEY, currentReturnLocation());
@@ -292,6 +299,8 @@
       });
       if (error) throw error;
     } catch (error) {
+      window.TileMetrics?.track("auth_error", { reason: "provider" });
+      sessionStorage.removeItem("tile-metrics-auth-pending");
       sessionStorage.removeItem(AUTH_RETURN_KEY);
       window.TileApp?.notify?.("Google 로그인에 실패했습니다", authErrorMessage(error, "잠시 후 다시 시도해주세요."), { tone: "error" });
     } finally {
@@ -314,7 +323,12 @@
     event?.preventDefault();
     if (!client) return;
     const credentials = getEmailCredentials();
-    if (!credentials) return;
+    if (!credentials) {
+      window.TileMetrics?.track("auth_error", { reason: "validation" });
+      return;
+    }
+    window.TileMetrics?.track("auth_email_start");
+    sessionStorage.setItem("tile-metrics-auth-pending", "email");
     setBusy(nodes.lightframeSignIn, true);
     setEmailMessage("Lightframe. 계정에 로그인하고 있습니다.");
     try {
@@ -322,6 +336,8 @@
       if (error) throw error;
       setEmailMessage("");
     } catch (error) {
+      window.TileMetrics?.track("auth_error", { reason: "provider" });
+      sessionStorage.removeItem("tile-metrics-auth-pending");
       setEmailMessage(authErrorMessage(error, "로그인하지 못했습니다. 다시 시도해주세요."), "error");
     } finally { setBusy(nodes.lightframeSignIn, false); }
   }
@@ -330,7 +346,10 @@
     if (!client) return;
     const credentials = getEmailCredentials();
     if (!credentials) return;
-    if (credentials.password.length < 8) return setEmailMessage("비밀번호는 8자 이상으로 입력해주세요.", "error");
+    if (credentials.password.length < 8) {
+      window.TileMetrics?.track("auth_error", { reason: "validation" });
+      return setEmailMessage("비밀번호는 8자 이상으로 입력해주세요.", "error");
+    }
     setBusy(nodes.lightframeSignUp, true);
     setEmailMessage("Lightframe. 계정을 만들고 있습니다.");
     try {
@@ -339,6 +358,7 @@
       options: { emailRedirectTo: getAuthRedirectUrl(), data: { full_name: "Lightframe. 사용자" } }
     });
     if (error) throw error;
+    window.TileMetrics?.track("auth_signup_requested");
     if (!data.session) {
       // Supabase can return an obfuscated user for an existing account.
       // A successful signUp response does not prove that an email was sent.
@@ -347,6 +367,7 @@
     }
     setEmailMessage("");
     } catch (error) {
+      window.TileMetrics?.track("auth_error", { reason: "provider" });
       setEmailMessage(authErrorMessage(error, "계정을 만들지 못했습니다. 다시 시도해주세요."), "error");
     } finally { setBusy(nodes.lightframeSignUp, false); }
   }
@@ -362,9 +383,10 @@
     const { error } = await client.from("tile_backups").upsert({ user_id: currentSession.user.id, payload, updated_at: updatedAt }, { onConflict: "user_id" });
     if (error) throw error;
     if (nodes.backupStatus) nodes.backupStatus.textContent = formatDate(updatedAt);
-    setMessage("현재 시간표를 Lightframe. 계정에 백업했습니다.", "success");
+    setMessage("현재 시간표를 Lightframe. 계정에 안전하게 백업했습니다.", "success");
     window.TileApp?.notify?.("계정 백업 완료", "다른 기기에서는 계정 설정의 백업 불러오기를 사용하세요.");
     } catch (error) {
+      window.TileMetrics?.track("backup_error", { reason: "network" });
       setMessage(error?.message || "백업하지 못했습니다. 다시 시도해주세요.", "error");
     } finally { setBusy(nodes.backup, false); }
   }

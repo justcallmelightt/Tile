@@ -18,6 +18,7 @@ test('tour finale says Tile 시작하기 even when school setup follows', () => 
     window: { clearTimeout() {} }, cancelAnimationFrame() {},
     tileDemo: { classList: { add: name => classes.add(name), contains: name => classes.has(name) } },
     document: { getElementById: () => begin },
+    focusWithoutInitialRing: element => element.focus(),
   };
   const finale = vm.runInNewContext(`(${source.slice(start, end)})`, { ...context, tileTourNeedsSchoolSetup: true });
   finale();
@@ -65,6 +66,7 @@ test('skipping the guide leads to Tile 시작하기 instead of closing the tour'
   let finaleCount = 0;
   const skip = vm.runInNewContext(`(${source.slice(skipStart, skipEnd)})`, {
     showTileTourFinale: () => { finaleCount++; },
+    window: { TileMetrics: { track() {} } },
   });
   skip();
   assert.equal(finaleCount, 1);

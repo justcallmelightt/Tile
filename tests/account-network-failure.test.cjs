@@ -34,6 +34,7 @@ for (const [name, button] of [
       setMessage: (...args) => notices.push(args),
       setEmailMessage: (...args) => notices.push(args),
       window: { TileApp: { createAccountBackup: () => ({ version: 1 }) } },
+      sessionStorage: { setItem() {}, removeItem() {} },
     };
     await load('auth.js', name, context)();
     assert.equal(context.nodes[button].disabled, false);
@@ -69,6 +70,7 @@ test('signup without a session does not claim a verification email was sent', as
     getAuthRedirectUrl: () => 'https://tile0.vercel.app/',
     setBusy: (node, busy) => { node.disabled = busy; },
     setEmailMessage: (...args) => notices.push(args),
+    window: { TileMetrics: { track() {} } },
   })();
   assert.equal(button.disabled, false);
   assert.match(notices.at(-1)[0], /Google로 로그인한 뒤 계정 연결/);

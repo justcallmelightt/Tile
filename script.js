@@ -289,6 +289,7 @@ const UNDO_STORAGE_KEY = "tile-last-undo";
 const LAST_SYNC_STORAGE_KEY = "tile-neis-last-sync";
 const TIMETABLE_SHARE_STORAGE_KEYS = [
   "tile-after-school",
+  "tile-period-order",
   CELL_EDIT_STORAGE_KEY,
   SCHEDULE_EDIT_STORAGE_KEY,
   SUBJECT_INFO_EDIT_STORAGE_KEY,
@@ -304,6 +305,7 @@ const MAX_TIMETABLE_SHARE_LENGTH = 18000;
 const USER_DATA_STORAGE_KEYS = [
   "tile-start-mode",
   "tile-after-school",
+  "tile-period-order",
   CELL_EDIT_STORAGE_KEY,
   SCHEDULE_EDIT_STORAGE_KEY,
   SUBJECT_MEMO_STORAGE_KEY,
@@ -777,6 +779,7 @@ function showToast(title, detail = "", options = {}) {
 
   const toast = document.createElement("div");
   toast.className = "tile-toast";
+  if (options.compact) toast.classList.add("is-compact");
   toast.setAttribute("role", options.tone === "error" ? "alert" : "status");
 
   const copy = document.createElement("div");
@@ -1820,6 +1823,7 @@ subjectEditSave?.addEventListener("click", () => {
     onAction: () => restoreSnapshot(undoSnapshot),
     duration: 6200
   });
+  window.TileMetrics?.track("timetable_edit_complete");
 });
 
 document.getElementById("subjectEditClear")?.addEventListener("click", () => {
@@ -2179,7 +2183,9 @@ function getScheduleItemForDay(item, dayOfWeek) {
 }
 
 function getScheduleRangesForDay(dayOfWeek) {
+  const lastPeriod = Number(localStorage.getItem("tile-last-regular-period")) || 7;
   return scheduleRanges
+    .filter(item => !/^([1-7])교시$/.test(item.name) || Number(item.name[0]) <= lastPeriod)
     .map((item) => getScheduleItemForDay(item, dayOfWeek))
     .sort((a, b) => a.start.localeCompare(b.start));
 }
@@ -2516,7 +2522,9 @@ function loadScheduleEdits() {
           }
         });
       }
-      const row = document.querySelector(`tbody tr[data-period="${period}"]`);
+      const row = Array.from(document.querySelectorAll?.("tbody tr[data-period]") || [])
+        .find((entry) => entry.dataset.period === period)
+        || document.querySelector?.(`tbody tr[data-period="${period}"]`);
       if (row) updateRowTimeText(row, item);
     });
   } catch (error) {
@@ -2532,7 +2540,9 @@ function loadCellEdits() {
     Object.entries(edits).forEach(([key, subject]) => {
       if (typeof subject !== "string") return;
       const [period, day] = key.split("_");
-      const row = document.querySelector(`tbody tr[data-period="${period}"]`);
+      const row = Array.from(document.querySelectorAll?.("tbody tr[data-period]") || [])
+        .find((entry) => entry.dataset.period === period)
+        || document.querySelector?.(`tbody tr[data-period="${period}"]`);
       if (!row) return;
       const cells = row.querySelectorAll("td");
       const targetCell = cells[Number(day)];
@@ -2639,6 +2649,17 @@ const quickTimesManualFields = document.getElementById("quickTimesManualFields")
 const quickTimesManualList = document.getElementById("quickTimesManualList");
 const quickTimesAutoResult = document.getElementById("quickTimesAutoResult");
 const quickTimeNames = new Set(["조회", "1교시", "2교시", "3교시", "4교시", "중식", "5교시", "6교시", "7교시", "종례"]);
+const LAST_PERIOD_STORAGE_KEY = "tile-last-regular-period";
+function applyLastRegularPeriod(count) {
+  for (let number = 1; number <= 7; number += 1) {
+    document.querySelector(`#timetable tbody tr[data-period="${number}교시"]`)?.classList.toggle("is-beyond-last-period", number > count);
+  }
+}
+const savedLastPeriod = Number(localStorage.getItem(LAST_PERIOD_STORAGE_KEY));
+if (Number.isInteger(savedLastPeriod) && savedLastPeriod >= 4 && savedLastPeriod <= 7) {
+  document.getElementById("quickLastPeriod").value = String(savedLastPeriod);
+  applyLastRegularPeriod(savedLastPeriod);
+}
 let quickTimesMode = "auto";
 let quickTimesAfterSchoolSetup = false;
 
@@ -2651,6 +2672,7 @@ function needsSchoolTimeSetup() {
 }
 
 function openQuickTimes({ afterSchoolSetup = false } = {}) {
+  if (afterSchoolSetup) window.TileMetrics?.track("school_times_view", { once: true });
   quickTimesAfterSchoolSetup = afterSchoolSetup;
   renderManualTimes();
   setQuickTimesMode("auto");
@@ -2723,21 +2745,22 @@ function calculateQuickTimes(values) {
   const start = values.firstStart;
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(start)) return null;
   const first = Number(start.slice(0, 2)) * 60 + Number(start.slice(3));
-  const numbers = [values.lesson, values.breakTime, values.lunch, values.morning, values.closing, values.lunchAfter];
+  const numbers = [values.lesson, values.breakTime, values.lunch, values.morning, values.closing, values.lunchAfter, values.lastPeriod];
   if (numbers.some(value => !Number.isInteger(value))) return null;
-  const { lesson, breakTime, lunch, morning, closing, lunchAfter } = values;
+  const { lesson, breakTime, lunch, morning, closing, lunchAfter, lastPeriod } = values;
   if (lesson < 1 || lesson > 180 || breakTime < 0 || breakTime > 120 || lunch < 1 || lunch > 180
-    || morning < 0 || morning > 120 || closing < 0 || closing > 120 || lunchAfter < 3 || lunchAfter > 6 || first < morning) return null;
+    || morning < 0 || morning > 120 || closing < 0 || closing > 120 || lastPeriod < 4 || lastPeriod > 7
+    || lunchAfter < 3 || lunchAfter > lastPeriod || first < morning) return null;
   const format = minutes => `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
   const result = { "조회": { start: format(first - morning), end: format(first) } };
   let cursor = first;
-  for (let number = 1; number <= 7; number += 1) {
+  for (let number = 1; number <= lastPeriod; number += 1) {
     result[`${number}교시`] = { start: format(cursor), end: format(cursor + lesson) };
     cursor += lesson;
     if (number === lunchAfter) {
       result["중식"] = { start: format(cursor), end: format(cursor + lunch) };
       cursor += lunch;
-    } else if (number < 7) cursor += breakTime;
+    } else if (number < lastPeriod) cursor += breakTime;
   }
   result["종례"] = { start: format(cursor), end: format(cursor + closing) };
   return cursor + closing < 1440 ? result : null;
@@ -2748,7 +2771,7 @@ function readQuickTimes() {
   return calculateQuickTimes({ firstStart: value("quickFirstStart"), lesson: Number(value("quickLessonMinutes")),
     breakTime: Number(value("quickBreakMinutes")), lunch: Number(value("quickLunchMinutes")),
     morning: Number(value("quickMorningMinutes")), closing: Number(value("quickClosingMinutes")),
-    lunchAfter: Number(value("quickLunchAfter")) });
+    lunchAfter: Number(value("quickLunchAfter")), lastPeriod: Number(value("quickLastPeriod")) });
 }
 
 function renderQuickTimesPreview() {
@@ -2777,23 +2800,34 @@ document.getElementById("managementQuickTimes")?.addEventListener("click", () =>
 document.getElementById("quickTimesClose")?.addEventListener("click", () => window.TileApp?.setNativeDialogVisible(quickTimesDialog, false));
 document.getElementById("quickTimesAutoMode")?.addEventListener("click", () => setQuickTimesMode("auto"));
 document.getElementById("quickTimesManualMode")?.addEventListener("click", () => setQuickTimesMode("manual"));
+document.getElementById("quickLastPeriod")?.addEventListener("change", event => {
+  const last = Number(event.currentTarget.value);
+  const lunch = document.getElementById("quickLunchAfter");
+  for (const option of lunch.options) option.disabled = Number(option.value) > last;
+  if (Number(lunch.value) > last) lunch.value = String(last);
+  renderQuickTimesPreview();
+});
 quickTimesAutoFields?.addEventListener("input", renderQuickTimesPreview);
 quickTimesAutoFields?.addEventListener("change", renderQuickTimesPreview);
 quickTimesForm?.addEventListener("submit", event => {
   event.preventDefault();
   const times = quickTimesMode === "manual" ? readManualTimes() : readQuickTimes();
   if (!times) {
+    window.TileMetrics?.track("school_setup_error", { reason: "validation" });
     quickTimesMessage.textContent = quickTimesMode === "manual" ? "시작·종료 시각을 확인해 주세요. 시간이 겹치지 않고 같은 날 안에 끝나야 합니다." : "시간을 확인해 주세요. 모든 일과는 같은 날 안에 끝나야 합니다.";
     return;
   }
   let snapshot;
+  const previousLastPeriod = localStorage.getItem(LAST_PERIOD_STORAGE_KEY);
   try {
     snapshot = pushUndoSnapshot(quickTimesMode === "manual" ? "일과 시간 직접 지정" : "일과 시간 빠르게 설정");
     const edits = readJsonStorage(SCHEDULE_EDIT_STORAGE_KEY);
     Object.assign(edits, times);
     writeJsonStorage(SCHEDULE_EDIT_STORAGE_KEY, edits);
     localStorage.setItem(TIME_SETUP_STORAGE_KEY, "ready");
+    if (quickTimesMode === "auto") localStorage.setItem(LAST_PERIOD_STORAGE_KEY, document.getElementById("quickLastPeriod").value);
   } catch (error) {
+    window.TileMetrics?.track("school_setup_error", { reason: "storage" });
     quickTimesMessage.textContent = "저장하지 못했습니다. 브라우저 저장 공간을 확인해 주세요.";
     return;
   }
@@ -2804,21 +2838,27 @@ quickTimesForm?.addEventListener("submit", event => {
     const row = document.querySelector(`#timetable tbody tr[data-period="${name}"]`);
     if (row) updateRowTimeText(row, item);
   }
+  if (quickTimesMode === "auto") applyLastRegularPeriod(Number(document.getElementById("quickLastPeriod").value));
   scheduleRanges.sort((a, b) => a.start.localeCompare(b.start));
   const tbody = document.querySelector("#timetable tbody");
   scheduleRanges.forEach(item => {
     const row = Array.from(tbody?.rows || []).find(entry => entry.dataset.period === item.name);
     if (row) tbody.append(row);
   });
+  window.TilePeriodOrder?.apply();
   renderDailyHomeroomSchedule();
   updateCurrentStatus();
   window.TileApp?.setNativeDialogVisible(quickTimesDialog, false);
   showToast("일과 시간을 적용했습니다", "교시 시간은 언제든 개별 수정할 수 있어요.", {
     actionLabel: "되돌리기", onAction: () => {
       localStorage.setItem(TIME_SETUP_STORAGE_KEY, "pending");
+      if (previousLastPeriod === null) localStorage.removeItem(LAST_PERIOD_STORAGE_KEY);
+      else localStorage.setItem(LAST_PERIOD_STORAGE_KEY, previousLastPeriod);
+      applyLastRegularPeriod(Number(previousLastPeriod) || 7);
       restoreSnapshot(snapshot);
     }
   });
+  window.TileMetrics?.track("school_times_complete");
 });
 
 function renderDailyHomeroomSchedule() {
@@ -2861,9 +2901,15 @@ function renderDailyHomeroomSchedule() {
 
   for (let day = 1; day <= 5; day += 1) {
     const { start, end } = getScheduleItemForDay(homeroomItem, day);
-    const lastLessonIndex = lessonRows.findLastIndex((row) => Boolean(row.querySelectorAll("td")[day - 1]?.dataset.subject));
-    const lastLessonRow = lessonRows[lastLessonIndex];
-    const nextLessonRow = lessonRows[lastLessonIndex + 1];
+    const orderedLessonRows = [...lessonRows].sort((first, second) => {
+      const firstItem = scheduleRanges.find((item) => item.name === first.dataset.period);
+      const secondItem = scheduleRanges.find((item) => item.name === second.dataset.period);
+      return (getScheduleItemForDay(firstItem, day)?.start || "")
+        .localeCompare(getScheduleItemForDay(secondItem, day)?.start || "");
+    });
+    const lastLessonIndex = orderedLessonRows.findLastIndex((row) => Boolean(row.querySelectorAll("td")[day - 1]?.dataset.subject));
+    const lastLessonRow = orderedLessonRows[lastLessonIndex];
+    const nextLessonRow = orderedLessonRows[lastLessonIndex + 1];
     const nextCell = nextLessonRow?.querySelectorAll("td")[day - 1];
     const lastLessonTime = getScheduleItemForDay(
       scheduleRanges.find((item) => item.name === lastLessonRow?.dataset.period), day
@@ -2873,7 +2919,6 @@ function renderDailyHomeroomSchedule() {
     );
     const canUseNextEmptySlot = Boolean(
       homeroomItem.dayRanges?.[String(day)]
-      && nextLessonRow === lastLessonRow?.nextElementSibling
       && nextCell && !nextCell.dataset.subject
       && lastLessonTime && nextLessonTime
       && toMinutes(start) >= toMinutes(lastLessonTime.end)
@@ -3729,6 +3774,83 @@ window.addEventListener("resize", updateFloatingTopbar, { passive: true });
 window.TileApp = {
   getShareableScheduleEdits,
   updateCurrentStatus,
+  moveTimetableCell(fromCell, toCell) {
+    const table = document.querySelector("#timetable tbody");
+    const fromRow = fromCell?.closest("tr[data-period]");
+    const toRow = toCell?.closest("tr[data-period]");
+    if (!table?.contains(fromCell) || !table.contains(toCell)
+      || !fromRow || !toRow || fromCell === toCell
+      || fromCell.tagName !== "TD" || toCell.tagName !== "TD"
+      || fromCell.hasAttribute("colspan") || toCell.hasAttribute("colspan")
+      || !fromCell.dataset.subject) return false;
+
+    const fromIndex = getCellStorageIndex(fromRow, fromCell);
+    const toIndex = getCellStorageIndex(toRow, toCell);
+    const fromKey = getCellInfoKey(fromRow, fromIndex);
+    const toKey = getCellInfoKey(toRow, toIndex);
+    if (!fromKey || !toKey || fromKey === toKey) return false;
+
+    const edits = readJsonStorage(CELL_EDIT_STORAGE_KEY);
+    const memos = readJsonStorage(SUBJECT_MEMO_STORAGE_KEY);
+    const infos = readJsonStorage(CELL_INFO_EDIT_STORAGE_KEY);
+    const capture = (cell, key) => ({
+      subject: cell.dataset.subject || "",
+      memo: memos[key] || "",
+      room: infos[key]?.room || (cell.dataset.source === "neis" ? cell.dataset.neisRoom || "" : ""),
+      teacher: infos[key]?.teacher || (cell.dataset.source === "neis" ? cell.dataset.neisTeacher || "" : "")
+    });
+    const from = capture(fromCell, fromKey);
+    const to = capture(toCell, toKey);
+    const previous = pushUndoSnapshot("과목 타일 이동");
+    const assign = (key, value) => {
+      edits[key] = value.subject;
+      if (value.memo) memos[key] = value.memo;
+      else delete memos[key];
+      if (value.room || value.teacher) infos[key] = { room: value.room, teacher: value.teacher };
+      else delete infos[key];
+    };
+
+    try {
+      assign(fromKey, to);
+      assign(toKey, from);
+      writeJsonStorage(CELL_EDIT_STORAGE_KEY, edits);
+      writeJsonStorage(SUBJECT_MEMO_STORAGE_KEY, memos);
+      writeJsonStorage(CELL_INFO_EDIT_STORAGE_KEY, infos);
+      [[fromCell, to], [toCell, from]].forEach(([cell, value]) => {
+        renderSubjectCell(cell, value.subject);
+        cell.dataset.source = "local";
+        delete cell.dataset.neisRoom;
+        delete cell.dataset.neisTeacher;
+      });
+      applyRoomBadges();
+      updateMemoIndicators();
+      renderDailyHomeroomSchedule();
+      updateCurrentStatus();
+      window.TileCellDrag?.refresh();
+      showToast(to.subject ? "과목 타일을 서로 바꿨습니다" : "과목 타일을 옮겼습니다", `${getSubjectDayLabel(toIndex)}요일 ${toRow.dataset.period}`, {
+        actionLabel: "되돌리기", onAction: () => restoreSnapshot(previous)
+      });
+      return true;
+    } catch (error) {
+      console.error(error);
+      restoreSnapshot(previous);
+      return false;
+    }
+  },
+  savePeriodOrder(order) {
+    const previous = pushUndoSnapshot("교시 행 순서 변경");
+    try {
+      localStorage.setItem("tile-period-order", JSON.stringify(order));
+      showToast("교시 행 순서를 바꿨습니다", "과목과 교시 시간은 각 행에 그대로 유지됩니다.", {
+        compact: true,
+        actionLabel: "되돌리기", onAction: () => restoreSnapshot(previous)
+      });
+      return true;
+    } catch (error) {
+      showToast("순서를 저장하지 못했습니다", "브라우저 저장 공간을 확인해 주세요.", { tone: "error" });
+      return false;
+    }
+  },
   setDialogVisible: setSetupDialogVisible,
   setNativeDialogVisible,
   createPersonalPreset() {
@@ -3994,8 +4116,20 @@ const gradeInput = document.getElementById("gradeInput");
 const classInput = document.getElementById("classInput");
 let selectedSchool = null;
 let schoolSearchRequestId = 0;
+let schoolSetupCompleted = false;
+
+function focusWithoutInitialRing(element) {
+    if (!element) return;
+    element.classList.add("programmatic-focus");
+    element.addEventListener("blur", () => element.classList.remove("programmatic-focus"), { once: true });
+    element.focus({ preventScroll: true });
+}
+document.addEventListener("keydown", event => {
+  if (event.key === "Tab") document.activeElement?.classList?.remove("programmatic-focus");
+});
 
 function setSetupStartView(view, animate = true) {
+    if (animate) window.TileMetrics?.track(view === "choose" ? "start_choices_view" : "school_setup_view", { once: true });
     const choices = document.getElementById("setupChoicePanel");
     const school = document.getElementById("setupSchoolPanel");
     const choosing = view === "choose";
@@ -4012,7 +4146,7 @@ function setSetupStartView(view, animate = true) {
     };
     if (animate) animateSchoolSetupLayout(change, choosing ? choices : school);
     else change();
-    if (animate) (choosing ? document.getElementById("setupChooseSchool") : schoolInput)?.focus({ preventScroll: true });
+    if (animate) focusWithoutInitialRing(choosing ? document.getElementById("setupChooseSchool") : schoolInput);
 }
 
 function openStartChoices() {
@@ -4021,6 +4155,8 @@ function openStartChoices() {
 
 function openSchoolSettings({ choose = false } = {}) {
     if (!setupModal) return;
+    schoolSetupCompleted = false;
+    window.TileMetrics?.track(choose ? "start_choices_view" : "school_setup_view", { once: true });
     rememberDialogTrigger();
     resetSchoolSyncPreview();
     setSetupStartView(choose ? "choose" : "school", false);
@@ -4028,13 +4164,16 @@ function openSchoolSettings({ choose = false } = {}) {
     document.body.classList.add("modal-open");
     opening.then((completed) => {
       if (completed && !setupModal.classList.contains("hidden")) {
-        (choose ? document.getElementById("setupChooseSchool") : schoolInput)?.focus({ preventScroll: true });
+        focusWithoutInitialRing(choose ? document.getElementById("setupChooseSchool") : schoolInput);
       }
     });
 }
 
 function closeSchoolSettingsModal({ restoreFocus = true } = {}) {
     if (!setupModal) return;
+    if (!setupModal.classList.contains("hidden") && !schoolSetupCompleted) {
+      window.TileMetrics?.track("school_setup_closed");
+    }
     const closing = setSetupDialogVisible(setupModal, false);
     const card = setupModal.querySelector(".setup-card");
     const layoutMotion = card && schoolSetupLayoutMotion.get(card);
@@ -4221,10 +4360,7 @@ function renderSelectedSchoolInfo(school = selectedSchool) {
         return;
     }
 
-    const typeText = [school.kind, getDisplaySchoolType(school)]
-        .filter(Boolean)
-        .filter((value, index, array) => array.indexOf(value) === index)
-        .join(" · ") || "학교 정보";
+    const typeText = getAccessibleSchoolType(school) || school.kind || "학교 정보";
     const wasVisible = selectedSchoolInfo.classList.contains("is-visible");
     animateSchoolSetupLayout(() => {
       selectedSchoolInfo.classList.add("is-visible");
@@ -4232,7 +4368,7 @@ function renderSelectedSchoolInfo(school = selectedSchool) {
       [
         ["설립 구분", school.foundation || "확인 중"],
         ["학교 종류", typeText],
-        ["교육청", school.officeName || school.office || "확인 중"]
+        ["관할 교육청", school.officeName || school.office || "확인 중"]
       ].forEach(([labelText, valueText]) => {
         const item = document.createElement("div");
         const label = document.createElement("span");
@@ -4713,6 +4849,10 @@ bindBackdropDismiss(setupModal, closeSchoolSettingsModal);
 
 document.getElementById("setupChooseSchool")?.addEventListener("click", () => setSetupStartView("school"));
 document.getElementById("setupChooseBack")?.addEventListener("click", () => setSetupStartView("choose"));
+document.getElementById("setupChooseAccount")?.addEventListener("click", async () => {
+  await closeSchoolSettingsModal({ restoreFocus: false });
+  window.TileAuth?.openAccountSettings?.();
+});
 
 async function startManualTimetable(event) {
   const button = event.currentTarget;
@@ -4733,16 +4873,21 @@ async function startManualTimetable(event) {
     });
     localStorage.setItem(CELL_EDIT_STORAGE_KEY, JSON.stringify(edits));
     localStorage.setItem("tile-start-mode", "manual");
+    localStorage.removeItem(LAST_PERIOD_STORAGE_KEY);
+    applyLastRegularPeriod(7);
     loadCellEdits();
     renderDailyHomeroomSchedule();
     updateSchoolSubtitle();
     const status = document.getElementById("neisStatus");
     if (status) status.textContent = "직접 만든 시간표";
     updateCurrentStatus();
+    schoolSetupCompleted = true;
+    window.TileMetrics?.track("manual_setup_complete");
     await closeSchoolSettingsModal({ restoreFocus: false });
     document.getElementById("timetable")?.focus({ preventScroll: true });
     document.getElementById("timetableEditToggle")?.click();
   } catch (error) {
+    window.TileMetrics?.track("manual_setup_error", { reason: "storage" });
     if (snapshot) {
       try { restoreSnapshot(snapshot, { reload: false }); }
       catch (restoreError) { console.error("시간표 시작 상태 복원 실패:", restoreError); }
@@ -4756,11 +4901,15 @@ document.getElementById("setupChooseManual")?.addEventListener("click", startMan
 
 saveSchoolButton?.addEventListener("click", async () => {
     const formUser = saveSchoolSettings({ persist: false });
-    if (!formUser) return;
+    if (!formUser) {
+      window.TileMetrics?.track("school_setup_error", { reason: "validation" });
+      return;
+    }
     const formSignature = getSchoolFormSignature(formUser);
     const neisBridge = window.TileNeis;
 
     if (!neisBridge?.prepare || !neisBridge?.sync) {
+      window.TileMetrics?.track("school_setup_error", { reason: "network" });
       if (schoolFormMessage) schoolFormMessage.textContent = "NEIS 연결 모듈을 불러오지 못했습니다. 페이지를 새로고침해주세요.";
       return;
     }
@@ -4781,8 +4930,10 @@ saveSchoolButton?.addEventListener("click", async () => {
           prepared.user.classNum
         ].join("|");
         renderSchoolSyncPreview(prepared);
+        window.TileMetrics?.track("school_preview_ready");
         if (schoolFormMessage) schoolFormMessage.textContent = "내용을 확인한 뒤 적용해주세요.";
       } catch (error) {
+        window.TileMetrics?.track("school_setup_error", { reason: "provider" });
         console.error(error);
         if (schoolFormMessage) {
           schoolFormMessage.textContent = error.message || "학교 정보를 확인하지 못했습니다.";
@@ -4823,6 +4974,7 @@ saveSchoolButton?.addEventListener("click", async () => {
     setButtonLoading(saveSchoolButton, false);
 
     if (!didSync) {
+      window.TileMetrics?.track("school_setup_error", { reason: "provider" });
       restoreSnapshot(rollbackSnapshot, { reload: false });
       if (previousUndo === null) localStorage.removeItem(UNDO_STORAGE_KEY);
       else localStorage.setItem(UNDO_STORAGE_KEY, previousUndo);
@@ -4840,10 +4992,17 @@ saveSchoolButton?.addEventListener("click", async () => {
       && priorUser?.school?.office === user.school.office
       && String(priorUser?.grade) === String(user.grade)
       && String(priorUser?.classNum) === String(user.classNum);
+    if (!sameClass) {
+      localStorage.removeItem(LAST_PERIOD_STORAGE_KEY);
+      document.getElementById("quickLastPeriod").value = "7";
+      applyLastRegularPeriod(7);
+    }
     if (!sameClass || !timeWasConfigured) localStorage.setItem(TIME_SETUP_STORAGE_KEY, "pending");
     updateCurrentStatus();
 
     localStorage.setItem(LAST_SYNC_STORAGE_KEY, new Date().toISOString());
+    schoolSetupCompleted = true;
+    window.TileMetrics?.track("school_setup_complete");
     updateLastSyncValue();
     const nextNeisStatus = neisStatusEl?.dataset?.timeText
       || neisStatusEl?.dataset?.displayText
@@ -4897,6 +5056,7 @@ schoolInput?.addEventListener("input", () => {
       schoolResults.replaceChildren();
 
       if (schools.length === 0) {
+        window.TileMetrics?.track("school_search_empty", { once: true });
         const empty = document.createElement("div");
         empty.className = "school-result-empty";
         empty.textContent = "검색 결과가 없습니다.";
@@ -4914,6 +5074,7 @@ schoolInput?.addEventListener("input", () => {
         button.append(name, office);
         button.addEventListener("click", () => {
           selectedSchool = school;
+          window.TileMetrics?.track("school_selected", { once: true });
           schoolInput.value = school.name;
           schoolResults.replaceChildren();
           renderSelectedSchoolInfo(school);
@@ -4925,6 +5086,7 @@ schoolInput?.addEventListener("input", () => {
       });
     } catch (error) {
       if (requestId !== schoolSearchRequestId) return;
+      window.TileMetrics?.track("school_search_error", { once: true });
       console.error(error);
       schoolResults.replaceChildren();
       const message = document.createElement("div");
@@ -4939,6 +5101,7 @@ schoolInput?.addEventListener("input", () => {
   input?.addEventListener("input", () => {
     resetSchoolSyncPreview();
     if (selectedSchool) setSchoolProgressStep(2);
+    if (gradeInput?.value && classInput?.value) window.TileMetrics?.track("class_entered", { once: true });
   });
 });
 
@@ -5081,6 +5244,7 @@ function setTileDemoScene(index) {
 
 function openTileDemo() {
   if (!tileDemo || tileDemo.classList.contains('is-open')) return;
+  window.TileMetrics?.track("intro_view", { once: true });
   window.clearTimeout(tileTourAutoTimer);
   document.documentElement.classList.add('tile-tour-pending');
   startupSpotlight?.classList.remove('is-settled');
@@ -5103,7 +5267,7 @@ function openTileDemo() {
   setTileDemoScene(0);
   cancelAnimationFrame(tileTourFrame);
   positionTileTour();
-  window.setTimeout(() => tileDemoClose?.focus(), 80);
+  window.setTimeout(() => focusWithoutInitialRing(tileDemoClose), 80);
 }
 
 function closeTileDemo(options = {}) {
@@ -5183,10 +5347,11 @@ function showTileTourFinale() {
   if (beginLabel) beginLabel.textContent = 'Tile 시작하기';
   if (beginHint) beginHint.textContent = '눌러서 시작하세요';
   begin.hidden = false;
-  begin.focus();
+  focusWithoutInitialRing(begin);
 }
 
 function skipTileTour() {
+  window.TileMetrics?.track("intro_skipped", { once: true });
   showTileTourFinale();
 }
 
@@ -5199,6 +5364,7 @@ tileFinaleButton?.addEventListener('pointerleave', () => {
 });
 tileFinaleButton?.addEventListener('click', () => {
   if (tileDemo.classList.contains('is-start-leaving')) return;
+  window.TileMetrics?.track("intro_start_clicked", { once: true });
   const reduced = startupSpotlightReduceMotion.matches;
   tileDemo.classList.add('is-start-hover', 'is-start-leaving');
   tileFinaleTimers.push(window.setTimeout(() => {

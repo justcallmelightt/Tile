@@ -8,13 +8,16 @@ class Element {
   get rows() { return this.children; }
   append(...children) { for (const child of children) { child.remove?.(); child.parent = this; this.children.push(child); } }
   remove() { if (this.parent) this.parent.children = this.parent.children.filter(child => child !== this); }
-  replaceChildren() { this.children = []; }
+  replaceChildren(...children) { this.children = []; this.append(...children); }
   setAttribute() {}
+  querySelector() { return null; }
+  querySelectorAll() { return []; }
   addEventListener(name, callback) { this.events[name] = callback; }
   focus() {}
+  select() {}
   showModal() {}
   close() {}
-  fire(name) { this.events[name]?.({ preventDefault() {}, stopPropagation() {} }); }
+  fire(name, options = {}) { this.events[name]?.({ preventDefault() {}, stopPropagation() {}, ...options }); }
 }
 function setup(saved = {}, blocked = false) {
   const ids = new Map();
@@ -27,10 +30,16 @@ function setup(saved = {}, blocked = false) {
   ];
   for (const item of scheduleRanges) { const row = new Element(); row.dataset.period = item.name; tbody.append(row); }
   let stored;
+  const storage = new Map();
+  for (const [key, value] of Object.entries(saved.storage || {})) storage.set(key, JSON.stringify(value));
   const context = {
     window: {}, document: { getElementById: node, querySelector: () => tbody,
       createElement: () => new Element(), createTextNode: text => ({ text }) },
-    localStorage: { setItem(key, value) { if (blocked) throw new Error('quota'); stored = JSON.parse(value); } },
+    localStorage: {
+      getItem(key) { return storage.get(key) || null; },
+      setItem(key, value) { if (blocked) throw new Error('quota'); storage.set(key, value); if (key === 'tile-after-school') stored = JSON.parse(value); },
+      removeItem(key) { storage.delete(key); },
+    },
   };
   vm.runInNewContext(readFileSync(`${__dirname}/../after-school.js`, 'utf8'), context);
   const noop = () => {};
@@ -39,15 +48,16 @@ function setup(saved = {}, blocked = false) {
     openSubjectEditor: noop, openPeriodEditor: noop, updateRowTimeText: noop,
     applyTodayOnlyMode: noop, updateCurrentStatus: noop, loadCellEdits: noop,
     applyRoomBadges: noop, updateMemoIndicators: noop });
-  return { node, scheduleRanges, tbody, stored: () => stored, add(start, end) {
+  return { node, scheduleRanges, tbody, stored: () => stored, storage, add(start, end, name = '') {
+    node('afterSchoolName').value = name;
     node('afterSchoolStart').value = start; node('afterSchoolEnd').value = end;
     node('afterSchoolForm').fire('submit');
   } };
 }
 test('add persists and restores a new five-day time slot', () => {
   const app = setup();
-  app.add('20:00', '20:50');
-  assert.equal(app.stored().items.length, 3);
+  app.add('20:00', '20:50', '방과후 3');
+  assert.equal(app.stored().items.length, 1);
   assert.equal(app.tbody.rows.at(-1).children.length, 6);
   assert.equal(setup(app.stored()).scheduleRanges.at(-1).name, '방과후 3');
 });
@@ -58,20 +68,46 @@ test('overlap and reversed times do not save', () => {
   app.add('22:00', '21:00');
   assert.equal(app.stored(), undefined);
 });
-test('removal requires confirmation and remains removed after reload', () => {
+test('a custom name is saved and an existing period name is rejected', () => {
   const app = setup();
+  app.add('20:00', '20:50', '동아리 활동');
+  assert.equal(app.stored().items[0].name, '동아리 활동');
+  const count = app.stored().items.length;
+  app.add('21:00', '21:50', '종례');
+  assert.equal(app.stored().items.length, count);
+  assert.equal(app.node('afterSchoolMessage').textContent, '이미 사용 중인 이름입니다.');
+});
+test('removal requires confirmation and remains removed after reload', () => {
+  const app = setup({ items: [{ name: '방과후 A', start: '16:30', end: '17:20' }] });
   app.node('managementAfterSchool').fire('click');
-  const remove = app.node('afterSchoolList').children[0].children[1];
+  const remove = app.node('afterSchoolList').children[0].children[1].children[1];
   remove.fire('click');
   assert.equal(app.stored(), undefined);
   remove.fire('click');
   assert.equal(setup(app.stored()).scheduleRanges.some(item => item.name === '방과후 A'), false);
 });
+test('custom names persist and renaming keeps edited subjects under the new key', () => {
+  const app = setup({ items: [{ name: '방과후 3', start: '20:00', end: '20:50' }], storage: {
+    'tile-cell-edits': { '방과후 3_0': '수학' },
+    'tile-subject-memos': { '방과후 3_0': '숙제' },
+    'tile-schedule-edits': { '방과후 3': { start: '20:00', end: '20:50' } },
+  } });
+  app.node('managementAfterSchool').fire('click');
+  app.node('afterSchoolList').children[0].children[1].children[0].fire('click');
+  const form = app.node('afterSchoolList').children[0].children[0];
+  form.children[0].value = '수학 심화';
+  form.fire('submit');
+  assert.equal(app.stored().items[0].name, '수학 심화');
+  assert.equal(JSON.parse(app.storage.get('tile-cell-edits'))['수학 심화_0'], '수학');
+  assert.equal(JSON.parse(app.storage.get('tile-subject-memos'))['수학 심화_0'], '숙제');
+  assert.ok(JSON.parse(app.storage.get('tile-schedule-edits'))['수학 심화']);
+  assert.equal(setup(app.stored()).scheduleRanges.some(item => item.name === '수학 심화'), true);
+});
 test('storage failure leaves rows and schedule unchanged', () => {
   const app = setup({}, true);
   app.add('20:00', '20:50');
-  assert.equal(app.scheduleRanges.length, 3);
-  assert.equal(app.tbody.rows.length, 3);
+  assert.equal(app.scheduleRanges.length, 1);
+  assert.equal(app.tbody.rows.length, 1);
 });
 test('twenty-slot cap and empty saved list are respected', () => {
   const items = Array.from({ length: 20 }, (_, i) => ({ name: `방과후 ${i + 3}`, start: '20:00', end: '20:01' }));

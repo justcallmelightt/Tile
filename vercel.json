@@ -9,6 +9,9 @@
     },
     "api/share.ts": {
       "maxDuration": 10
+    },
+    "api/metrics.ts": {
+      "maxDuration": 10
     }
   },
   "headers": [
