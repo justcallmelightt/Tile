@@ -1041,6 +1041,9 @@ html[data-status-layout="focused"] #mainContent .status-item-day { order: 5; }
   transition: background-color 150ms ease, border-color 150ms ease;
 }
 .setup-choice strong, .setup-choice-login strong { display: block; font-size: .96rem; font-weight: 600; letter-spacing: -.02em; line-height: 1.3; }
+.setup-choice-title { display: flex; align-items: baseline; flex-wrap: wrap; gap: 5px 9px; }
+.setup-access-tag { display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 999px; background: var(--toggle-bg); color: var(--text-soft); font-size: .65rem; font-style: normal; font-weight: 650; line-height: 1.4; white-space: nowrap; }
+.setup-access-tag.requires-account { color: var(--text); }
 .setup-choice small, .setup-choice-login small { display: block; margin-top: 5px; font-size: .76rem; font-weight: 450; line-height: 1.5; }
 .setup-choice small { color: var(--text-soft); }
 .setup-choice-symbol { display: grid; place-items: center; width: 32px; height: 32px; color: var(--text); }
@@ -2952,6 +2955,11 @@ body.light-mode .subject-modal {
 .settings-section .settings-help {
   margin-top: -4px;
 }
+.account-access-map { display: grid; gap: 7px; }
+.account-access-map > div { display: grid; grid-template-columns: 86px minmax(0, 1fr); align-items: start; gap: 10px; padding: 12px 14px; border-radius: 13px; background: var(--surface-soft); }
+.account-access-map strong { color: var(--text); font-size: .75rem; font-weight: 650; line-height: 1.55; white-space: nowrap; }
+.account-access-map span { color: var(--text-soft); font-size: .74rem; line-height: 1.55; }
+@media (max-width: 480px) { .account-access-map > div { grid-template-columns: 1fr; gap: 3px; } }
 
 .setup-header {
   align-items: flex-start;

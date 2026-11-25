@@ -11,6 +11,7 @@
     avatar: byId("accountAvatar"), displayName: byId("accountDisplayName"),
     email: byId("accountEmail"), message: byId("accountMessage"), backupStatus: byId("cloudBackupStatus"),
     backup: byId("backupCloudData"), restore: byId("restoreCloudData"), restorePanel: byId("restoreConfirmPanel"),
+    manualBackup: document.querySelector(".account-manual-backup"),
     restoreDescription: byId("restoreConfirmDescription"), cancelRestore: byId("cancelCloudRestore"),
     confirmRestore: byId("confirmCloudRestore"), signOut: byId("accountSignOut"), showDelete: byId("showDeleteAccount"),
     deletePanel: byId("deleteAccountPanel"), cancelDelete: byId("cancelDeleteAccount"), confirmDelete: byId("confirmDeleteAccount"),
@@ -200,7 +201,7 @@
     if (nodes.accountEntryStatus) {
       nodes.accountEntryStatus.textContent = user
         ? `${user.user_metadata?.full_name || user.user_metadata?.name || "로그인됨"} · 계정 관리`
-        : "로그인 및 계정 관리";
+        : "로그인하면 백업·공유 관리";
     }
     setHidden(nodes.signedOut, Boolean(user));
     setHidden(nodes.signedIn, !user);
@@ -216,6 +217,7 @@
     if (sessionStorage.getItem(AUTH_RESTORE_KEY) === "1") {
       sessionStorage.removeItem(AUTH_RESTORE_KEY);
       openAccountSettings();
+      if (nodes.manualBackup) nodes.manualBackup.open = true;
       await prepareRestore();
     }
   }
@@ -473,6 +475,7 @@
     openAccountSettings();
     if (currentSession?.user) {
       sessionStorage.removeItem(AUTH_RESTORE_KEY);
+      if (nodes.manualBackup) nodes.manualBackup.open = true;
       void prepareRestore();
     }
   }

@@ -10,7 +10,7 @@
   <link rel="icon" href="./assets/favicon/favicon-32x32.png" sizes="32x32" type="image/png" />
   <link rel="icon" href="./assets/favicon/favicon-96x96.png" sizes="96x96" type="image/png" />
   <link rel="apple-touch-icon" href="./assets/favicon/favicon-96x96.png" />
-  <link rel="stylesheet" href="./style.css?v=20261118-cell-drag" />
+  <link rel="stylesheet" href="./style.css?v=20261126-access-guide" />
   <!-- Google AdSense: site ownership verification and ad delivery -->
   <script
     async
@@ -89,17 +89,17 @@
       <div id="setupChoicePanel" class="setup-choice-panel" hidden>
         <button id="setupChooseSchool" class="setup-choice" type="button">
           <span class="setup-choice-symbol" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m2.5 9 9.5-4.5L21.5 9 12 13.5 2.5 9Z"/><path d="M6.5 11v5.2c3.4 2.5 7.6 2.5 11 0V11M21.5 9v6.5"/><circle cx="21.5" cy="17" r="1" fill="currentColor" stroke="none"/></svg></span>
-          <span><strong>학교로 시작</strong><small>학교와 학급을 연결해 시간표를 불러와요.</small></span>
+          <span><span class="setup-choice-title"><strong>학교로 시작</strong><em class="setup-access-tag">로그인 없이</em></span><small>학교와 학급을 연결해 시간표를 불러와요.</small></span>
           <svg class="setup-choice-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 3.5 4.5 4.5L6 12.5"/></svg>
         </button>
         <button id="setupChooseManual" class="setup-choice" type="button">
           <span class="setup-choice-symbol" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5.5" width="17" height="15" rx="2"/><path d="M7.5 3.5v4m9-4v4m-13 3h17M12 13v5m-2.5-2.5h5"/></svg></span>
-          <span><strong>직접 시간표 만들기</strong><small>기본 시간대에 과목을 직접 채워요.</small></span>
+          <span><span class="setup-choice-title"><strong>직접 시간표 만들기</strong><em class="setup-access-tag">로그인 없이</em></span><small>기본 시간대에 과목을 직접 채워요.</small></span>
           <svg class="setup-choice-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 3.5 4.5 4.5L6 12.5"/></svg>
         </button>
         <button id="setupChooseAccount" class="setup-choice" type="button">
           <span class="setup-choice-symbol" aria-hidden="true">◇</span>
-          <span><strong>계정에서 불러오기</strong><small>로그인한 뒤 저장된 백업을 선택해 이 기기에 적용해요.</small></span>
+          <span><span class="setup-choice-title"><strong>계정에서 불러오기</strong><em class="setup-access-tag requires-account">로그인 필요</em></span><small>로그인한 뒤 저장된 백업을 확인하고 이 기기에 적용해요.</small></span>
           <svg class="setup-choice-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 3.5 4.5 4.5L6 12.5"/></svg>
         </button>
         <p id="setupChoiceMessage" class="form-message" role="status"></p>
@@ -250,7 +250,11 @@
       <section class="settings-section" id="accountSettings" aria-labelledby="accountSettingsTitle" hidden>
         <div class="settings-section-header">
           <h3 id="accountSettingsTitle">Lightframe. 계정 <span class="feature-stage-badge" aria-label="베타 기능">Beta</span></h3>
-          <p>로그인은 계정 연결에 사용합니다. 시간표는 이 기기에 저장되며, 클라우드 백업은 직접 실행할 수 있습니다.</p>
+          <p>계정은 선택 사항입니다. 시간표를 쓰는 데 로그인할 필요가 없습니다.</p>
+        </div>
+        <div class="account-access-map" aria-label="로그인 필요 여부">
+          <div><strong>로그인 없이</strong><span>학교 연결·직접 만들기, 시간표 편집·메모·급식, 파일 내보내기·가져오기, 공유 링크 만들기·열기</span></div>
+          <div><strong>로그인 필요</strong><span>클라우드 백업·복원, 계정에서 시간표 불러오기, 내가 만든 공유 링크 목록·비활성화</span></div>
         </div>
         <div id="accountUnavailable" class="account-notice" role="status" hidden>
           <strong>계정 기능 준비 중</strong>
@@ -346,7 +350,7 @@
         <div class="setup-actions share-actions"><button id="openShareManager" class="theme-toggle secondary-action" type="button">공유 링크 관리</button><button id="createShowcaseShare" class="theme-toggle save-action primary-action share-create-action" type="button">공유 링크 만들기</button></div>
         <div class="share-privacy-notes">
           <div id="shareLoginNotice" class="share-privacy-note">
-            <p><strong>공유 링크 관리는 로그인이 필요합니다.</strong> 로그인한 계정에서 링크를 다시 복사하거나 비활성화할 수 있습니다. 링크를 받은 사람은 로그인하지 않아도 볼 수 있습니다.</p>
+            <p><strong>로그인 없이도 공유 링크를 만들 수 있습니다.</strong> 비로그인 상태에서 만든 링크는 30일 동안 유지되며 계정 관리 목록에는 남지 않습니다. 목록에서 다시 복사하거나 비활성화하려면 로그인한 상태에서 링크를 만들어야 합니다.</p>
           </div>
           <div class="share-privacy-note">
             <p><strong>공개할 내용을 한 번 더 확인해주세요.</strong> 선택한 정보는 공개 링크를 가진 사람이 볼 수 있습니다. 비밀번호나 연락처처럼 민감한 내용은 메모에 포함하지 마세요.</p>
@@ -416,7 +420,7 @@
           <div class="tool-menu-panel" id="toolMenuPanel" aria-hidden="true">
             <span class="tool-menu-label">설정</span>
             <button id="schoolSettingsToggle" type="button"><span>학교 설정</span><small>학교와 학급 변경</small></button>
-            <button id="accountSettingsToggle" type="button"><span class="tool-menu-title">내 계정 <em class="tool-beta-badge" aria-label="베타 기능">Beta</em></span><small id="accountSettingsStatus">로그인 및 계정 관리</small></button>
+            <button id="accountSettingsToggle" type="button"><span class="tool-menu-title">내 계정 <em class="tool-beta-badge" aria-label="베타 기능">Beta</em></span><small id="accountSettingsStatus">로그인하면 백업·공유 관리</small></button>
             <button id="appSettingsToggle" type="button"><span>Tile 설정</span><small>개인화와 데이터</small></button>
             <span class="tool-menu-label tool-menu-label-help">도움말</span>
             <button id="tileDemoLaunch" type="button"><span>사용법 익히기</span><small>Tile 화면 안내 다시 보기</small></button>
@@ -786,7 +790,7 @@
   <script src="./script.js?v=20261126-restore-flow"></script>
   <script src="./period-order.js?v=20261112-period-rows"></script>
   <script src="./cell-drag.js?v=20261118-cell-drag"></script>
-  <script src="./auth.js?v=20261126-restore-flow"></script>
+  <script src="./auth.js?v=20261126-access-guide"></script>
   <script src="./share.js?v=20261017-dialog-motion"></script>
   <script src="./feedback.js?v=20261017-dialog-motion"></script>
   <script src="./personal-presets.js?v=20261017-dialog-motion"></script>
