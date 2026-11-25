@@ -460,7 +460,7 @@
   }
 
   function openAccountSettings() {
-    byId("appSettingsToggle")?.click();
+    if (byId("appSettingsModal")?.classList.contains("hidden")) byId("appSettingsToggle")?.click();
     window.setTimeout(() => {
       const accountTab = document.querySelector('[data-settings-target="accountSettings"]');
       accountTab?.click();
