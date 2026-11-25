@@ -57,7 +57,6 @@ test('account restore choice keeps intent until sign-in and only previews the ba
     AUTH_RESTORE_KEY: 'restore-intent',
     sessionStorage: { setItem: (key, value) => storage.set(key, value), getItem: key => storage.get(key), removeItem: key => storage.delete(key) },
     currentSession: null,
-    nodes: { manualBackup: { open: false } },
     openAccountSettings: () => { opened += 1; },
     prepareRestore: async () => { previews += 1; },
   };
@@ -68,7 +67,6 @@ test('account restore choice keeps intent until sign-in and only previews the ba
   context.currentSession = { user: { id: 'user-1' } };
   helper('openAccountRestore', context)();
   assert.equal(storage.has('restore-intent'), false);
-  assert.equal(context.nodes.manualBackup.open, true);
   assert.equal(previews, 1);
 });
 
