@@ -14,12 +14,14 @@ function helper(name, context) {
   return vm.runInNewContext(`(${authSource.slice(start, end)})`, context);
 }
 
-test('start flow offers school and manual timetable without implying login restores data', () => {
+test('start flow offers an explicit account restore choice alongside school and manual setup', () => {
   assert.match(html, /id="setupChooseSchool"/);
   assert.match(html, /id="setupChooseManual"/);
   assert.doesNotMatch(html, /로그인해서 불러오기|id="setupAccountSignIn"/);
   assert.doesNotMatch(scriptSource, /startRestoreFlow/);
-  assert.doesNotMatch(authSource, /AUTH_RESTORE_KEY|finishRestoreFlow|startRestoreFlow/);
+  assert.match(html, /id="setupChooseAccount"/);
+  assert.match(scriptSource, /TileAuth\?\.openAccountRestore\?\.\(\)/);
+  assert.match(authSource, /AUTH_RESTORE_KEY/);
 });
 
 test('account backup actions are manual and collapsed by default', () => {
@@ -29,7 +31,8 @@ test('account backup actions are manual and collapsed by default', () => {
   assert.match(html, /id="restoreCloudData"[^>]*>백업 불러오기/);
   const sessionStart = authSource.indexOf('async function renderSession(');
   const sessionEnd = authSource.indexOf('\n  }\n', sessionStart) + 4;
-  assert.doesNotMatch(authSource.slice(sessionStart, sessionEnd), /backupCurrentData\(|prepareRestore\(/);
+  assert.doesNotMatch(authSource.slice(sessionStart, sessionEnd), /backupCurrentData\(/);
+  assert.match(authSource.slice(sessionStart, sessionEnd), /sessionStorage\.getItem\(AUTH_RESTORE_KEY\)[\s\S]*prepareRestore\(\)/);
 });
 
 test('manual restore shows a preview and waits for confirmation', async () => {
@@ -44,4 +47,32 @@ test('manual restore shows a preview and waits for confirmation', async () => {
   await helper('prepareRestore', context)();
   assert.equal(context.nodes.restorePanel.hidden, false);
   assert.match(context.nodes.restoreDescription.textContent, /현재 데이터는 되돌리기용으로 보관합니다/);
+});
+
+test('account restore choice keeps intent until sign-in and only previews the backup', async () => {
+  const storage = new Map();
+  let opened = 0;
+  let previews = 0;
+  const context = {
+    AUTH_RESTORE_KEY: 'restore-intent',
+    sessionStorage: { setItem: (key, value) => storage.set(key, value), getItem: key => storage.get(key), removeItem: key => storage.delete(key) },
+    currentSession: null,
+    openAccountSettings: () => { opened += 1; },
+    prepareRestore: async () => { previews += 1; },
+  };
+  helper('openAccountRestore', context)();
+  assert.equal(storage.get('restore-intent'), '1');
+  assert.equal(opened, 1);
+  assert.equal(previews, 0);
+  context.currentSession = { user: { id: 'user-1' } };
+  helper('openAccountRestore', context)();
+  assert.equal(storage.has('restore-intent'), false);
+  assert.equal(previews, 1);
+});
+
+test('last regular period travels with backups and shares without rejecting older data', () => {
+  assert.match(scriptSource, /const TIMETABLE_SHARE_STORAGE_KEYS = \[[\s\S]*?"tile-last-regular-period"/);
+  assert.match(scriptSource, /const USER_DATA_STORAGE_KEYS = \[[\s\S]*?"tile-last-regular-period"/);
+  assert.match(scriptSource, /!Object\.prototype\.hasOwnProperty\.call\(backup\.values, LAST_PERIOD_STORAGE_KEY\)/);
+  assert.match(scriptSource, /\.filter\(row => !row\.classList\.contains\("is-beyond-last-period"\)\)/);
 });

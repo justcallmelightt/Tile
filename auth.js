@@ -26,6 +26,7 @@
   const sessionSubscribers = new Set();
   const AUTH_RETURN_KEY = "tile-auth-return-location";
   const AUTH_LINK_KEY = "tile-auth-link-google";
+  const AUTH_RESTORE_KEY = "tile-auth-restore-after-login";
   const MAX_AUTH_RETURN_LENGTH = 20000;
   const CANONICAL_AUTH_ORIGIN = "https://tile0.vercel.app";
 
@@ -212,6 +213,11 @@
     if (nodes.email) nodes.email.textContent = user.email || "Google 계정";
     await renderLoginMethods(user.id);
     await refreshBackupStatus();
+    if (sessionStorage.getItem(AUTH_RESTORE_KEY) === "1") {
+      sessionStorage.removeItem(AUTH_RESTORE_KEY);
+      openAccountSettings();
+      await prepareRestore();
+    }
   }
 
   async function renderLoginMethods(userId) {
@@ -462,6 +468,15 @@
     }, 100);
   }
 
+  function openAccountRestore() {
+    sessionStorage.setItem(AUTH_RESTORE_KEY, "1");
+    openAccountSettings();
+    if (currentSession?.user) {
+      sessionStorage.removeItem(AUTH_RESTORE_KEY);
+      void prepareRestore();
+    }
+  }
+
   function bindEvents() {
     nodes.accountEntry?.addEventListener("click", openAccountSettings);
     nodes.googleSignIn?.addEventListener("click", signInWithGoogle);
@@ -503,6 +518,7 @@
       return () => sessionSubscribers.delete(subscriber);
     },
     openAccountSettings,
+    openAccountRestore,
   };
 
   async function init() {

@@ -289,6 +289,7 @@ const UNDO_STORAGE_KEY = "tile-last-undo";
 const LAST_SYNC_STORAGE_KEY = "tile-neis-last-sync";
 const TIMETABLE_SHARE_STORAGE_KEYS = [
   "tile-after-school",
+  "tile-last-regular-period",
   "tile-period-order",
   CELL_EDIT_STORAGE_KEY,
   SCHEDULE_EDIT_STORAGE_KEY,
@@ -304,6 +305,7 @@ const TIMETABLE_SHARE_VERSION = 1;
 const MAX_TIMETABLE_SHARE_LENGTH = 18000;
 const USER_DATA_STORAGE_KEYS = [
   "tile-start-mode",
+  "tile-last-regular-period",
   "tile-after-school",
   "tile-period-order",
   CELL_EDIT_STORAGE_KEY,
@@ -944,7 +946,9 @@ function validateTimetableSharePayload(payload) {
     if (typeof value === "string") {
       totalLength += value.length;
       if (value.length > 50000) throw new Error("공유된 시간표 항목이 너무 큽니다.");
-      if (key !== "tile-neis-sync-scope") JSON.parse(value);
+      if (key === "tile-last-regular-period") {
+        if (!/^[4-7]$/.test(value)) throw new Error("공유된 마지막 교시 설정을 읽지 못했습니다.");
+      } else if (key !== "tile-neis-sync-scope") JSON.parse(value);
     }
     values[key] = value;
   });
@@ -1136,6 +1140,9 @@ function restoreAccountBackup(backup) {
   if (entries.length === 0) throw new Error("복원할 Tile 데이터가 없습니다.");
 
   pushUndoSnapshot("계정 백업 복원 전");
+  if (!Object.prototype.hasOwnProperty.call(backup.values, LAST_PERIOD_STORAGE_KEY)) {
+    localStorage.removeItem(LAST_PERIOD_STORAGE_KEY);
+  }
   entries.forEach(([key, value]) => {
     if (value === null || value === undefined) localStorage.removeItem(key);
     else if (typeof value === "string") localStorage.setItem(key, value);
@@ -2897,7 +2904,8 @@ function renderDailyHomeroomSchedule() {
     }
     homeroomItem.dayRanges = {};
   }
-  const lessonRows = [...document.querySelectorAll('tbody tr[data-period$="교시"]')];
+  const lessonRows = [...document.querySelectorAll('tbody tr[data-period$="교시"]')]
+    .filter(row => !row.classList.contains("is-beyond-last-period"));
 
   for (let day = 1; day <= 5; day += 1) {
     const { start, end } = getScheduleItemForDay(homeroomItem, day);
@@ -3880,13 +3888,14 @@ window.TileApp = {
     return backup;
   },
   applyPersonalPreset(backup) {
-    if (backup?.version !== 1 || !backup.values || USER_DATA_STORAGE_KEYS.some(key =>
+    if (backup?.version !== 1 || !backup.values || USER_DATA_STORAGE_KEYS.filter(key => key !== LAST_PERIOD_STORAGE_KEY).some(key =>
       !Object.prototype.hasOwnProperty.call(backup.values, key) || (backup.values[key] !== null && typeof backup.values[key] !== "string"))) {
       throw new Error("프리셋 형식을 읽을 수 없습니다.");
     }
     const previous = captureUserDataSnapshot("프리셋 적용 전");
     try {
       applySnapshotValues(backup.values);
+      if (!Object.prototype.hasOwnProperty.call(backup.values, LAST_PERIOD_STORAGE_KEY)) localStorage.removeItem(LAST_PERIOD_STORAGE_KEY);
       localStorage.setItem(UNDO_STORAGE_KEY, JSON.stringify(previous));
     } catch (error) {
       try { applySnapshotValues(previous.values); } catch (restoreError) { console.error(restoreError); }
@@ -4120,13 +4129,20 @@ let schoolSetupCompleted = false;
 
 function focusWithoutInitialRing(element) {
     if (!element) return;
-    element.classList.add("programmatic-focus");
-    element.addEventListener("blur", () => element.classList.remove("programmatic-focus"), { once: true });
+    if (!keyboardFocusIntent) {
+      element.classList.add("programmatic-focus");
+      element.addEventListener("blur", () => element.classList.remove("programmatic-focus"), { once: true });
+    }
     element.focus({ preventScroll: true });
 }
+let keyboardFocusIntent = false;
 document.addEventListener("keydown", event => {
-  if (event.key === "Tab") document.activeElement?.classList?.remove("programmatic-focus");
+  if (["Tab", "Enter", " "].includes(event.key)) {
+    keyboardFocusIntent = true;
+    document.activeElement?.classList?.remove("programmatic-focus");
+  }
 });
+document.addEventListener("pointerdown", () => { keyboardFocusIntent = false; });
 
 function setSetupStartView(view, animate = true) {
     if (animate) window.TileMetrics?.track(view === "choose" ? "start_choices_view" : "school_setup_view", { once: true });
@@ -4851,7 +4867,7 @@ document.getElementById("setupChooseSchool")?.addEventListener("click", () => se
 document.getElementById("setupChooseBack")?.addEventListener("click", () => setSetupStartView("choose"));
 document.getElementById("setupChooseAccount")?.addEventListener("click", async () => {
   await closeSchoolSettingsModal({ restoreFocus: false });
-  window.TileAuth?.openAccountSettings?.();
+  window.TileAuth?.openAccountRestore?.();
 });
 
 async function startManualTimetable(event) {
