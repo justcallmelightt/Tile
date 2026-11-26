@@ -14,14 +14,60 @@ function helper(name, context) {
   return vm.runInNewContext(`(${authSource.slice(start, end)})`, context);
 }
 
-test('start flow offers an explicit account restore choice alongside school and manual setup', () => {
+test('start flow separates sign-in from account restore and local setup', () => {
   assert.match(html, /id="setupChooseSchool"/);
   assert.match(html, /id="setupChooseManual"/);
   assert.doesNotMatch(html, /로그인해서 불러오기|id="setupAccountSignIn"/);
   assert.doesNotMatch(scriptSource, /startRestoreFlow/);
   assert.match(html, /id="setupChooseAccount"/);
+  assert.match(html, /id="setupChooseSignIn"[\s\S]*?로그인하여 시작하기/);
+  assert.match(scriptSource, /TileAuth\?\.openAccountStart\?\.\(\)/);
   assert.match(scriptSource, /TileAuth\?\.openAccountRestore\?\.\(\)/);
   assert.match(authSource, /AUTH_RESTORE_KEY/);
+});
+
+test('sign-in start resumes setup without requesting a backup', () => {
+  const storage = new Map([['restore-intent', '1']]);
+  let opened = 0;
+  let resumed = 0;
+  const context = {
+    AUTH_START_KEY: 'start-intent', AUTH_RESTORE_KEY: 'restore-intent',
+    sessionStorage: { setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) },
+    currentSession: null,
+    openAccountSettings: () => { opened += 1; },
+    window: { TileApp: { resumeStartAfterLogin: () => { resumed += 1; } } },
+  };
+  helper('openAccountStart', context)();
+  assert.equal(storage.get('start-intent'), '1');
+  assert.equal(storage.has('restore-intent'), false);
+  assert.equal(opened, 1);
+  assert.equal(resumed, 0);
+  context.currentSession = { user: { id: 'user-1' } };
+  helper('openAccountStart', context)();
+  assert.equal(resumed, 1);
+  helper('cancelAccountStart', context)();
+  assert.equal(storage.has('start-intent'), false);
+});
+
+test('completed sign-in returns to start choices without restoring data', async () => {
+  const storage = new Map([['start-intent', '1']]);
+  let resumed = 0;
+  let restoreRequests = 0;
+  const context = {
+    AUTH_START_KEY: 'start-intent', AUTH_RESTORE_KEY: 'restore-intent',
+    sessionStorage: { getItem: key => storage.get(key), removeItem: key => storage.delete(key) },
+    currentSession: null, pendingRestore: null,
+    nodes: { restorePanel: {}, deletePanel: {}, signedOut: {}, signedIn: {}, avatar: {}, displayName: {}, email: {} },
+    setHidden() {}, setMessage() {}, setMethodsMessage() {},
+    sessionSubscribers: new Set(), getInitial: () => 'T',
+    window: { TileMetrics: { track() {} }, TileApp: { resumeStartAfterLogin: async () => { resumed += 1; } } },
+    openAccountSettings() {}, prepareRestore: async () => { restoreRequests += 1; },
+    renderLoginMethods: async () => {}, refreshBackupStatus: async () => {},
+  };
+  await helper('renderSession', context)({ user: { id: 'user-1', email: 'test@example.com' } });
+  assert.equal(resumed, 1);
+  assert.equal(restoreRequests, 0);
+  assert.equal(storage.has('start-intent'), false);
 });
 
 test('account backup actions are manual and collapsed by default', () => {
@@ -56,6 +102,7 @@ test('account restore choice keeps intent until sign-in and only previews the ba
   let opened = 0;
   let previews = 0;
   const context = {
+    AUTH_START_KEY: 'start-intent',
     AUTH_RESTORE_KEY: 'restore-intent',
     sessionStorage: { setItem: (key, value) => storage.set(key, value), getItem: key => storage.get(key), removeItem: key => storage.delete(key) },
     currentSession: null,
