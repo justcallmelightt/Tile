@@ -3466,7 +3466,7 @@ function getCurrentSubjectAndRoom(currentSchedule, dayOfWeek) {
     || classroomMap[subject];
   return {
     subject,
-    room: room ? `교실: ${room}` : "미지정"
+    room: room || "미지정"
   };
 }
 
