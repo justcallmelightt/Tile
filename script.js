@@ -1131,22 +1131,35 @@ function createAccountBackup() {
 }
 
 function restoreAccountBackup(backup) {
-  if (!backup || backup.version !== 1 || !backup.values || typeof backup.values !== "object") {
+  if (!backup || backup.version !== 1 || !backup.values || typeof backup.values !== "object" || Array.isArray(backup.values)) {
     throw new Error("지원하지 않는 Tile 백업 형식입니다.");
   }
 
   const allowedKeys = new Set(USER_DATA_STORAGE_KEYS);
   const entries = Object.entries(backup.values).filter(([key]) => allowedKeys.has(key));
-  if (entries.length === 0) throw new Error("복원할 Tile 데이터가 없습니다.");
-
-  pushUndoSnapshot("계정 백업 복원 전");
-  if (!Object.prototype.hasOwnProperty.call(backup.values, LAST_PERIOD_STORAGE_KEY)) {
-    localStorage.removeItem(LAST_PERIOD_STORAGE_KEY);
+  if (entries.length === 0 || entries.some(([, value]) => value !== null && value !== undefined && typeof value !== "string")) {
+    throw new Error("복원할 Tile 데이터가 올바르지 않습니다.");
   }
-  entries.forEach(([key, value]) => {
-    if (value === null || value === undefined) localStorage.removeItem(key);
-    else if (typeof value === "string") localStorage.setItem(key, value);
-  });
+
+  const previous = captureUserDataSnapshot("계정 백업 복원 전");
+  const previousUndo = localStorage.getItem(UNDO_STORAGE_KEY);
+  const values = Object.fromEntries(USER_DATA_STORAGE_KEYS.map(key => [
+    key, Object.prototype.hasOwnProperty.call(backup.values, key) ? backup.values[key] : null
+  ]));
+  try {
+    localStorage.setItem(UNDO_STORAGE_KEY, JSON.stringify(previous));
+    if (!applySnapshotValues(values)) throw new Error("복원할 Tile 데이터가 올바르지 않습니다.");
+  } catch (error) {
+    try {
+      applySnapshotValues(previous.values);
+      if (previousUndo === null) localStorage.removeItem(UNDO_STORAGE_KEY);
+      else localStorage.setItem(UNDO_STORAGE_KEY, previousUndo);
+    } catch (rollbackError) {
+      console.error("Tile 계정 복원 상태 되돌리기 실패", rollbackError);
+      throw new Error("복원 중 저장 공간 오류가 발생했습니다. 기존 데이터도 확인해주세요.");
+    }
+    throw error;
+  }
   window.location.reload();
 }
 

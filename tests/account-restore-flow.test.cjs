@@ -122,6 +122,70 @@ test('account restore choice keeps intent until sign-in and only previews the ba
 test('last regular period travels with backups and shares without rejecting older data', () => {
   assert.match(scriptSource, /const TIMETABLE_SHARE_STORAGE_KEYS = \[[\s\S]*?"tile-last-regular-period"/);
   assert.match(scriptSource, /const USER_DATA_STORAGE_KEYS = \[[\s\S]*?"tile-last-regular-period"/);
-  assert.match(scriptSource, /!Object\.prototype\.hasOwnProperty\.call\(backup\.values, LAST_PERIOD_STORAGE_KEY\)/);
+  assert.match(scriptSource, /Object\.prototype\.hasOwnProperty\.call\(backup\.values, key\) \? backup\.values\[key\] : null/);
   assert.match(scriptSource, /\.filter\(row => !row\.classList\.contains\("is-beyond-last-period"\)\)/);
+});
+
+test('failed account restore leaves local data and undo history intact', () => {
+  const start = scriptSource.indexOf('function restoreAccountBackup(');
+  const end = scriptSource.indexOf('\n}\n', start) + 2;
+  const stored = new Map([['tile-start-mode', 'manual'], ['tile-last-regular-period', '7'], ['tile-last-undo', 'previous undo']]);
+  let failsOnce = true;
+  const localStorage = {
+    getItem: key => stored.get(key) ?? null,
+    removeItem: key => stored.delete(key),
+    setItem(key, value) {
+      if (key === 'tile-start-mode' && value === 'school' && failsOnce) {
+        failsOnce = false;
+        throw new Error('Storage full');
+      }
+      stored.set(key, value);
+    },
+  };
+  const restore = vm.runInNewContext(`(${scriptSource.slice(start, end)})`, {
+    USER_DATA_STORAGE_KEYS: ['tile-start-mode', 'tile-last-regular-period'],
+    LAST_PERIOD_STORAGE_KEY: 'tile-last-regular-period', UNDO_STORAGE_KEY: 'tile-last-undo',
+    localStorage, captureUserDataSnapshot: () => ({ values: { 'tile-start-mode': 'manual', 'tile-last-regular-period': '7' } }),
+    applySnapshotValues(values) {
+      for (const [key, value] of Object.entries(values)) {
+        if (value === null) localStorage.removeItem(key);
+        else localStorage.setItem(key, value);
+      }
+      return true;
+    },
+    window: { location: { reload: () => assert.fail('must not reload after failed restore') } },
+  });
+  assert.throws(() => restore({ version: 1, values: { 'tile-start-mode': 'school', 'tile-last-regular-period': '4' } }), /Storage full/);
+  assert.equal(stored.get('tile-start-mode'), 'manual');
+  assert.equal(stored.get('tile-last-regular-period'), '7');
+  assert.equal(stored.get('tile-last-undo'), 'previous undo');
+});
+
+test('older account backup clears local fields absent from that backup', () => {
+  const start = scriptSource.indexOf('function restoreAccountBackup(');
+  const end = scriptSource.indexOf('\n}\n', start) + 2;
+  const stored = new Map([['tile-start-mode', 'manual'], ['tile-last-regular-period', '7']]);
+  let reloaded = false;
+  const localStorage = {
+    getItem: key => stored.get(key) ?? null,
+    removeItem: key => stored.delete(key),
+    setItem: (key, value) => stored.set(key, value),
+  };
+  const restore = vm.runInNewContext(`(${scriptSource.slice(start, end)})`, {
+    USER_DATA_STORAGE_KEYS: ['tile-start-mode', 'tile-last-regular-period'],
+    LAST_PERIOD_STORAGE_KEY: 'tile-last-regular-period', UNDO_STORAGE_KEY: 'tile-last-undo',
+    localStorage, captureUserDataSnapshot: () => ({ values: { 'tile-start-mode': 'manual', 'tile-last-regular-period': '7' } }),
+    applySnapshotValues(values) {
+      for (const [key, value] of Object.entries(values)) {
+        if (value === null) localStorage.removeItem(key);
+        else localStorage.setItem(key, value);
+      }
+      return true;
+    },
+    window: { location: { reload: () => { reloaded = true; } } },
+  });
+  restore({ version: 1, values: { 'tile-start-mode': 'school' } });
+  assert.equal(stored.get('tile-start-mode'), 'school');
+  assert.equal(stored.has('tile-last-regular-period'), false);
+  assert.equal(reloaded, true);
 });
