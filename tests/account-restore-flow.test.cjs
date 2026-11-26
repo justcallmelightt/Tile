@@ -33,6 +33,7 @@ test('account backup actions are manual and collapsed by default', () => {
   const sessionEnd = authSource.indexOf('\n  }\n', sessionStart) + 4;
   assert.doesNotMatch(authSource.slice(sessionStart, sessionEnd), /backupCurrentData\(/);
   assert.match(authSource.slice(sessionStart, sessionEnd), /sessionStorage\.getItem\(AUTH_RESTORE_KEY\)[\s\S]*prepareRestore\(\)/);
+  assert.ok(authSource.slice(sessionStart, sessionEnd).indexOf('await prepareRestore()') < authSource.slice(sessionStart, sessionEnd).indexOf('await renderLoginMethods(user.id)'));
 });
 
 test('manual restore shows a preview and waits for confirmation', async () => {
@@ -40,11 +41,12 @@ test('manual restore shows a preview and waits for confirmation', async () => {
   const context = {
     client: { from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { payload: backup, updated_at: '2026-11-12' }, error: null }) }) }) }) },
     currentSession: { user: { id: 'user-1' } }, pendingRestore: null,
-    nodes: { restorePanel: { hidden: true }, restore: {}, restoreDescription: {} },
+    nodes: { manualBackup: { open: false }, restorePanel: { hidden: true }, restore: {}, restoreDescription: {} },
     setHidden: (node, hidden) => { node.hidden = hidden; },
     setBusy: () => {}, setMessage: () => {}, formatDate: () => '11월 12일',
   };
   await helper('prepareRestore', context)();
+  assert.equal(context.nodes.manualBackup.open, true);
   assert.equal(context.nodes.restorePanel.hidden, false);
   assert.match(context.nodes.restoreDescription.textContent, /현재 데이터는 되돌리기용으로 보관합니다/);
 });

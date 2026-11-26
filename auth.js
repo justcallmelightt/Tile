@@ -11,6 +11,7 @@
     avatar: byId("accountAvatar"), displayName: byId("accountDisplayName"),
     email: byId("accountEmail"), message: byId("accountMessage"), backupStatus: byId("cloudBackupStatus"),
     backup: byId("backupCloudData"), restore: byId("restoreCloudData"), restorePanel: byId("restoreConfirmPanel"),
+    manualBackup: document.querySelector(".account-manual-backup"),
     restoreDescription: byId("restoreConfirmDescription"), cancelRestore: byId("cancelCloudRestore"),
     confirmRestore: byId("confirmCloudRestore"), signOut: byId("accountSignOut"), showDelete: byId("showDeleteAccount"),
     deletePanel: byId("deleteAccountPanel"), cancelDelete: byId("cancelDeleteAccount"), confirmDelete: byId("confirmDeleteAccount"),
@@ -211,13 +212,13 @@
     if (nodes.avatar) nodes.avatar.textContent = getInitial(user);
     if (nodes.displayName) nodes.displayName.textContent = name;
     if (nodes.email) nodes.email.textContent = user.email || "Google 계정";
-    await renderLoginMethods(user.id);
-    await refreshBackupStatus();
     if (sessionStorage.getItem(AUTH_RESTORE_KEY) === "1") {
       sessionStorage.removeItem(AUTH_RESTORE_KEY);
       openAccountSettings();
       await prepareRestore();
     }
+    await renderLoginMethods(user.id);
+    await refreshBackupStatus();
   }
 
   async function renderLoginMethods(userId) {
@@ -399,6 +400,7 @@
 
   async function prepareRestore() {
     if (!client || !currentSession?.user) return;
+    if (nodes.manualBackup) nodes.manualBackup.open = true;
     const userId = currentSession.user.id;
     pendingRestore = null;
     setHidden(nodes.restorePanel, true);
