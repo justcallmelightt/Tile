@@ -14,60 +14,29 @@ function helper(name, context) {
   return vm.runInNewContext(`(${authSource.slice(start, end)})`, context);
 }
 
-test('start flow separates sign-in from account restore and local setup', () => {
+test('start flow has one original Lightframe sign-in entry beside local setup', () => {
   assert.match(html, /id="setupChooseSchool"/);
   assert.match(html, /id="setupChooseManual"/);
-  assert.doesNotMatch(html, /로그인해서 불러오기|id="setupAccountSignIn"/);
-  assert.doesNotMatch(scriptSource, /startRestoreFlow/);
-  assert.match(html, /id="setupChooseAccount"/);
-  assert.match(html, /id="setupChooseSignIn"[\s\S]*?로그인하여 시작하기/);
-  assert.match(scriptSource, /TileAuth\?\.openAccountStart\?\.\(\)/);
-  assert.match(scriptSource, /TileAuth\?\.openAccountRestore\?\.\(\)/);
-  assert.match(authSource, /AUTH_RESTORE_KEY/);
+  assert.match(html, /id="setupAccountSignIn" class="account-lightframe-toggle setup-choice-login"[\s\S]*?로그인하여 시작하기/);
+  assert.doesNotMatch(html, /id="setupChooseAccount"|id="setupChooseSignIn"/);
+  assert.match(scriptSource, /getElementById\("setupAccountSignIn"\)[\s\S]*TileAuth\?\.openAccountSettings\?\.\(\)/);
+  assert.doesNotMatch(authSource, /AUTH_RESTORE_KEY|AUTH_START_KEY|openAccountRestore|openAccountStart/);
 });
 
-test('sign-in start resumes setup without requesting a backup', () => {
-  const storage = new Map([['restore-intent', '1']]);
-  let opened = 0;
-  let resumed = 0;
-  const context = {
-    AUTH_START_KEY: 'start-intent', AUTH_RESTORE_KEY: 'restore-intent',
-    sessionStorage: { setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) },
-    currentSession: null,
-    openAccountSettings: () => { opened += 1; },
-    window: { TileApp: { resumeStartAfterLogin: () => { resumed += 1; } } },
-  };
-  helper('openAccountStart', context)();
-  assert.equal(storage.get('start-intent'), '1');
-  assert.equal(storage.has('restore-intent'), false);
-  assert.equal(opened, 1);
-  assert.equal(resumed, 0);
-  context.currentSession = { user: { id: 'user-1' } };
-  helper('openAccountStart', context)();
-  assert.equal(resumed, 1);
-  helper('cancelAccountStart', context)();
-  assert.equal(storage.has('start-intent'), false);
-});
-
-test('completed sign-in returns to start choices without restoring data', async () => {
-  const storage = new Map([['start-intent', '1']]);
-  let resumed = 0;
+test('completed sign-in does not automatically restore data', async () => {
   let restoreRequests = 0;
   const context = {
-    AUTH_START_KEY: 'start-intent', AUTH_RESTORE_KEY: 'restore-intent',
-    sessionStorage: { getItem: key => storage.get(key), removeItem: key => storage.delete(key) },
+    sessionStorage: { getItem: () => null, removeItem() {} },
     currentSession: null, pendingRestore: null,
     nodes: { restorePanel: {}, deletePanel: {}, signedOut: {}, signedIn: {}, avatar: {}, displayName: {}, email: {} },
     setHidden() {}, setMessage() {}, setMethodsMessage() {},
     sessionSubscribers: new Set(), getInitial: () => 'T',
-    window: { TileMetrics: { track() {} }, TileApp: { resumeStartAfterLogin: async () => { resumed += 1; } } },
+    window: { TileMetrics: { track() {} } },
     openAccountSettings() {}, prepareRestore: async () => { restoreRequests += 1; },
     renderLoginMethods: async () => {}, refreshBackupStatus: async () => {},
   };
   await helper('renderSession', context)({ user: { id: 'user-1', email: 'test@example.com' } });
-  assert.equal(resumed, 1);
   assert.equal(restoreRequests, 0);
-  assert.equal(storage.has('start-intent'), false);
 });
 
 test('account backup actions are manual and collapsed by default', () => {
@@ -78,8 +47,7 @@ test('account backup actions are manual and collapsed by default', () => {
   const sessionStart = authSource.indexOf('async function renderSession(');
   const sessionEnd = authSource.indexOf('\n  }\n', sessionStart) + 4;
   assert.doesNotMatch(authSource.slice(sessionStart, sessionEnd), /backupCurrentData\(/);
-  assert.match(authSource.slice(sessionStart, sessionEnd), /sessionStorage\.getItem\(AUTH_RESTORE_KEY\)[\s\S]*prepareRestore\(\)/);
-  assert.ok(authSource.slice(sessionStart, sessionEnd).indexOf('await prepareRestore()') < authSource.slice(sessionStart, sessionEnd).indexOf('await renderLoginMethods(user.id)'));
+  assert.doesNotMatch(authSource.slice(sessionStart, sessionEnd), /prepareRestore\(/);
 });
 
 test('manual restore shows a preview and waits for confirmation', async () => {
@@ -95,28 +63,6 @@ test('manual restore shows a preview and waits for confirmation', async () => {
   assert.equal(context.nodes.manualBackup.open, true);
   assert.equal(context.nodes.restorePanel.hidden, false);
   assert.match(context.nodes.restoreDescription.textContent, /현재 데이터는 되돌리기용으로 보관합니다/);
-});
-
-test('account restore choice keeps intent until sign-in and only previews the backup', async () => {
-  const storage = new Map();
-  let opened = 0;
-  let previews = 0;
-  const context = {
-    AUTH_START_KEY: 'start-intent',
-    AUTH_RESTORE_KEY: 'restore-intent',
-    sessionStorage: { setItem: (key, value) => storage.set(key, value), getItem: key => storage.get(key), removeItem: key => storage.delete(key) },
-    currentSession: null,
-    openAccountSettings: () => { opened += 1; },
-    prepareRestore: async () => { previews += 1; },
-  };
-  helper('openAccountRestore', context)();
-  assert.equal(storage.get('restore-intent'), '1');
-  assert.equal(opened, 1);
-  assert.equal(previews, 0);
-  context.currentSession = { user: { id: 'user-1' } };
-  helper('openAccountRestore', context)();
-  assert.equal(storage.has('restore-intent'), false);
-  assert.equal(previews, 1);
 });
 
 test('last regular period travels with backups and shares without rejecting older data', () => {

@@ -3874,13 +3874,6 @@ window.TileApp = {
   },
   setDialogVisible: setSetupDialogVisible,
   setNativeDialogVisible,
-  async resumeStartAfterLogin() {
-    if (appSettingsModal && !appSettingsModal.classList.contains("hidden")) {
-      await setSetupDialogVisible(appSettingsModal, false);
-      document.body.classList.remove("modal-open");
-    }
-    openStartChoices();
-  },
   createPersonalPreset() {
     const backup = createAccountBackup();
     const edits = {};
@@ -4595,7 +4588,6 @@ function openAppSettings() {
 
 function closeAppSettingsModal() {
   if (!appSettingsModal) return;
-  window.TileAuth?.cancelAccountStart?.();
   setSetupDialogVisible(appSettingsModal, false);
   document.body.classList.remove("modal-open");
   restoreDialogTrigger();
@@ -4886,13 +4878,9 @@ bindBackdropDismiss(setupModal, closeSchoolSettingsModal);
 
 document.getElementById("setupChooseSchool")?.addEventListener("click", () => setSetupStartView("school"));
 document.getElementById("setupChooseBack")?.addEventListener("click", () => setSetupStartView("choose"));
-document.getElementById("setupChooseSignIn")?.addEventListener("click", async () => {
-  await closeSchoolSettingsModal({ restoreFocus: false });
-  window.TileAuth?.openAccountStart?.();
-});
-document.getElementById("setupChooseAccount")?.addEventListener("click", async () => {
-  await closeSchoolSettingsModal({ restoreFocus: false });
-  window.TileAuth?.openAccountRestore?.();
+document.getElementById("setupAccountSignIn")?.addEventListener("click", async () => {
+  const closed = await closeSchoolSettingsModal({ restoreFocus: false });
+  if (closed && setupModal?.classList.contains("hidden")) window.TileAuth?.openAccountSettings?.();
 });
 
 async function startManualTimetable(event) {

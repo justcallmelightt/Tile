@@ -35,9 +35,9 @@ function createGoogleSignIn({ error = null } = {}) {
   return { signIn: vm.runInNewContext(`(${source.slice(start, end)})`, context), calls, notices, storage, nodes };
 }
 
-test('account settings retain Google OAuth without a login-to-restore start choice', async () => {
+test('single start entry opens account settings with Google OAuth', async () => {
   const html = readFileSync(`${__dirname}/../index.html`, 'utf8');
-  assert.doesNotMatch(html, /id="setupAccountSignIn"/);
+  assert.match(html, /id="setupAccountSignIn"/);
   assert.match(html, /id="googleSignIn"/);
   assert.match(source, /nodes\.setupGoogleSignIn\?\.addEventListener\("click", signInWithGoogle\)/);
   const auth = createGoogleSignIn();

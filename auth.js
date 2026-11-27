@@ -27,8 +27,6 @@
   const sessionSubscribers = new Set();
   const AUTH_RETURN_KEY = "tile-auth-return-location";
   const AUTH_LINK_KEY = "tile-auth-link-google";
-  const AUTH_RESTORE_KEY = "tile-auth-restore-after-login";
-  const AUTH_START_KEY = "tile-auth-start-after-login";
   const MAX_AUTH_RETURN_LENGTH = 20000;
   const CANONICAL_AUTH_ORIGIN = "https://tile0.vercel.app";
   const PREVIEW_AUTH_ORIGIN = /^https:\/\/tile-[a-z0-9-]+-justgivemethespotlights-projects\.vercel\.app$/;
@@ -215,14 +213,6 @@
     if (nodes.avatar) nodes.avatar.textContent = getInitial(user);
     if (nodes.displayName) nodes.displayName.textContent = name;
     if (nodes.email) nodes.email.textContent = user.email || "Google 계정";
-    if (sessionStorage.getItem(AUTH_RESTORE_KEY) === "1") {
-      sessionStorage.removeItem(AUTH_RESTORE_KEY);
-      openAccountSettings();
-      await prepareRestore();
-    } else if (sessionStorage.getItem(AUTH_START_KEY) === "1") {
-      sessionStorage.removeItem(AUTH_START_KEY);
-      await window.TileApp?.resumeStartAfterLogin?.();
-    }
     await renderLoginMethods(user.id);
     await refreshBackupStatus();
   }
@@ -476,30 +466,6 @@
     }, 100);
   }
 
-  function openAccountRestore() {
-    sessionStorage.removeItem(AUTH_START_KEY);
-    sessionStorage.setItem(AUTH_RESTORE_KEY, "1");
-    openAccountSettings();
-    if (currentSession?.user) {
-      sessionStorage.removeItem(AUTH_RESTORE_KEY);
-      void prepareRestore();
-    }
-  }
-
-  function openAccountStart() {
-    sessionStorage.removeItem(AUTH_RESTORE_KEY);
-    if (currentSession?.user) {
-      void window.TileApp?.resumeStartAfterLogin?.();
-      return;
-    }
-    sessionStorage.setItem(AUTH_START_KEY, "1");
-    openAccountSettings();
-  }
-
-  function cancelAccountStart() {
-    sessionStorage.removeItem(AUTH_START_KEY);
-  }
-
   function bindEvents() {
     nodes.accountEntry?.addEventListener("click", openAccountSettings);
     nodes.googleSignIn?.addEventListener("click", signInWithGoogle);
@@ -541,9 +507,6 @@
       return () => sessionSubscribers.delete(subscriber);
     },
     openAccountSettings,
-    openAccountStart,
-    cancelAccountStart,
-    openAccountRestore,
   };
 
   async function init() {

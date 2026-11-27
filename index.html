@@ -97,16 +97,12 @@
           <span><strong>직접 시간표 만들기</strong><small>기본 시간대에 과목을 직접 채워요.</small></span>
           <svg class="setup-choice-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 3.5 4.5 4.5L6 12.5"/></svg>
         </button>
-        <button id="setupChooseSignIn" class="setup-choice" type="button">
-          <span class="setup-choice-symbol" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 2.9-6 7-6s7 2.5 7 6"/></svg></span>
-          <span><strong>로그인하여 시작하기</strong><small>먼저 로그인하고 시간표 준비 방법을 선택해요.</small></span>
-          <svg class="setup-choice-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 3.5 4.5 4.5L6 12.5"/></svg>
-        </button>
-        <button id="setupChooseAccount" class="setup-choice" type="button">
-          <span class="setup-choice-symbol" aria-hidden="true">◇</span>
-          <span><strong>계정에서 불러오기</strong><small>로그인한 뒤 저장된 백업을 선택해 이 기기에 적용해요.</small></span>
-          <svg class="setup-choice-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 3.5 4.5 4.5L6 12.5"/></svg>
-        </button>
+        <div class="account-lightframe-action">
+          <button id="setupAccountSignIn" class="account-lightframe-toggle setup-choice-login" type="button">
+            <span class="account-lightframe-mark" aria-hidden="true"><svg class="account-lightframe-glyph" viewBox="0 0 391 580" focusable="false"><path d="M0 289.645L195.152 0L390.305 289.645L195.152 579.301L0 289.645Z" fill="currentColor"/></svg></span>
+            <span><strong>로그인하여 시작하기</strong><small>Lightframe. 계정으로 로그인해요. 백업은 로그인 후 직접 불러올 수 있어요.</small></span>
+          </button>
+        </div>
         <p id="setupChoiceMessage" class="form-message" role="status"></p>
       </div>
       <div id="setupSchoolPanel" class="setup-school-panel">
