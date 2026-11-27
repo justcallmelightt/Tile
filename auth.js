@@ -148,6 +148,15 @@
     const target = readAuthReturnLocation();
     sessionStorage.removeItem(AUTH_RETURN_KEY);
     if (!target || target === currentReturnLocation()) return false;
+    const returnUrl = new URL(target, window.location.origin);
+    if (returnUrl.pathname === window.location.pathname
+      && returnUrl.search === window.location.search
+      && (!returnUrl.hash || returnUrl.hash === "#")) {
+      // OAuth has already loaded this document. A second navigation restarted
+      // the welcome animation and setup timer, making the screen flash.
+      window.history.replaceState(window.history.state, "", target);
+      return false;
+    }
     window.location.replace(target);
     return true;
   }

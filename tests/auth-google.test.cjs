@@ -80,3 +80,24 @@ test('Tile Vercel previews keep Google OAuth on the same deployment', () => {
   });
   assert.equal(getRedirect(), `${origin}/index.html`);
 });
+
+test('OAuth return to the same page avoids a second document load', () => {
+  const origin = 'https://tile0.vercel.app';
+  const storage = new Map([['tile-auth-return-location', '/#']]);
+  const calls = [];
+  const restore = authHelper('restoreAuthReturnLocation', {
+    AUTH_RETURN_KEY: 'tile-auth-return-location',
+    readAuthReturnLocation: () => storage.get('tile-auth-return-location'),
+    sessionStorage: { removeItem: key => storage.delete(key) },
+    currentReturnLocation: () => '/',
+    URL,
+    window: {
+      location: { origin, pathname: '/', search: '' },
+      history: { state: null, replaceState: (_state, _title, target) => calls.push(['history', target]) },
+      locationReplace: target => calls.push(['navigation', target]),
+    },
+  });
+  assert.equal(restore(), false);
+  assert.deepEqual(calls, [['history', '/#']]);
+  assert.equal(storage.has('tile-auth-return-location'), false);
+});
