@@ -1051,6 +1051,7 @@ html[data-status-layout="focused"] #mainContent .status-item-day { order: 5; }
 .setup-back { display: inline-flex; align-items: center; justify-self: start; gap: 7px; min-height: 40px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 11px; background: var(--surface-soft); color: var(--text); font: inherit; font-size: .78rem; font-weight: 600; cursor: pointer; transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease; }
 .setup-back svg { width: 15px; height: 15px; flex: none; }
 .setup-choice:focus-visible:not(.programmatic-focus), .setup-back:focus-visible:not(.programmatic-focus) { outline: 2px solid var(--text); outline-offset: 3px; }
+.setup-choice.programmatic-focus:focus, .setup-back.programmatic-focus:focus { outline: none; }
 @media (hover: hover) {
   .setup-choice:hover { background: var(--toggle-bg); border-color: var(--text-soft); }
   .setup-back:hover { background: var(--toggle-bg); border-color: var(--text-soft); }
