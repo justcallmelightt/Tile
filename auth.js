@@ -31,6 +31,7 @@
   const AUTH_START_KEY = "tile-auth-start-after-login";
   const MAX_AUTH_RETURN_LENGTH = 20000;
   const CANONICAL_AUTH_ORIGIN = "https://tile0.vercel.app";
+  const PREVIEW_AUTH_ORIGIN = /^https:\/\/tile-[a-z0-9-]+-justgivemethespotlights-projects\.vercel\.app$/;
 
   function isConfigured() {
     return /^https:\/\/.+\.supabase\.co$/i.test(config.supabaseUrl || "")
@@ -122,10 +123,11 @@
   }
 
   function getAuthRedirectUrl() {
-    // OAuth callbacks need a registered HTTPS origin. A file preview has no
-    // usable origin, so complete authentication on Tile's production site.
+    // Return to this Tile deployment when its URL is registered with Supabase.
+    // File and unrelated origins continue authentication on the production site.
     const canReturnToCurrentOrigin = window.location.protocol === "https:"
-      && window.location.origin === CANONICAL_AUTH_ORIGIN;
+      && (window.location.origin === CANONICAL_AUTH_ORIGIN
+        || PREVIEW_AUTH_ORIGIN.test(window.location.origin));
     return canReturnToCurrentOrigin
       ? `${window.location.origin}${window.location.pathname}`
       : `${CANONICAL_AUTH_ORIGIN}/`;

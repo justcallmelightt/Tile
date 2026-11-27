@@ -63,9 +63,20 @@ test('Google OAuth failure clears both busy states and the return marker', async
 test('file previews redirect Google OAuth to the deployed root, not a local file path', () => {
   const getRedirect = authHelper('getAuthRedirectUrl', {
     CANONICAL_AUTH_ORIGIN: 'https://tile0.vercel.app',
+    PREVIEW_AUTH_ORIGIN: /^https:\/\/tile-[a-z0-9-]+-justgivemethespotlights-projects\.vercel\.app$/,
     window: { location: {
       protocol: 'file:', origin: 'null', pathname: '/Users/example/Tile/index.html',
     } },
   });
   assert.equal(getRedirect(), 'https://tile0.vercel.app/');
+});
+
+test('Tile Vercel previews keep Google OAuth on the same deployment', () => {
+  const origin = 'https://tile-x0l27ahxi-justgivemethespotlights-projects.vercel.app';
+  const getRedirect = authHelper('getAuthRedirectUrl', {
+    CANONICAL_AUTH_ORIGIN: 'https://tile0.vercel.app',
+    PREVIEW_AUTH_ORIGIN: /^https:\/\/tile-[a-z0-9-]+-justgivemethespotlights-projects\.vercel\.app$/,
+    window: { location: { protocol: 'https:', origin, pathname: '/index.html' } },
+  });
+  assert.equal(getRedirect(), `${origin}/index.html`);
 });
